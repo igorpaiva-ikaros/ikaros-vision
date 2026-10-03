@@ -20,25 +20,25 @@ interface Creds {
 export function resolveCredentials(env: Record<string, string | undefined>):
   | { ok: true; creds: Creds }
   | { ok: false; missing: string[] } {
-  if (env.NOTION_API_KEY && env.LOVABLE_API_KEY) {
+  if (env["NOTION_API_KEY"] && env["LOVABLE_API_KEY"]) {
     return {
       ok: true,
       creds: {
         base: "https://connector-gateway.lovable.dev/notion/v1",
         headers: {
-          Authorization: `Bearer ${env.LOVABLE_API_KEY}`,
-          "X-Connection-Api-Key": env.NOTION_API_KEY,
+          Authorization: `Bearer ${env["LOVABLE_API_KEY"]}`,
+          "X-Connection-Api-Key": env["NOTION_API_KEY"],
           "Notion-Version": NOTION_VERSION,
         },
       },
     };
   }
-  if (env.NOTION_TOKEN) {
+  if (env["NOTION_TOKEN"]) {
     return {
       ok: true,
       creds: {
         base: "https://api.notion.com/v1",
-        headers: { Authorization: `Bearer ${env.NOTION_TOKEN}`, "Notion-Version": NOTION_VERSION },
+        headers: { Authorization: `Bearer ${env["NOTION_TOKEN"]}`, "Notion-Version": NOTION_VERSION },
       },
     };
   }
@@ -56,11 +56,11 @@ export async function notionFetch(
   const res = await fetch(`${creds.base}${path}`, {
     method: init.method ?? "GET",
     headers: { ...creds.headers, "Content-Type": "application/json" },
-    body: init.body ? JSON.stringify(init.body) : undefined,
+    ...(init.body !== undefined ? { body: JSON.stringify(init.body) } : {}),
   });
   if ((res.status === 429 || res.status >= 500) && attempt < 4) {
     const retryAfter = Number(res.headers.get("retry-after"));
-    await sleep(Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 500 * 2 ** attempt);
+    await sleep(Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(retryAfter, 60) * 1000 : 500 * 2 ** attempt);
     return notionFetch(creds, path, init, attempt + 1);
   }
   if (!res.ok) {
@@ -75,11 +75,12 @@ async function queryAll(creds: Creds, dataSourceId: string): Promise<NotionPage[
   let cursor: string | undefined;
   for (let i = 0; i < 200; i++) {
     const body: Record<string, unknown> = { page_size: 100 };
-    if (cursor) body.start_cursor = cursor;
+    if (cursor) body["start_cursor"] = cursor;
     const data = await notionFetch(creds, `/data_sources/${dataSourceId}/query`, { method: "POST", body });
     for (const r of data.results ?? []) if (r.object === "page") pages.push(r);
     if (!data.has_more || !data.next_cursor) break;
     cursor = data.next_cursor;
+    if (i === 199) throw new Error("Limite de paginação atingido. Leitura incompleta não foi salva.");
   }
   return pages;
 }
@@ -131,3 +132,4 @@ export async function fetchDataset(creds: Creds): Promise<Dataset> {
     ],
   };
 }
+

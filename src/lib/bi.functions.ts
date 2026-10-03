@@ -18,11 +18,12 @@ export const getBiState = createServerFn({ method: "POST" })
     if (!(await assertInternal(context))) return { status: "forbidden" };
     const { resolveCredentials } = await import("./notion/client.server");
     const creds = resolveCredentials(process.env);
-    const { data: snap } = await context.supabase
+    const { data: snap, error: snapshotError } = await context.supabase
       .from("sync_snapshots")
       .select("payload,last_success_at,last_attempt_at,last_error")
       .eq("key", SNAPSHOT_KEY)
       .maybeSingle();
+    if (snapshotError) throw new Error("Falha ao consultar última sincronização");
     if (!creds.ok && !snap?.payload) return { status: "not_configured", missing: creds.missing };
     if (!snap?.payload)
       return { status: "empty", lastError: snap?.last_error ?? null, lastAttemptAt: snap?.last_attempt_at ?? null };
@@ -76,3 +77,4 @@ export const refreshNotion = createServerFn({ method: "POST" })
       return { ok: false, message: msg };
     }
   });
+

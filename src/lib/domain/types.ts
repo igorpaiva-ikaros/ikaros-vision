@@ -110,6 +110,7 @@ export type ConnectionState =
   | { status: "demo" }
   | { status: "signed_out" }
   | { status: "forbidden" }
+  | { status: "error"; message: string }
   | { status: "not_configured"; missing: string[] }
   | { status: "empty"; lastError: string | null; lastAttemptAt: string | null }
   | {
@@ -120,3 +121,4 @@ export type ConnectionState =
       lastError: string | null;
       stale: boolean;
     };
+

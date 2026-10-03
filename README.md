@@ -1,41 +1,66 @@
-# Ikaros Vision
+# Ikaros Vision — BI Customer Success
 
-Crie um projeto novo chamado "Ikaros — BI Customer Success", um BI executivo em português brasileiro para Pedro Manhães, CEO. Não modifique o outro projeto de treinamento. Construa interface completa, elegante e funcional, React/TypeScript, gráficos, filtros, tabelas, detalhe de demanda, integração real com Notion através de backend seguro e documentação para manutenção independente via GitHub. Não publique dados privados.
+Painel executivo para Pedro Manhães. O Notion permanece como espaço de trabalho do CS; o BI apenas lê demandas e clientes. Projeto Lovable: https://lovable.dev/projects/aee205d0-22a2-4cb7-965e-0a2310bb7b8f
 
-Contexto: Ikaros é ERP SaaS para corretoras de consórcios e seguros. Notion é espaço operacional do CS, BI é visão do gestor. Clientes são empresas assinantes do ERP (companies), não os leads/clients finais dessas empresas. Nenhuma base real do ERP foi importada ainda. CS acompanha demandas mesmo encaminhadas ao desenvolvimento; publicação não equivale a conclusão, que envolve comunicação/validação do cliente.
+## Estado desta entrega
 
-Fonte Notion existente, somente LEITURA pelo BI, não criar nem editar bases:
-Demandas data source dec12f4c-bcf8-493f-b3ad-c5485dd251e7, database cb4d461d78c74db2a53db7f8d4442a0a.
-Clientes data source 19835596-775d-48a6-9939-c8235bd82e84, database a25ea8bb5d3d49219fda5abc5ec2f86f.
-Central https://app.notion.com/p/c300e02bc54547be8b1afef36701e241
-Propriedades Demandas exatas: Título (title), ID da demanda (unique_id), Cliente (relation para Clientes), Responsável (people), Data de entrada (created_time), Data de conclusão (date), Data de publicação (date), Prazo final (date), Prioridade (Baixa/Normal/Alta/Crítica), Classificação (Dúvida/Suporte/Bug/Pequena melhoria/Demanda complexa/Configuração/Onboarding/Upgrade), Canal de origem, Tipo técnico (Pequena/Complexa), Complexidade, Descrição do problema, Contexto, Impacto, Solução aplicada, Testes executados, Resultado dos testes, Cliente informado? (checkbox), Cliente validou? (checkbox), Registro de teste (checkbox). Status: Nova, Em triagem, Aguardando informação, Em execução, Aguardando validação, Encaminhada para desenvolvimento, Publicada, Aguardando cliente, Bloqueada, Concluída, Cancelada. SLA: Status SLA útil (auto) (formula), Prazo final efetivo (útil) (formula), Prazo 1ª resposta útil (auto) (formula), Prazo solução útil (auto) (formula), Status do SLA (select), SLA vencido? checkbox. Preserve origem da informação e mostre "Sem informação" para ausentes; não invente precisão.
-Clientes: obter nome da propriedade title pelo schema, Empresa, ID ERP, Slug ERP, Contato principal, E-mail da empresa, Telefone da empresa, E-mail do contato, Telefone do contato, WhatsApp do contato, Segmentos ERP, Plano contratado, Status do cliente, Responsável principal, Registro de teste. ID ERP chave externa para futura importação; não implementar importação fictícia.
+Código corrigido manualmente após esgotamento dos créditos do Lovable. A versão local inclui shell/navegação, demonstração identificada, filtros, detalhes, carteira, equipe, autenticação e leitura server-side. O código deste pacote ainda precisa ser enviado ao repositório **efetivamente vinculado** ao projeto. Não foi publicado e não está sincronizado com o editor do Lovable.
 
-UI: identidade sóbria azul-marinho, branco e acentos âmbar, marca textual Ikaros sem inventar logo. Sidebar Visão geral, Demandas, Clientes, Equipe, Integração. Cabeçalho CEO Pedro Manhães, intervalo hoje/7 dias/mês/período personalizado, timezone America/Sao_Paulo. Cards entradas no período, concluídas no período (data de conclusão), backlog atual (todos exceto Concluída/Cancelada, independente do intervalo), bloqueadas, encaminhadas para dev, SLA em atraso com cobertura de dados. Gráficos entradas versus conclusões por dia, distribuição por status/classificação, demandas por responsável e cliente. Sem falsa comparação percentual quando período anterior ausente. Filtros cliente, responsável, classificação, status, prioridade; limpar, busca, ordenação. Tabela clicável abrindo painel detalhe com descrição, cliente e contatos, datas, responsável, SLA e link "Abrir no Notion". Clientes mostra carteira/contact links mailto e WhatsApp só se URL válida, sem enviar mensagens. Equipe mostra volume e backlog com legenda, sem chamar volume de score de qualidade.
-Testes excluídos por padrão: Registro de teste em demanda OU cliente. Toggle "Incluir testes" explícito. Modo demonstração separado visível, com dados sintéticos coerentes, nunca disfarçados de produção. Default sem conexão: estado honesto "Notion não conectado", opção explícita "Explorar demonstração". Sem números sintéticos no modo real e sem fabricar cliente real. Não copiar dados confidenciais no bundle ou em arquivos públicos.
-Integração: implementar cliente Notion server-side com secret NOTION_TOKEN no backend, nunca VITE/public/browser/localStorage. API oficial atual data_sources query com paginação, types robustos, rate limit/retry, busca relations e people sem N+1 descontrolado, schema defensivo. Se token/infra não configurados, retornar estado not_configured. Implementar autenticação e autorização de acesso interno antes de exibir qualquer dado real, endpoints privados, não signup público irrestrito ou credenciais padrão. Use backend disponível apropriado e liste a configuração pendente honestamente. Não assumir MCP do Notion do ChatGPT como acesso runtime do site.
-Sincronização inicial por leitura e atualização manual funcional autenticada; se implementar webhook, validar assinatura oficial e não expor endpoint que aceita payload sem verificação. Não prometer webhook funcionando sem configurar assinatura/secret. Mostrar última sincronização bem sucedida e erro, preservar snapshot anterior indicando desatualizado em falha.
-SLA: regras de treinamento primeira resposta 4 horas úteis, solução OU encaminhamento 1 dia útil, janela seg-sex 08-18 São Paulo; não confundir encaminhar com resolver tecnicamente. Não inferir SLA cumprido sem timestamps reais de primeira resposta/encaminhamento. Mostrar essas métricas como indisponíveis se os campos não existem. Não calcular tempo por etapa sem histórico. Fórmulas Notion útil podem fornecer prazos/estado, documentar sua origem sem garantir auditoria já feita.
+Notion runtime ainda não conectado: o acesso do ChatGPT não se transfere automaticamente ao BI. Nenhum cliente de produção foi importado do ERP. Dados da demonstração são sintéticos.
 
-Entrega: código funcional com componentes/serviços separados, .env.example sem secrets, README sobre rodar local, testes/build e conexão Notion e GitHub via Settings > GitHub para manter sync e continuar sem créditos Lovable. Não fingir que GitHub está vinculado se depende OAuth do usuário. Inclua tutorial de uso e glossário de métricas no app e docs. Execute build e testes significativos de filtros/períodos/conclusões/backlog/exclusão testes e estados conexão. Preserve arquitetura portável, nada de tokens hardcoded. Antes de encerrar relate exatamente o que foi implementado e quais configurações não foram possíveis sem autenticação.
+## Executar e verificar
 
-This project was built with [Lovable](https://lovable.dev).
-
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/aee205d0-22a2-4cb7-965e-0a2310bb7b8f).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+Requer Node.js 22.16 ou superior.
 
 ```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
+npm ci
 npm run dev
+npm run check
 ```
+
+A demonstração funciona sem credenciais. O estado inicial informa a configuração pendente; clique em Explorar demonstração. Copie `.env.example` para `.env` somente para configurar acesso real. Não envie `.env` ao GitHub.
+
+Para testes de navegador:
+
+```sh
+npx playwright install chromium
+npm run test:e2e
+```
+
+## Conectar ao Notion
+
+Opção Lovable: em Connectors, escolha Notion do tipo **app + chat**, autorize a Central de Operações e compartilhe as bases Demandas e Clientes. Vincule a conexão a este projeto. A integração MCP de contexto não substitui a conexão utilizada pelo app.
+
+Opção portável: configure `NOTION_TOKEN` apenas no servidor, usando integração interna do Notion com leitura das duas bases. O token nunca usa prefixo `VITE_`. Os IDs e nomes das propriedades estão em `src/lib/notion/config.ts`.
+
+Há paginação, retry para limites/erros transitórios, consulta defensiva e nomes de pessoas. Atualização é manual pela tela Integração. Não há webhook nem atualização automática: estas funcionalidades precisam de implementação/configuração posterior. Uma falha preserva o último snapshot e registra seu estado desatualizado.
+
+## Acesso interno e banco
+
+Lovable Cloud já foi provisionado na geração original. A migração `drizzle/migrations/0000_ikaros_access_and_snapshot.sql` descreve tabelas/RLS do **BI separado**, não do ERP. Para ambiente novo, aplique essa migração uma vez pelo administrador. Não a reaplique no banco existente.
+
+Configure URL e chave publicável do Supabase no cliente e servidor. A chave de serviço fica exclusivamente no servidor. Contas precisam de papel `admin` ou `viewer` em `user_roles`; login sem papel não lê snapshots nem sincroniza. Não há autocadastro na interface ou senha padrão. Desative signup público no provedor e provisione usuários pelo administrador. O primeiro administrador deve ser cadastrado/liberado pelo console do backend, com identidade verificada. O BI não concede papéis por e-mail, domínio ou metadados do usuário.
+
+RLS protege snapshots e papéis; funções verificam sessão e autorização antes da leitura. O frontend apaga consultas ao sair. Não use o Supabase do ERP para este BI sem um projeto específico de integração.
+
+## GitHub e continuidade sem créditos
+
+A vinculação conta GitHub–Lovable e a criação/sincronização do repositório são passos diferentes. No projeto abra Settings → GitHub → Connect project/Export to GitHub, selecione o proprietário correto e permita ao Lovable criar o repositório privado. Depois autorize o novo repositório no app GitHub do ChatGPT.
+
+Não crie um repositório isolado esperando importá-lo automaticamente: a sincronização deve ser estabelecida no próprio Lovable. Quando houver vínculo confirmado, importe **estes arquivos** na branch sincronizada (sem `.env`, `node_modules` ou `.output`), usando commits normais. Preserve a história já criada pelo Lovable; não use force push ou rebase de commits publicados. Rode `npm run check` antes de enviar.
+
+Use npm com o `package-lock.json` desta entrega; o lockfile bun original foi removido para evitar duas fontes de dependências. O desenvolvimento e os testes locais não exigem créditos Lovable; hospedagem, infraestrutura e serviços externos seguem seus próprios limites. O build atual usa o preset Cloudflare do Lovable. Para publicar por outro provedor, ajuste o preset de Nitro e configure as variáveis nesse provedor.
+
+## Definições de métricas
+
+- Entradas: Data de entrada dentro do período, no fuso America/Sao_Paulo.
+- Concluídas: status Concluída e Data de conclusão dentro do período. Publicada, encaminhada e cancelada não são conclusões.
+- Backlog: status conhecido diferente de Concluída/Cancelada, independente do período. Status ausentes são informados separadamente.
+- Bloqueadas/encaminhadas: estoque atual de cada status.
+- SLA atrasado: informação explícita de atraso do Notion; estado não reconhecido é desconhecido. Cobertura informa quantos itens do backlog têm dados reconhecidos.
+- Testes: excluídos quando a demanda **ou seu cliente** tem Registro de teste; inclusão é explícita.
+- Equipe: atribuição atual, volume e carga, sem score de qualidade. Não há histórico de responsáveis; métricas não reconstituem responsáveis passados.
+
+Primeira resposta (4h úteis) e solução/encaminhamento (1 dia útil, seg–sex 08–18 São Paulo) são regras do treinamento. Percentuais de cumprimento e tempo por etapa ficam indisponíveis sem timestamps/histórico próprios. Fórmulas do Notion não foram auditadas nesta entrega.
+
+Veja Ajuda no app para tutorial e glossário. A carteira representa empresas assinantes do Ikaros, não os leads dos seus clientes. ID ERP é chave externa para futura importação, ainda não implementada.

@@ -22,7 +22,7 @@ function Panel({ icon, title, children }: { icon: ReactNode; title: string; chil
 
 /** Renders children only with a dataset; otherwise shows an honest connection state. */
 export function StateGate({ children }: { children: (ds: Dataset) => ReactNode }) {
-  const { state, loading, dataset, setMode } = useBi();
+  const { state, loading, dataset, setMode, reload } = useBi();
   const demoBtn = (
     <Button variant="outline" onClick={() => setMode("demo")}>Explorar demonstração</Button>
   );
@@ -34,6 +34,7 @@ export function StateGate({ children }: { children: (ds: Dataset) => ReactNode }
       </div>
     );
 
+  if (state.status === "error") return <Panel icon={<AlertTriangle className="h-5 w-5" />} title="Falha ao carregar"><p>{state.message}</p><Button onClick={reload}>Tentar novamente</Button>{demoBtn}</Panel>;
   if (state.status === "signed_out")
     return (
       <Panel icon={<Lock className="h-5 w-5" />} title="Acesso restrito">
@@ -88,3 +89,4 @@ export function StateGate({ children }: { children: (ds: Dataset) => ReactNode }
     </>
   );
 }
+

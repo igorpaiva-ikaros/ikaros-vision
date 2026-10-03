@@ -21,7 +21,10 @@ const fmt = new Intl.DateTimeFormat("en-CA", {
 /** Converts a Notion date/datetime string to a São Paulo day key. */
 export function toDayKey(value: string | null | undefined): string | null {
   if (!value) return null;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value; // date-only: already local
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const day = new Date(`${value}T12:00:00Z`);
+    return !Number.isNaN(day.getTime()) && day.toISOString().slice(0, 10) === value ? value : null;
+  } // date-only: already local
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return null;
   return fmt.format(d);
@@ -32,7 +35,7 @@ export function todayKey(now: Date = new Date()): string {
 }
 
 export function addDays(key: string, days: number): string {
-  const [y, m, d] = key.split("-").map(Number);
+  const [y, m, d] = key.split("-").map(Number) as [number, number, number];
   const dt = new Date(Date.UTC(y, m - 1, d + days));
   return dt.toISOString().slice(0, 10);
 }
@@ -55,7 +58,8 @@ export function inPeriod(value: string | null | undefined, period: Period): bool
 
 export function daysOf(period: Period): string[] {
   const out: string[] = [];
-  for (let k = period.start; k <= period.end && out.length < 400; k = addDays(k, 1)) out.push(k);
+  if (!toDayKey(period.start) || !toDayKey(period.end)) return out;
+  for (let k = period.start; k <= period.end; k = addDays(k, 1)) out.push(k);
   return out;
 }
 
@@ -75,3 +79,4 @@ export function formatDateTime(value: string | null | undefined): string {
     timeStyle: "short",
   }).format(d);
 }
+

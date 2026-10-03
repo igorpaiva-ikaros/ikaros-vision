@@ -20,6 +20,7 @@ export const Route = createFileRoute("/integracao")({
 });
 
 const LABEL: Record<string, string> = {
+  error: "Falha ao consultar integração",
   demo: "Modo demonstração (sem Notion)",
   signed_out: "Entre para ver o estado da conexão",
   forbidden: "Conta sem permissão interna",
@@ -58,3 +59,4 @@ function Page() {
     </>
   );
 }
+

@@ -28,7 +28,7 @@ const CLIENT_NAMES = [
 
 export function buildDemoDataset(now: Date = new Date()): Dataset {
   const r = rng(42);
-  const pick = <T,>(arr: readonly T[]) => arr[Math.floor(r() * arr.length)];
+  const pick = <T,>(arr: readonly T[]) => { if (!arr.length) throw new Error("Empty demo options"); return arr[Math.floor(r() * arr.length)]!; };
   const today = todayKey(now);
 
   const clients: Client[] = CLIENT_NAMES.map((name, i) => ({
@@ -45,13 +45,13 @@ export function buildDemoDataset(now: Date = new Date()): Dataset {
     telefoneContato: null,
     whatsappContato: null, // no fake phone numbers, even in demo
     segmentos: i % 2 ? ["Consórcio"] : ["Seguros", "Consórcio"],
-    plano: pick(["Essencial", "Profissional", "Enterprise"]),
+    plano: pick(["Feather", "Wing", "Sun"]),
     status: i === 5 ? "Em onboarding" : "Ativo",
-    responsaveis: [TEAM[i % TEAM.length]],
+    responsaveis: [TEAM[i % TEAM.length]!],
     isTest: false,
   }));
   clients.push({
-    ...clients[0],
+    ...clients[0]!,
     id: "demo-ctest",
     name: "Cliente de teste interno (demo)",
     empresa: "Teste",
@@ -70,7 +70,7 @@ export function buildDemoDataset(now: Date = new Date()): Dataset {
     const status = closed ? (r() < 0.9 ? "Concluída" : "Cancelada") : pick(openStatuses);
     const completed =
       status === "Concluída" ? addDays(created, Math.floor(r() * 5)) : null;
-    const client = i === 7 ? clients[clients.length - 1] : clients[i % CLIENT_NAMES.length];
+    const client = i === 7 ? clients[clients.length - 1]! : clients[i % CLIENT_NAMES.length]!;
     const hasSla = r() < 0.8;
     const overdue = hasSla && !closed && r() < 0.25;
     demands.push({
@@ -111,3 +111,4 @@ export function buildDemoDataset(now: Date = new Date()): Dataset {
   }
   return { source: "demo", fetchedAt: now.toISOString(), demands, clients, schemaWarnings: [] };
 }
+

@@ -18,7 +18,7 @@ export const Route = createFileRoute("/ajuda")({
 
 const GLOSSARY: [string, string][] = [
   ["Entradas no período", "Demandas cuja Data de entrada (fuso São Paulo) cai no período."],
-  ["Concluídas no período", "Demandas cuja Data de conclusão cai no período. Publicada não conta como concluída."],
+  ["Concluídas no período", "Demandas com status Concluída cuja Data de conclusão cai no período. Publicada não conta como concluída."],
   ["Backlog atual", "Todas as demandas com status diferente de Concluída e Cancelada, independente do período."],
   ["Bloqueadas", "Demandas com status Bloqueada agora."],
   ["Encaminhadas para dev", "Status Encaminhada para desenvolvimento. Encaminhar não é resolver; o CS continua acompanhando."],
@@ -62,3 +62,4 @@ function Page() {
     </>
   );
 }
+

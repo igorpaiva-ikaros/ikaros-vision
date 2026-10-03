@@ -109,7 +109,7 @@ export function slaOverdue(d: Demand): boolean | null {
   if (d.sla.vencido === true) return true;
   const s = `${d.sla.statusUtil ?? ""} ${d.sla.statusSla ?? ""}`.toLocaleLowerCase("pt-BR");
   if (/vencid|atras|estourad/.test(s)) return true;
-  if (d.sla.statusUtil || d.sla.statusSla) return false;
+  if (/dentro|no prazo|próximo|proximo|em dia/.test(s)) return false;
   return null; // no SLA information
 }
 
@@ -135,7 +135,7 @@ export function computeKpis(demands: Demand[], period: Period): Kpis {
   }
   return {
     entries: demands.filter((d) => inPeriod(d.createdAt, period)).length,
-    completed: demands.filter((d) => inPeriod(d.completedAt, period)).length,
+    completed: demands.filter((d) => d.status === "Concluída" && inPeriod(d.completedAt, period)).length,
     backlog: backlog.length,
     unknownStatus: demands.filter((d) => d.status === null).length,
     blocked: demands.filter((d) => d.status === "Bloqueada").length,
@@ -152,7 +152,7 @@ export function dailySeries(demands: Demand[], period: Period) {
     const c = toDayKey(d.createdAt);
     if (c && map.has(c)) map.get(c)!.entradas++;
     const f = toDayKey(d.completedAt);
-    if (f && map.has(f)) map.get(f)!.conclusoes++;
+    if (d.status === "Concluída" && f && map.has(f)) map.get(f)!.conclusoes++;
   }
   return [...map.values()];
 }
@@ -183,7 +183,7 @@ export function teamStats(demands: Demand[], period: Period): TeamRow[] {
     for (const p of people) {
       const r = m.get(p.id) ?? { id: p.id, name: p.name ?? NO_INFO, entries: 0, completed: 0, backlog: 0, blocked: 0 };
       if (inPeriod(d.createdAt, period)) r.entries++;
-      if (inPeriod(d.completedAt, period)) r.completed++;
+      if (d.status === "Concluída" && inPeriod(d.completedAt, period)) r.completed++;
       if (isBacklog(d)) r.backlog++;
       if (d.status === "Bloqueada") r.blocked++;
       m.set(p.id, r);
@@ -197,3 +197,4 @@ export function uniquePeople(demands: Demand[]) {
   for (const d of demands) for (const p of d.responsaveis) m.set(p.id, p.name ?? NO_INFO);
   return [...m.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
 }
+

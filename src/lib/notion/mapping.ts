@@ -22,28 +22,28 @@ export function readText(p: NotionProperty | undefined): string | null {
   if (!p) return null;
   switch (p.type) {
     case "title":
-      return plain(p.title);
+      return plain(p["title"]);
     case "rich_text":
-      return plain(p.rich_text);
+      return plain(p["rich_text"]);
     case "select":
-      return p.select?.name ?? null;
+      return p["select"]?.name ?? null;
     case "status":
-      return p.status?.name ?? null;
+      return p["status"]?.name ?? null;
     case "email":
-      return p.email ?? null;
+      return p["email"] ?? null;
     case "phone_number":
-      return p.phone_number ?? null;
+      return p["phone_number"] ?? null;
     case "url":
-      return p.url ?? null;
+      return p["url"] ?? null;
     case "number":
-      return p.number === null || p.number === undefined ? null : String(p.number);
+      return p["number"] === null || p["number"] === undefined ? null : String(p["number"]);
     case "unique_id": {
-      const u = p.unique_id;
+      const u = p["unique_id"];
       if (!u || u.number === null || u.number === undefined) return null;
       return u.prefix ? `${u.prefix}-${u.number}` : String(u.number);
     }
     case "formula": {
-      const f = p.formula;
+      const f = p["formula"];
       if (!f) return null;
       if (f.type === "string") return f.string ?? null;
       if (f.type === "number") return f.number === null ? null : String(f.number);
@@ -52,13 +52,13 @@ export function readText(p: NotionProperty | undefined): string | null {
       return null;
     }
     case "multi_select":
-      return Array.isArray(p.multi_select) && p.multi_select.length
-        ? p.multi_select.map((o: any) => o.name).join(", ")
+      return Array.isArray(p["multi_select"]) && p["multi_select"].length
+        ? p["multi_select"].map((o: any) => o.name).join(", ")
         : null;
     case "created_time":
-      return p.created_time ?? null;
+      return p["created_time"] ?? null;
     case "date":
-      return p.date?.start ?? null;
+      return p["date"]?.start ?? null;
     default:
       return null;
   }
@@ -66,35 +66,35 @@ export function readText(p: NotionProperty | undefined): string | null {
 
 export function readDate(p: NotionProperty | undefined): string | null {
   if (!p) return null;
-  if (p.type === "date") return p.date?.start ?? null;
-  if (p.type === "created_time") return p.created_time ?? null;
-  if (p.type === "formula" && p.formula?.type === "date") return p.formula.date?.start ?? null;
-  if (p.type === "formula" && p.formula?.type === "string") return p.formula.string ?? null;
+  if (p.type === "date") return p["date"]?.start ?? null;
+  if (p.type === "created_time") return p["created_time"] ?? null;
+  if (p.type === "formula" && p["formula"]?.type === "date") return p["formula"].date?.start ?? null;
+  if (p.type === "formula" && p["formula"]?.type === "string") return p["formula"].string ?? null;
   return null;
 }
 
 export function readCheckbox(p: NotionProperty | undefined): boolean | null {
   if (!p) return null;
-  if (p.type === "checkbox") return Boolean(p.checkbox);
-  if (p.type === "formula" && p.formula?.type === "boolean") return p.formula.boolean ?? null;
+  if (p.type === "checkbox") return Boolean(p["checkbox"]);
+  if (p.type === "formula" && p["formula"]?.type === "boolean") return p["formula"].boolean ?? null;
   return null;
 }
 
 export function readMulti(p: NotionProperty | undefined): string[] {
   if (!p) return [];
-  if (p.type === "multi_select") return (p.multi_select ?? []).map((o: any) => o.name);
+  if (p.type === "multi_select") return (p["multi_select"] ?? []).map((o: any) => o.name);
   const t = readText(p);
   return t ? [t] : [];
 }
 
 export function readRelation(p: NotionProperty | undefined): string[] {
-  if (!p || p.type !== "relation" || !Array.isArray(p.relation)) return [];
-  return p.relation.map((r: any) => r.id).filter(Boolean);
+  if (!p || p.type !== "relation" || !Array.isArray(p["relation"])) return [];
+  return p["relation"].map((r: any) => r.id).filter(Boolean);
 }
 
 export function readPeople(p: NotionProperty | undefined, names: Map<string, string>): Person[] {
-  if (!p || p.type !== "people" || !Array.isArray(p.people)) return [];
-  return p.people.map((u: any) => ({ id: u.id, name: u.name ?? names.get(u.id) ?? null }));
+  if (!p || p.type !== "people" || !Array.isArray(p["people"])) return [];
+  return p["people"].map((u: any) => ({ id: u.id, name: u.name ?? names.get(u.id) ?? null }));
 }
 
 /** Title property is located by type, never by a fixed name. */
@@ -107,7 +107,7 @@ export function peopleIdsMissingNames(pages: NotionPage[]): string[] {
   const ids = new Set<string>();
   for (const page of pages)
     for (const p of Object.values(page.properties))
-      if (p.type === "people") for (const u of p.people ?? []) if (!u.name) ids.add(u.id);
+      if (p.type === "people") for (const u of p["people"] ?? []) if (!u.name) ids.add(u.id);
   return [...ids];
 }
 
@@ -183,3 +183,4 @@ export function mapClient(page: NotionPage, names: Map<string, string> = new Map
     isTest: readCheckbox(P[k.isTest]) === true,
   };
 }
+
