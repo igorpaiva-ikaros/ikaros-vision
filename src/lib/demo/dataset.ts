@@ -69,7 +69,7 @@ export function buildDemoDataset(now: Date = new Date()): Dataset {
     const closed = r() < 0.45;
     const status = closed ? (r() < 0.9 ? "Concluída" : "Cancelada") : pick(openStatuses);
     const completed =
-      status === "Concluída" ? addDays(created, Math.min(Math.floor(r() * 6), 0 - 0) + Math.floor(r() * 5)) : null;
+      status === "Concluída" ? addDays(created, Math.floor(r() * 5)) : null;
     const client = i === 7 ? clients[clients.length - 1] : clients[i % CLIENT_NAMES.length];
     const hasSla = r() < 0.8;
     const overdue = hasSla && !closed && r() < 0.25;
