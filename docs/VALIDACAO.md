@@ -16,5 +16,7 @@ Limites desta validação:
 - Não foi feita validação de login com usuário real nem concessão de papéis no backend.
 - Os testes de navegador em `e2e/` estão preparados, mas não foram executados: a instalação do Chromium retornou arquivos de download inválidos neste ambiente. Não afirmar que passaram.
 - Não foi feita validação visual em navegador real.
-- Não houve publicação, criação de repositório, envio ao GitHub ou sincronização com o Lovable. O pacote é a cópia corrigida para a próxima etapa.
+- Código enviado à main de igorpaiva-ikaros/ikaros-vision no commit 5dd181ecd487445929abef51dda250f894b6b977. Lovable confirmou o mesmo latest_commit_sha. Workflow Verificar BI no GitHub concluído com sucesso (run 37160262206).
+- Ainda não houve publicação nem validação visual na prévia autenticada do Lovable.
+- Inspeção do backend do projeto: zero usuários, zero papéis e zero snapshots; cadastro de acesso interno e sincronização real ainda pendentes.
 - A base real de clientes do ERP ainda não foi importada. A demonstração não contém clientes reais.
