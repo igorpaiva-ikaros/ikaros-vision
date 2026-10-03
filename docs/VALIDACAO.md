@@ -12,11 +12,12 @@ Os testes verificam calendário São Paulo, períodos, conclusões por data e st
 
 Limites desta validação:
 
-- A leitura do Notion foi testada com respostas simuladas. Não houve sincronização ponta a ponta, pois a conexão runtime não está configurada.
+- A leitura do Notion foi testada com respostas simuladas. Não houve sincronização ponta a ponta, pois a conexão runtime não está vinculada ao projeto. A conexão OAuth App + chat Igor.P's Notion existe, mas tem zero projetos; o agente Lovable recusou vínculo por ausência de créditos.
 - Não foi feita validação de login com usuário real nem concessão de papéis no backend.
 - Os testes de navegador em `e2e/` estão preparados, mas não foram executados: a instalação do Chromium retornou arquivos de download inválidos neste ambiente. Não afirmar que passaram.
-- Não foi feita validação visual em navegador real.
+- Validação manual em navegador na prévia Lovable: proteção de dados sem sessão, entrada na demonstração, mudança de 7 dias para mês, navegação para Demandas, busca DEMO-64 (1 de 62), painel de detalhe com descrição e contato e retorno à visão geral. Esses checks não substituem o Playwright automatizado, que permanece não executado.
 - Código enviado à main de igorpaiva-ikaros/ikaros-vision no commit 5dd181ecd487445929abef51dda250f894b6b977. Lovable confirmou o mesmo latest_commit_sha. Workflow Verificar BI no GitHub concluído com sucesso (run 37160262206).
-- Ainda não houve publicação nem validação visual na prévia autenticada do Lovable.
+- A prévia autenticada do Lovable abriu e foi verificada visualmente. Publicação não realizada: revisão automática exige autorização explícita para URL pública.
 - Inspeção do backend do projeto: zero usuários, zero papéis e zero snapshots; cadastro de acesso interno e sincronização real ainda pendentes.
 - A base real de clientes do ERP ainda não foi importada. A demonstração não contém clientes reais.
+
