@@ -95,3 +95,8 @@ export function useBi() {
   return c;
 }
 
+/** Non-throwing variant for components that may render outside the provider (e.g. error boundaries). */
+export function useBiOptional() {
+  return useContext(Ctx);
+}
+

@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { refreshNotion } from "@/lib/bi.functions";
-import { useBi } from "@/lib/bi-context";
+import { useBiOptional } from "@/lib/bi-context";
 import { Button } from "@/components/ui/button";
 
 export function RefreshButton() {
