@@ -3,14 +3,15 @@ import { useServerFn } from "@tanstack/react-start";
 import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { refreshNotion } from "@/lib/bi.functions";
-import { useBi } from "@/lib/bi-context";
+import { useBiOptional } from "@/lib/bi-context";
 import { Button } from "@/components/ui/button";
 
 export function RefreshButton() {
   const run = useServerFn(refreshNotion);
-  const { reload, mode, session } = useBi();
+  const bi = useBiOptional();
   const [busy, setBusy] = useState(false);
-  if (mode === "demo" || !session) return null;
+  if (!bi || bi.mode === "demo" || !bi.session) return null;
+  const { reload } = bi;
   return (
     <Button
       disabled={busy}
