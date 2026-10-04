@@ -106,8 +106,16 @@ export function sortDemands(demands: Demand[], key: SortKey, dir: "asc" | "desc"
 }
 
 export function slaOverdue(d: Demand): boolean | null {
+  // The calculated operational status takes precedence over legacy manual
+  // labels/checkboxes, which can remain checked after a deadline or status edit.
+  if (d.sla.statusUtil?.trim()) {
+    const automatic = d.sla.statusUtil.toLocaleLowerCase("pt-BR");
+    if (/vencid|atras|estourad/.test(automatic)) return true;
+    if (/dentro|no prazo|próximo|proximo|em dia|cumprid|conclu|cancelad/.test(automatic)) return false;
+    return null;
+  }
   if (d.sla.vencido === true) return true;
-  const s = `${d.sla.statusUtil ?? ""} ${d.sla.statusSla ?? ""}`.toLocaleLowerCase("pt-BR");
+  const s = (d.sla.statusSla ?? "").toLocaleLowerCase("pt-BR");
   if (/vencid|atras|estourad/.test(s)) return true;
   if (/dentro|no prazo|próximo|proximo|em dia/.test(s)) return false;
   return null; // no SLA information
@@ -197,4 +205,3 @@ export function uniquePeople(demands: Demand[]) {
   for (const d of demands) for (const p of d.responsaveis) m.set(p.id, p.name ?? NO_INFO);
   return [...m.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
 }
-

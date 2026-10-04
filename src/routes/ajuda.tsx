@@ -22,7 +22,7 @@ const GLOSSARY: [string, string][] = [
   ["Backlog atual", "Todas as demandas com status diferente de Concluída e Cancelada, independente do período."],
   ["Bloqueadas", "Demandas com status Bloqueada agora."],
   ["Encaminhadas para dev", "Status Encaminhada para desenvolvimento. Encaminhar não é resolver; o CS continua acompanhando."],
-  ["SLA em atraso", "Backlog com 'SLA vencido?' marcado ou fórmula de status indicando atraso. Cobertura = quantas têm dados de SLA."],
+  ["SLA em atraso", "Backlog cuja fórmula atual do Notion indica atraso. Campos manuais só são usados quando não há fórmula. Cobertura = quantas têm um estado de SLA reconhecido."],
   ["Registros de teste", "Demanda ou cliente com 'Registro de teste'. Excluídos por padrão; use 'Incluir testes'."],
   ["Sem informação", "O campo está vazio ou não existe na base. Nada é estimado."],
 ];

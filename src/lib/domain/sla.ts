@@ -1,6 +1,5 @@
-// Training SLA rules. These are documentation of the policy, not computed
-// compliance: the Notion base has no real first-response / forwarding
-// timestamps, so compliance metrics are reported as unavailable.
+// Contract policy. Deadline statuses are read from Notion. The BI mapper does
+// not yet read the newly added event timestamps for compliance percentages.
 
 export const SLA_RULES = {
   firstResponseBusinessHours: 4,
@@ -11,12 +10,12 @@ export const SLA_RULES = {
 export const UNAVAILABLE_SLA_METRICS = [
   {
     name: "Cumprimento da 1ª resposta",
-    reason: "Não há campo com o horário real da primeira resposta ao cliente.",
+    reason: "O BI ainda não lê o novo campo Primeira resposta em para calcular esta métrica.",
   },
   {
     name: "Cumprimento de solução/encaminhamento",
     reason:
-      "Não há campo com o horário real do encaminhamento ao desenvolvimento. Encaminhar não é resolver.",
+      "O BI ainda não lê o novo campo Encaminhado em para calcular esta métrica.",
   },
   {
     name: "Tempo por etapa",

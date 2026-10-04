@@ -47,6 +47,13 @@ describe("Métricas executivas", () => {
     expect(slaOverdue(demand({ sla: { ...base.sla, vencido: false, statusUtil: "Dentro do prazo", statusSla: null } }))).toBe(false);
     expect(slaOverdue(demand({ sla: { ...base.sla, vencido: true, statusUtil: null, statusSla: null } }))).toBe(true);
   });
+  it("prioriza a fórmula atual sobre marcações manuais antigas", () => {
+    const oldLate = { ...base.sla, vencido: true, statusSla: "Atrasado" };
+    expect(slaOverdue(demand({ sla: { ...oldLate, statusUtil: "Dentro do prazo" } }))).toBe(false);
+    expect(slaOverdue(demand({ sla: { ...oldLate, statusUtil: "SLA cumprido" } }))).toBe(false);
+    expect(slaOverdue(demand({ sla: { ...oldLate, statusUtil: "Sem registro" } }))).toBeNull();
+    expect(slaOverdue(demand({ sla: { ...base.sla, vencido: false, statusSla: "Dentro do prazo", statusUtil: "Atrasado" } }))).toBe(true);
+  });
 });
 
 describe("Calendário São Paulo", () => {

@@ -57,7 +57,7 @@ Use npm com o `package-lock.json` desta entrega; o lockfile bun original foi rem
 - Concluídas: status Concluída e Data de conclusão dentro do período. Publicada, encaminhada e cancelada não são conclusões.
 - Backlog: status conhecido diferente de Concluída/Cancelada, independente do período. Status ausentes são informados separadamente.
 - Bloqueadas/encaminhadas: estoque atual de cada status.
-- SLA atrasado: informação explícita de atraso do Notion; estado não reconhecido é desconhecido. Cobertura informa quantos itens do backlog têm dados reconhecidos.
+- SLA atrasado: a fórmula atual do Notion tem prioridade sobre marcações manuais antigas. Campos manuais só são usados quando a fórmula está ausente; estado não reconhecido permanece desconhecido. Cobertura informa quantos itens do backlog têm dados reconhecidos.
 - Testes: excluídos quando a demanda **ou seu cliente** tem Registro de teste; inclusão é explícita.
 - Equipe: atribuição atual, volume e carga, sem score de qualidade. Não há histórico de responsáveis; métricas não reconstituem responsáveis passados.
 
@@ -92,3 +92,11 @@ Pendente de configuração pela interface do Notion: botão Nova demanda no clie
 ## Auditoria do contrato CS
 
 Janela de atendimento: segunda a sexta, 09h–18h em Brasília, excluindo feriados nacionais. A primeira resposta tem limite de 4 horas úteis; solução ou encaminhamento, 1 dia útil. O endpoint interno `getNotionWorkflowAudit` permite verificar fórmulas e resultados das bases Demandas, Onboarding e Upgrades, sem retornar credenciais e sem escrever no Notion. Continua exigindo sessão válida e papel interno. A conferência não é controle de ponto.
+
+A Central do Notion foi reduzida à Operação: Clientes, Demandas, Onboarding, Upgrades, Interações e Changelog. Corpos dos cards e modelos não repetem instruções; os dados operacionais permanecem nas propriedades. Guias foi removida por solicitação do usuário.
+
+`scripts/notion-contract-formulas.mjs` mantém expressões reproduzíveis para prazos, calendário nacional, onboarding e comissão. DDL de fórmulas novas deve ser aplicado por dependência: criar uma propriedade antes de criar outra que a referencie. O cálculo usa UTC−3 de Brasília, exclui sábados, domingos e feriados nacionais fixos, e calcula a Sexta-feira Santa a cada ano. Não exclui pontos facultativos. Um dia útil significa a próxima data elegível, no mesmo horário; marcos de onboarding contam dias úteis após a data de recebimento completo, com vencimento às 18h. Melhorias pequenas têm preferência de entrega no mesmo dia, sem transformar essa preferência em um SLA contratual obrigatório. Prazos manuais de entrega são preservados e não prorrogam a primeira resposta ou o encaminhamento. A contagem de horas úteis é limitada a 3660 dias apenas em situações muito antigas.
+
+Campos de ocorrência são fatos: Primeira resposta em, Encaminhado em, Informações completas em e Concluído em não são inferidos retroativamente a partir de status. Botões e automações nativas para registrar esses horários ainda exigem configuração pela interface do Notion. O BI usa snapshots; a fórmula do Notion evolui com o tempo, mas o BI exige Atualizar agora para uma leitura nova. O cálculo de comissão exige regra aplicável ao responsável, mensalidade real do novo plano, aceite e efetivação. O pagamento previsto é uma data informativa; não executa transferências nem emite notas.
+
+Validação no ambiente real com registros fictícios: fim de semana; sexta 09/10/2026 às 17h e feriado 12/10, gerando resposta em 13/10 às 12h; prazo em risco e atrasado; prazos manuais sem deslocamento; marco de 15 dias úteis em 23/10 a partir de dados completos em 01/10; comissão e pagamento previsto por competência. Não foram importados clientes do ERP.
