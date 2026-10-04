@@ -64,3 +64,7 @@ Use npm com o `package-lock.json` desta entrega; o lockfile bun original foi rem
 Primeira resposta (4h úteis) e solução/encaminhamento (1 dia útil, seg–sex 08–18 São Paulo) são regras do treinamento. Percentuais de cumprimento e tempo por etapa ficam indisponíveis sem timestamps/histórico próprios. Fórmulas do Notion não foram auditadas nesta entrega.
 
 Veja Ajuda no app para tutorial e glossário. A carteira representa empresas assinantes do Ikaros, não os leads dos seus clientes. ID ERP é chave externa para futura importação, ainda não implementada.
+
+## Identidade visual IKAROS
+
+Tema escuro inspirado na apresentação fornecida: fundo #070c16, superfícies #101823, texto marfim #f4f0e6 e coral #fd7849 da logo. Instrument Serif nos títulos e números, Geist nos controles e textos, Geist Mono nos rótulos. Fontes WOFF hospedadas no projeto com licenças OFL em public/brand/fonts, sem dependência de Google Fonts. A logo original está em public/brand; BrandLogo mantém a composição e apresenta o nome em marfim para contraste no fundo escuro.

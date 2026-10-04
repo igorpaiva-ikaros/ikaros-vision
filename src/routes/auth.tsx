@@ -3,6 +3,7 @@ import { useState } from "react";
 import { supabase, backendConfigured } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { BrandLogo } from "@/components/bi/BrandLogo";
 import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/auth")({
@@ -40,10 +41,10 @@ function AuthPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-sidebar px-4">
-      <form onSubmit={submit} className="w-full max-w-sm space-y-4 rounded-lg bg-card p-8">
+      <form onSubmit={submit} className="w-full max-w-sm space-y-4 bi-card rounded-lg border border-border bg-card p-8">
         <div>
-          <div className="font-display text-2xl font-semibold">Ikaros</div>
-          <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">BI Customer Success · acesso interno</div>
+          <BrandLogo className="mb-5 h-auto w-48" />
+          <div className="bi-eyebrow text-muted-foreground">BI Customer Success · acesso interno</div>
         </div>
         <div className="space-y-1"><Label htmlFor="e">E-mail</Label><Input id="e" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></div>
         <div className="space-y-1"><Label htmlFor="p">Senha</Label><Input id="p" type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} /></div>

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { BarChart3, ListChecks, Building2, Users, PlugZap, BookOpen, LogOut } from "lucide-react";
 import { useBi } from "@/lib/bi-context";
 import { supabase } from "@/integrations/supabase/client";
+import { BrandLogo } from "./BrandLogo";
 import { PeriodPicker } from "./PeriodPicker";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -24,14 +25,11 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen">
-      <aside className="hidden w-60 shrink-0 flex-col bg-sidebar text-sidebar-foreground md:flex">
+      <aside className="hidden w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
         <div className="px-6 pb-6 pt-7">
-          <div className="font-display text-2xl font-semibold tracking-tight text-sidebar-accent-foreground">
-            Ikaros
-          </div>
-          <div className="mt-1 text-xs uppercase tracking-[0.18em] text-sidebar-primary">
-            BI Customer Success
-          </div>
+          <BrandLogo className="h-auto w-full max-w-[190px]" />
+          <div className="bi-eyebrow mt-4 text-sidebar-primary">BI Customer Success</div>
+          <p className="mt-3 text-[10px] tracking-wide text-muted-foreground">Ninguém precisa voar sozinho.</p>
         </div>
         <nav className="flex flex-1 flex-col gap-1 px-3">
           {NAV.map(({ to, label, icon: Icon }) => {
@@ -83,10 +81,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Button>
           </div>
         )}
-        <header className="flex flex-wrap items-center justify-between gap-4 border-b bg-card px-6 py-4">
+        <header className="flex flex-wrap items-center justify-between gap-4 bi-header border-b px-6 py-5">
           <div>
-            <div className="text-xs uppercase tracking-wider text-muted-foreground">CEO</div>
-            <div className="font-display text-lg font-semibold">Pedro Manhães</div>
+            <div className="bi-eyebrow text-muted-foreground">CEO</div>
+            <div className="font-display text-2xl font-normal">Pedro Manhães</div>
           </div>
           <div className="flex flex-wrap items-center gap-5">
             <PeriodPicker />
@@ -103,8 +101,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Link>
           ))}
         </nav>
-        <main className="flex-1 px-6 py-6">{children}</main>
+        <main className="bi-main flex-1 px-4 py-6 sm:px-7 sm:py-8">{children}</main>
       </div>
     </div>
   );
 }
+
