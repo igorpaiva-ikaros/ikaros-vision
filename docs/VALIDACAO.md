@@ -38,3 +38,7 @@ Aplicados paleta escura/coral/marfim, Instrument Serif/Geist/Geist Mono locais, 
 
 - `npm run check` passou: strict typecheck, 28 testes em 6 arquivos e build cliente/servidor. Testes automatizados de navegador foram atualizados para login obrigatório; execução hospedada ainda pendente.
 - Diagnóstico de leitura pelo conector do Lovable: GET das duas data sources retornou HTTP 200 com esquemas esperados. Gateway, headers e versão 2025-09-03 conferidos. POST query e fetchDataset completo ainda não foram executados no diagnóstico; não afirmar sincronização de registros concluída.
+
+- Validação manual na prévia Lovable após recarga completa: raiz redirecionou para /auth com formulário IKAROS, sem shell/navegação/demonstração; seleção direta de /clientes também voltou a /auth. A recarga eliminou um erro transitório de contexto durante HMR. Não foi alterada a proteção para contornar esse erro.
+- Commit de implementação f9576819c72e2ce32a87bb0e42bf951c40a230f5 sincronizado no Lovable. GitHub Actions Verificar BI passou (run 37166234351).
+- Durante esta execução foi observada uma publicação preexistente do projeto. A atualização da versão de uso foi rejeitada pela revisão automática por manter URL pública no Lovable frente à instrução de uso exclusivamente interno. A correção está no GitHub e na prévia, mas não foi aplicada ao endereço publicado. A sincronização completa de registros e o login real continuam sem comprovação ponta a ponta.
