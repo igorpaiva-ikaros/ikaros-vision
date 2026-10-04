@@ -21,3 +21,6 @@ Limites desta validação:
 - Inspeção do backend do projeto: zero usuários, zero papéis e zero snapshots; cadastro de acesso interno e sincronização real ainda pendentes.
 - A base real de clientes do ERP ainda não foi importada. A demonstração não contém clientes reais.
 
+## Reforma visual IKAROS
+
+Aplicados paleta escura/coral/marfim, Instrument Serif/Geist/Geist Mono locais, logo original adaptada ao fundo escuro, títulos e cards. `npm run check` passou com 13 testes, strict typecheck e build após a alteração. Lovable confirmou sincronização do commit a9b3f67814149c5174c64d292b1735b65bcd1a7e. A nova versão não foi inspecionada visualmente no navegador hospedado: o auth-bridge do Lovable informou restrição de sign-in neste navegador. A captura do MCP é anterior à alteração e não comprova o novo tema.
