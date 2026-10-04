@@ -42,7 +42,13 @@ export function BiProvider({ children }: { children: ReactNode }) {
     if (!backendConfigured) { setAuthReady(true); return; }
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
-      if (event === "SIGNED_OUT") qc.removeQueries({ queryKey: ["bi-state"] });
+      if (event === "SIGNED_OUT") {
+        void qc.cancelQueries({ queryKey: ["bi-state"] });
+        qc.removeQueries({ queryKey: ["bi-state"] });
+        setModeState("real");
+        setIncludeTests(false);
+        sessionStorage.removeItem(MODE_KEY);
+      }
     });
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
@@ -60,27 +66,29 @@ export function BiProvider({ children }: { children: ReactNode }) {
   const q = useQuery({
     queryKey: ["bi-state", userId],
     queryFn: () => fetchState(),
-    enabled: mode === "real" && !!userId,
+    enabled: !!userId,
     staleTime: 60_000,
   });
 
   const demo = useMemo(() => (mode === "demo" ? buildDemoDataset() : null), [mode]);
 
   let state: ConnectionState | null;
-  if (mode === "demo") state = { status: "demo" };
-  else if (!authReady) state = null;
+  if (!authReady) state = null;
   else if (!backendConfigured) state = { status: "not_configured", missing: ["Configuração do acesso interno pendente"] };
   else if (!userId) state = { status: "signed_out" };
   else if (q.isError) state = { status: "error", message: "Não foi possível consultar os dados. Tente atualizar ou confira seu acesso." };
-  else state = q.data ?? null;
+  else if (!q.data) state = null;
+  else if (q.data.status === "forbidden") state = q.data;
+  else if (mode === "demo") state = { status: "demo" };
+  else state = q.data;
 
-  const dataset = mode === "demo" ? demo : state?.status === "ok" ? state.dataset : null;
+  const dataset = state?.status === "demo" ? demo : state?.status === "ok" ? state.dataset : null;
 
   return (
     <Ctx.Provider
       value={{
         mode, setMode, includeTests, setIncludeTests, period, setPeriod, session, authReady,
-        state, loading: mode === "real" && (!authReady || q.isLoading), dataset,
+        state, loading: !authReady || (!!userId && q.isLoading), dataset,
         reload: () => qc.invalidateQueries({ queryKey: ["bi-state"] }),
       }}
     >
@@ -95,8 +103,7 @@ export function useBi() {
   return c;
 }
 
-/** Non-throwing variant for components that may render outside the provider (e.g. error boundaries). */
+/** Optional context for controls rendered by error boundaries. */
 export function useBiOptional() {
   return useContext(Ctx);
 }
-

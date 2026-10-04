@@ -34,7 +34,7 @@ function Page() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Section title="Como usar">
           <ol className="list-decimal space-y-2 pl-5 text-sm">
-            <li>Entre com sua conta interna (liberada por um administrador).</li>
+            <li>Entre com sua conta interna autorizada. Todos os usuários liberados têm acesso completo às mesmas telas e métricas.</li>
             <li>Escolha o período no topo: hoje, 7 dias, mês ou personalizado.</li>
             <li>Na Visão geral veja os indicadores; em Demandas filtre, busque, ordene e clique para abrir o detalhe.</li>
             <li>Em Integração, use "Atualizar agora" para ler o Notion novamente.</li>
@@ -62,4 +62,3 @@ function Page() {
     </>
   );
 }
-

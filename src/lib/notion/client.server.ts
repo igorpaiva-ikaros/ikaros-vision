@@ -42,7 +42,21 @@ export function resolveCredentials(env: Record<string, string | undefined>):
       },
     };
   }
-  return { ok: false, missing: ["NOTION_TOKEN (ou conexão Notion do Lovable → NOTION_API_KEY)"] };
+  return {
+    ok: false,
+    missing: env["NOTION_API_KEY"]
+      ? ["Credencial gerenciada do projeto Lovable (LOVABLE_API_KEY)"]
+      : ["Vínculo da conexão Notion com este projeto (ou NOTION_TOKEN no servidor)"],
+  };
+}
+
+export function notionErrorMessage(status: number): string {
+  if (status === 401) return "Notion: credencial inválida ou conexão expirada. Reconecte o Notion no Lovable e confira o vínculo com este projeto.";
+  if (status === 403) return "Notion: acesso negado. Confira as permissões de leitura da conexão e das bases Demandas e Clientes.";
+  if (status === 404) return "Notion: base não encontrada ou não compartilhada com a conexão. Compartilhe a Central de Operações, incluindo Demandas e Clientes.";
+  if (status === 429) return "Notion: limite de consultas atingido. Aguarde e tente atualizar novamente.";
+  if (status >= 500) return "Notion: serviço temporariamente indisponível. A última leitura foi preservada; tente novamente.";
+  return `Notion: consulta recusada (HTTP ${status}). Confira a configuração da conexão e das bases.`;
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -54,6 +68,7 @@ export async function notionFetch(
   attempt = 0,
 ): Promise<any> {
   const res = await fetch(`${creds.base}${path}`, {
+    signal: AbortSignal.timeout(25_000),
     method: init.method ?? "GET",
     headers: { ...creds.headers, "Content-Type": "application/json" },
     ...(init.body !== undefined ? { body: JSON.stringify(init.body) } : {}),
@@ -64,8 +79,9 @@ export async function notionFetch(
     return notionFetch(creds, path, init, attempt + 1);
   }
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Notion [${res.status}] ${path}: ${text.slice(0, 300)}`);
+    // Provider bodies may contain identifiers or credential details. Do not
+    // persist them in snapshots or send them to browser diagnostics.
+    throw new Error(notionErrorMessage(res.status));
   }
   return res.json();
 }
@@ -132,4 +148,3 @@ export async function fetchDataset(creds: Creds): Promise<Dataset> {
     ],
   };
 }
-

@@ -46,7 +46,7 @@ export const refreshNotion = createServerFn({ method: "POST" })
     if (!(await assertInternal(context))) return { ok: false, message: "Acesso não autorizado." };
     const { resolveCredentials, fetchDataset } = await import("./notion/client.server");
     const creds = resolveCredentials(process.env);
-    if (!creds.ok) return { ok: false, message: "Notion não configurado no servidor." };
+    if (!creds.ok) return { ok: false, message: `Notion não conectado: ${creds.missing.join("; ")}. A conexão precisa estar vinculada a este projeto no Lovable.` };
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const now = new Date().toISOString();
     try {
@@ -77,4 +77,3 @@ export const refreshNotion = createServerFn({ method: "POST" })
       return { ok: false, message: msg };
     }
   });
-

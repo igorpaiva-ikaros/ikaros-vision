@@ -48,14 +48,13 @@ export function StateGate({ children }: { children: (ds: Dataset) => ReactNode }
   if (state.status === "forbidden")
     return (
       <Panel icon={<ShieldAlert className="h-5 w-5" />} title="Conta sem permissão interna">
-        <p>Você entrou, mas sua conta ainda não foi liberada. Um administrador precisa conceder o papel de acesso (veja a página Ajuda).</p>
-        <div className="flex justify-center">{demoBtn}</div>
+        <p>Esta conta não está autorizada a acessar o BI da empresa. Solicite a liberação ao responsável pelo sistema.</p>
       </Panel>
     );
   if (state.status === "not_configured")
     return (
       <Panel icon={<PlugZap className="h-5 w-5" />} title="Notion não conectado">
-        <p>Nenhuma credencial do Notion está configurada no servidor. Nenhum número é exibido até a conexão existir.</p>
+        <p>O BI ainda não recebeu uma conexão Notion utilizável. Conectar o Notion ao ChatGPT ou ao workspace do Lovable não vincula automaticamente a conexão a este projeto.</p>
         <p className="text-xs">Pendente: {state.missing.join(", ")}</p>
         <div className="flex justify-center gap-2">
           <Button asChild variant="secondary"><Link to="/integracao">Ver integração</Link></Button>
@@ -89,4 +88,3 @@ export function StateGate({ children }: { children: (ds: Dataset) => ReactNode }
     </>
   );
 }
-

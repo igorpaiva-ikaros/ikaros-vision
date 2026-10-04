@@ -85,6 +85,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Ikaros Vision — BI Customer Success" },
       { name: "description", content: "Visão executiva de Customer Success Ikaros" },
       { name: "author", content: "Ikaros" },
+      { name: "robots", content: "noindex, nofollow, noarchive" },
       { property: "og:title", content: "Ikaros Vision — BI Customer Success" },
       { property: "og:description", content: "Visão executiva de Customer Success Ikaros" },
       { property: "og:type", content: "website" },
@@ -129,4 +130,3 @@ function RootComponent() {
     </QueryClientProvider>
   );
 }
-

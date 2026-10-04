@@ -1,43 +1,32 @@
 import { test, expect } from '@playwright/test';
 
-test('sem conexão não mostra métricas fictícias como produção', async ({ page }) => {
-  await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Notion não conectado' })).toBeVisible();
-  await expect(page.getByText('Entradas no período', { exact: true })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Explorar demonstração' })).toBeVisible();
+for (const path of ['/', '/demandas', '/clientes', '/equipe', '/integracao', '/ajuda']) {
+  test(`sem sessão, ${path} redireciona para o login e oculta o painel`, async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', error => errors.push(error.message));
+    await page.goto(path);
+    await expect(page).toHaveURL(/\/auth$/);
+    await expect(page.getByRole('heading', { name: 'Entrar no Ikaros Vision' })).toBeVisible();
+    await expect(page.getByRole('navigation')).toHaveCount(0);
+    await expect(page.getByText('Entradas no período', { exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Explorar demonstração' })).toHaveCount(0);
+    expect(errors).toEqual([]);
+  });
+}
+
+test('modo de demonstração armazenado não contorna o login', async ({ page }) => {
+  await page.addInitScript(() => sessionStorage.setItem('ikaros-bi-mode', 'demo'));
+  await page.goto('/clientes');
+  await expect(page).toHaveURL(/\/auth$/);
+  await expect(page.getByRole('heading', { name: 'Entrar no Ikaros Vision' })).toBeVisible();
+  await expect(page.getByRole('navigation')).toHaveCount(0);
 });
 
-test('demonstração, navegação, filtro, detalhe e saída', async ({ page }) => {
-  const errors: string[] = [];
-  page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/');
-  await page.getByRole('button', { name: 'Explorar demonstração' }).click();
-  await expect(page.getByText('Modo demonstração', { exact: true })).toBeVisible();
-  await expect(page.getByText('Entradas no período', { exact: true })).toBeVisible();
-  await page.getByRole('link', { name: 'Demandas', exact: true }).first().click();
-  await expect(page.getByRole('heading', { name: 'Demandas', exact: true })).toBeVisible();
-  await page.locator('tbody tr').first().click();
-  await expect(page.getByRole('dialog')).toBeVisible();
-  await page.keyboard.press('Escape');
-  await page.getByRole('link', { name: 'Clientes', exact: true }).first().click();
-  await expect(page.getByRole('heading', { name: 'Clientes', exact: true })).toBeVisible();
-  await page.getByRole('link', { name: 'Equipe', exact: true }).first().click();
-  await expect(page.getByRole('heading', { name: 'Equipe', exact: true })).toBeVisible();
-  await page.getByRole('link', { name: 'Integração', exact: true }).first().click();
-  await expect(page.getByText('Modo demonstração (sem Notion)')).toBeVisible();
-  await page.getByRole('link', { name: 'Ajuda e glossário' }).first().click();
-  await expect(page.getByRole('heading', { name: 'Ajuda e glossário' })).toBeVisible();
-  await page.getByRole('button', { name: 'Sair da demonstração' }).click();
-  await page.getByRole('link', { name: 'Visão geral', exact: true }).first().click();
-  await expect(page.getByRole('heading', { name: 'Notion não conectado' })).toBeVisible();
-  expect(errors).toEqual([]);
-});
-
-test('layout mobile mantém navegação e período', async ({ page }) => {
+test('login mobile mostra email, senha e entrada sem navegação privada', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
-  await page.getByRole('button', { name: 'Explorar demonstração' }).click();
-  await expect(page.getByRole('link', { name: 'Demandas', exact: true }).last()).toBeVisible();
-  await page.getByRole('radio', { name: 'Hoje', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Visão geral', exact: true })).toBeVisible();
+  await expect(page.getByLabel('E-mail', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Senha', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Entrar', exact: true })).toBeVisible();
+  await expect(page.getByRole('navigation')).toHaveCount(0);
 });

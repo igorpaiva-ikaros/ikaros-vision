@@ -4,9 +4,9 @@ Painel executivo para Pedro Manhães. O Notion permanece como espaço de trabalh
 
 ## Estado desta entrega
 
-Código corrigido manualmente após esgotamento dos créditos do Lovable. A versão local inclui shell/navegação, demonstração identificada, filtros, detalhes, carteira, equipe, autenticação e leitura server-side. O código deste pacote ainda precisa ser enviado ao repositório **efetivamente vinculado** ao projeto. Não foi publicado e não está sincronizado com o editor do Lovable.
+Código corrigido manualmente após esgotamento dos créditos do Lovable. A versão local inclui shell/navegação, demonstração identificada, filtros, detalhes, carteira, equipe, autenticação e leitura server-side. O projeto está sincronizado com `igorpaiva-ikaros/ikaros-vision` na branch `main`. O BI permanece sem publicação pública.
 
-Notion runtime ainda não conectado: o acesso do ChatGPT não se transfere automaticamente ao BI. Nenhum cliente de produção foi importado do ERP. Dados da demonstração são sintéticos.
+A conexão Notion App + chat foi vinculada ao projeto. O acesso do ChatGPT não se transfere automaticamente ao BI. A validação de leitura das duas bases é independente do vínculo. Nenhum cliente de produção foi importado do ERP. Dados da demonstração são sintéticos.
 
 ## Executar e verificar
 
@@ -18,7 +18,7 @@ npm run dev
 npm run check
 ```
 
-A demonstração funciona sem credenciais. O estado inicial informa a configuração pendente; clique em Explorar demonstração. Copie `.env.example` para `.env` somente para configurar acesso real. Não envie `.env` ao GitHub.
+Todas as rotas exigem login antes de mostrar o shell ou a demonstração. Depois de autenticar uma conta autorizada, o estado inicial informa a conexão pendente, se houver; clique em Explorar demonstração para dados sintéticos. Copie `.env.example` para `.env` somente para configurar acesso real. Não envie `.env` ao GitHub.
 
 Para testes de navegador:
 
@@ -39,9 +39,9 @@ Há paginação, retry para limites/erros transitórios, consulta defensiva e no
 
 Lovable Cloud já foi provisionado na geração original. A migração `drizzle/migrations/0000_ikaros_access_and_snapshot.sql` descreve tabelas/RLS do **BI separado**, não do ERP. Para ambiente novo, aplique essa migração uma vez pelo administrador. Não a reaplique no banco existente.
 
-Configure URL e chave publicável do Supabase no cliente e servidor. A chave de serviço fica exclusivamente no servidor. Contas precisam de papel `admin` ou `viewer` em `user_roles`; login sem papel não lê snapshots nem sincroniza. Não há autocadastro na interface ou senha padrão. Desative signup público no provedor e provisione usuários pelo administrador. O primeiro administrador deve ser cadastrado/liberado pelo console do backend, com identidade verificada. O BI não concede papéis por e-mail, domínio ou metadados do usuário.
+Configure URL e chave publicável do Supabase no cliente e servidor. A chave de serviço fica exclusivamente no servidor. Todos os usuários autorizados têm as mesmas telas e ações do BI. Pedro Manhães e Igor Paiva estão liberados como `admin`. A tabela `user_roles` é uma lista de autorização interna: login sem liberação não lê snapshots nem sincroniza. O papel legado `viewer` também é aceito como acesso interno pelas regras existentes; não há filtro de conteúdo por colaborador. Não há autocadastro na interface ou senha padrão. Desative signup público no provedor e provisione usuários pelo administrador. O primeiro administrador deve ser cadastrado/liberado pelo console do backend, com identidade verificada. O BI não concede papéis por e-mail, domínio ou metadados do usuário.
 
-RLS protege snapshots e papéis; funções verificam sessão e autorização antes da leitura. O frontend apaga consultas ao sair. Não use o Supabase do ERP para este BI sem um projeto específico de integração.
+RLS protege snapshots e papéis; funções verificam sessão e autorização antes da leitura. O frontend apaga consultas e o modo de demonstração ao sair. URLs diretas redirecionam para `/auth` sem montar o painel. Sessão e autorização são verificadas também pelo servidor; esconder a tela não substitui RLS. Não use o Supabase do ERP para este BI sem um projeto específico de integração.
 
 ## GitHub e continuidade sem créditos
 

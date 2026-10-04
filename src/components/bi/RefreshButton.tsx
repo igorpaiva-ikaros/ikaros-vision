@@ -10,7 +10,7 @@ export function RefreshButton() {
   const run = useServerFn(refreshNotion);
   const bi = useBiOptional();
   const [busy, setBusy] = useState(false);
-  if (!bi || bi.mode === "demo" || !bi.session) return null;
+  if (!bi || bi.mode === "demo" || !bi.session || bi.state?.status === "forbidden") return null;
   const { reload } = bi;
   return (
     <Button
@@ -34,3 +34,4 @@ export function RefreshButton() {
     </Button>
   );
 }
+

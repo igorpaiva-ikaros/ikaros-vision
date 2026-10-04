@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchDataset, resolveCredentials } from "@/lib/notion/client.server";
+import { fetchDataset, notionErrorMessage, notionFetch, resolveCredentials } from "@/lib/notion/client.server";
 import { mapClient, mapDemand } from "@/lib/notion/mapping";
 import { mailtoLink, whatsappLink } from "@/lib/domain/contact";
 
@@ -9,6 +9,19 @@ describe("Leitura Notion", () => {
     expect(resolveCredentials({})).toMatchObject({ ok: false });
     expect(resolveCredentials({ NOTION_TOKEN: "test-only" })).toMatchObject({ ok: true, creds: { base: "https://api.notion.com/v1" } });
     expect(mapDemand({ id: "d", properties: {} })).toMatchObject({ title: null, completedAt: null, status: null, sla: { statusUtil: null } });
+  });
+  it("distingue vínculo ausente de credencial gerenciada ausente", () => {
+    expect(resolveCredentials({})).toMatchObject({ ok: false, missing: [expect.stringContaining("Vínculo")] });
+    expect(resolveCredentials({ NOTION_API_KEY: "test-only" })).toMatchObject({ ok: false, missing: [expect.stringContaining("LOVABLE_API_KEY")] });
+    expect(resolveCredentials({ NOTION_API_KEY: "test-only", LOVABLE_API_KEY: "test-only" })).toMatchObject({ ok: true });
+  });
+  it("explica falhas de permissão sem devolver corpo do provedor", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("provider detail that must remain private", { status: 404 })));
+    const credentials = resolveCredentials({ NOTION_TOKEN: "test-only" });
+    if (!credentials.ok) throw new Error("fixture");
+    await expect(notionFetch(credentials.creds, "/data_sources/missing/query")).rejects.toThrow("não compartilhada");
+    expect(notionErrorMessage(401)).toContain("expirada");
+    expect(notionErrorMessage(403)).toContain("permissões");
   });
   it("localiza título pelo tipo e preserva vínculo/contacto/teste", () => {
     const c = mapClient({ id: "c", properties: { "Nome personalizado": { type: "title", title: [{ plain_text: "Empresa Exemplo" }] }, "Registro de teste": { type: "checkbox", checkbox: true }, "E-mail do contato": { type: "email", email: "contato@example.com" } } });

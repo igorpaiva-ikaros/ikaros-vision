@@ -55,8 +55,16 @@ function Page() {
           </ul>
           <p className="mt-3 text-xs text-muted-foreground">Atualização manual apenas. Webhook não implementado: exigiria segredo de assinatura configurado.</p>
         </Section>
+        {state?.status === "not_configured" && <Section title="Como concluir a conexão" className="lg:col-span-2">
+          <ol className="list-decimal space-y-2 pl-5 text-sm">
+            <li>No Lovable, abra Mais → Conectores e confira as Conexões do projeto.</li>
+            <li>Vincule a conexão Notion do tipo App + chat ao projeto Ikaros Vision pelo chat do Lovable.</li>
+            <li>No Notion, compartilhe a Central de Operações e as bases Demandas e Clientes com essa conexão.</li>
+            <li>Volte ao BI e clique em Atualizar agora. A primeira leitura aparecerá aqui quando concluída.</li>
+          </ol>
+          <p className="mt-3 text-sm text-muted-foreground">A conta do BI dá acesso ao painel. A conexão Notion fornece os dados da empresa; são configurações independentes.</p>
+        </Section>}
       </div>
     </>
   );
 }
-

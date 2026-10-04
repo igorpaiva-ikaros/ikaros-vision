@@ -1,5 +1,7 @@
-import { Link, useRouterState } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useEffect, type ReactNode } from "react";
+import { AuthPage } from "./AuthPage";
+import { StateGate } from "./StateGate";
 import { BarChart3, ListChecks, Building2, Users, PlugZap, BookOpen, LogOut } from "lucide-react";
 import { useBi } from "@/lib/bi-context";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,7 +23,24 @@ const NAV = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
-  const { mode, setMode, includeTests, setIncludeTests, session } = useBi();
+  const nav = useNavigate();
+  const { mode, setMode, includeTests, setIncludeTests, session, authReady, state } = useBi();
+
+  useEffect(() => {
+    if (authReady && !session && path !== "/auth") void nav({ to: "/auth", replace: true });
+  }, [authReady, session, path, nav]);
+
+  // No dashboard layout, route content or demo is mounted before authentication.
+  if (path === "/auth") return <>{children}</>;
+  if (!authReady) return <div role="status" className="flex min-h-screen items-center justify-center bg-background text-muted-foreground">Verificando acesso…</div>;
+  if (!session) return <AuthPage />;
+  if (!state) return <div role="status" className="flex min-h-screen items-center justify-center bg-background text-muted-foreground">Verificando acesso…</div>;
+  if (state.status === "forbidden" || state.status === "error") return (
+    <div className="min-h-screen bg-background p-6">
+      <StateGate>{() => null}</StateGate>
+      <div className="mt-6 text-center"><Button variant="outline" onClick={() => supabase.auth.signOut()}>Sair</Button></div>
+    </div>
+  );
 
   return (
     <div className="flex min-h-screen">
@@ -87,6 +106,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="font-display text-2xl font-normal">Pedro Manhães</div>
           </div>
           <div className="flex flex-wrap items-center gap-5">
+            <Button variant="outline" size="sm" className="md:hidden" onClick={() => supabase.auth.signOut()}><LogOut className="h-4 w-4" /> Sair</Button>
             <PeriodPicker />
             <div className="flex items-center gap-2">
               <Switch id="tests" checked={includeTests} onCheckedChange={setIncludeTests} />
@@ -106,4 +126,3 @@ export function AppShell({ children }: { children: ReactNode }) {
     </div>
   );
 }
-
