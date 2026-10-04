@@ -5,7 +5,7 @@
 export const SLA_RULES = {
   firstResponseBusinessHours: 4,
   resolutionOrForwardBusinessDays: 1,
-  businessWindow: "Segunda a sexta, 08h–18h (America/Sao_Paulo)",
+  businessWindow: "Segunda a sexta, 09h–18h (America/Sao_Paulo), exceto feriados nacionais",
 } as const;
 
 export const UNAVAILABLE_SLA_METRICS = [

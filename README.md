@@ -87,3 +87,8 @@ Depois do cadastro, o servidor tenta atualizar o snapshot. Falha na atualizaçã
 A base Clientes tem Minha carteira, filtrada por Responsável principal = usuário atual, excluindo Encerrado. Acompanhamento continua consolidado. Código e responsável ficam no cabeçalho; contatos e próxima ação têm destaque. Demandas, Onboarding, Upgrade, Interações e Changelog receberam layouts com identificação e campos operacionais primeiro, campos complementares na lateral.
 
 Pendente de configuração pela interface do Notion: botão Nova demanda no cliente, copiando Cliente e Responsável principal, e remoção do limite de uma demanda no vínculo inverso de Clientes. O conector MCP não oferece esses ajustes. O filtro Minha carteira organiza o trabalho; não restringe o seletor de relações nem substitui permissões.
+
+
+## Auditoria do contrato CS
+
+Janela de atendimento: segunda a sexta, 09h–18h em Brasília, excluindo feriados nacionais. A primeira resposta tem limite de 4 horas úteis; solução ou encaminhamento, 1 dia útil. O endpoint interno `getNotionWorkflowAudit` permite verificar fórmulas e resultados das bases Demandas, Onboarding e Upgrades, sem retornar credenciais e sem escrever no Notion. Continua exigindo sessão válida e papel interno. A conferência não é controle de ponto.
