@@ -45,6 +45,8 @@ export function BiProvider({ children }: { children: ReactNode }) {
       if (event === "SIGNED_OUT") {
         void qc.cancelQueries({ queryKey: ["bi-state"] });
         qc.removeQueries({ queryKey: ["bi-state"] });
+        void qc.cancelQueries({ queryKey: ["client-registration-options"] });
+        qc.removeQueries({ queryKey: ["client-registration-options"] });
         setModeState("real");
         setIncludeTests(false);
         sessionStorage.removeItem(MODE_KEY);

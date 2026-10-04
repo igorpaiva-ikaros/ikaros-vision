@@ -165,6 +165,7 @@ export function mapClient(page: NotionPage, names: Map<string, string> = new Map
   const k = CLIENT_PROPS;
   return {
     id: page.id,
+    clientCode: readText(P["Código"]) ?? readText(P["ID"]),
     notionUrl: page.url ?? null,
     name: readTitle(page),
     empresa: readText(P[k.empresa]),
@@ -183,4 +184,3 @@ export function mapClient(page: NotionPage, names: Map<string, string> = new Map
     isTest: readCheckbox(P[k.isTest]) === true,
   };
 }
-

@@ -1,10 +1,10 @@
 # Ikaros Vision — BI Customer Success
 
-Painel executivo para Pedro Manhães. O Notion permanece como espaço de trabalho do CS; o BI apenas lê demandas e clientes. Projeto Lovable: https://lovable.dev/projects/aee205d0-22a2-4cb7-965e-0a2310bb7b8f
+Painel executivo para Pedro Manhães. O Notion permanece como espaço de trabalho do CS; o BI lê demandas e clientes e permite cadastrar clientes com responsável de CS obrigatório. Projeto Lovable: https://lovable.dev/projects/aee205d0-22a2-4cb7-965e-0a2310bb7b8f
 
 ## Estado desta entrega
 
-Código corrigido manualmente após esgotamento dos créditos do Lovable. A versão local inclui shell/navegação, demonstração identificada, filtros, detalhes, carteira, equipe, autenticação e leitura server-side. O projeto está sincronizado com `igorpaiva-ikaros/ikaros-vision` na branch `main`. O BI permanece sem publicação pública.
+Código corrigido manualmente após esgotamento dos créditos do Lovable. A versão local inclui shell/navegação, demonstração identificada, filtros, detalhes, carteira, equipe, autenticação e leitura server-side. O projeto está sincronizado com `igorpaiva-ikaros/ikaros-vision` na branch `main`. O acesso aos dados permanece restrito às contas internas autorizadas.
 
 A conexão Notion App + chat foi vinculada ao projeto. O acesso do ChatGPT não se transfere automaticamente ao BI. A validação de leitura das duas bases é independente do vínculo. Nenhum cliente de produção foi importado do ERP. Dados da demonstração são sintéticos.
 
@@ -31,9 +31,9 @@ npm run test:e2e
 
 Opção Lovable: em Connectors, escolha Notion do tipo **app + chat**, autorize a Central de Operações e compartilhe as bases Demandas e Clientes. Vincule a conexão a este projeto. A integração MCP de contexto não substitui a conexão utilizada pelo app.
 
-Opção portável: configure `NOTION_TOKEN` apenas no servidor, usando integração interna do Notion com leitura das duas bases. O token nunca usa prefixo `VITE_`. Os IDs e nomes das propriedades estão em `src/lib/notion/config.ts`.
+Opção portável: configure `NOTION_TOKEN` apenas no servidor, usando integração interna do Notion com leitura das duas bases e capacidade de inserir conteúdo em Clientes. O token nunca usa prefixo `VITE_`. Os IDs e nomes das propriedades estão em `src/lib/notion/config.ts`.
 
-Há paginação, retry para limites/erros transitórios, consulta defensiva e nomes de pessoas. Atualização é manual pela tela Integração. Não há webhook nem atualização automática: estas funcionalidades precisam de implementação/configuração posterior. Uma falha preserva o último snapshot e registra seu estado desatualizado.
+Há paginação, retry para limites/erros transitórios nas leituras, consulta defensiva e nomes de pessoas. Escritas de criação não são repetidas automaticamente. Atualização é manual pela tela Integração. Não há webhook nem atualização automática: estas funcionalidades precisam de implementação/configuração posterior. Uma falha preserva o último snapshot e registra seu estado desatualizado.
 
 ## Acesso interno e banco
 
@@ -68,3 +68,22 @@ Veja Ajuda no app para tutorial e glossário. A carteira representa empresas ass
 ## Identidade visual IKAROS
 
 Tema escuro inspirado na apresentação fornecida: fundo #070c16, superfícies #101823, texto marfim #f4f0e6 e coral #fd7849 da logo. Instrument Serif nos títulos e números, Geist nos controles e textos, Geist Mono nos rótulos. Fontes WOFF hospedadas no projeto com licenças OFL em public/brand/fonts, sem dependência de Google Fonts. A logo original está em public/brand; BrandLogo mantém a composição e apresenta o nome em marfim para contraste no fundo escuro.
+
+
+## Cadastro de clientes pelo BI
+
+Em Clientes → Novo cliente, preencha nome da empresa, contato principal, e-mail ou telefone, segmento, plano opcional e observações. Selecione um responsável de CS antes de enviar. Todos os usuários internos autorizados têm a mesma ação. Sem sessão ou papel interno, o servidor recusa o cadastro. No modo de demonstração, o botão não aparece.
+
+O servidor confere os campos, o esquema do Notion e o colaborador antes de criar a página. A lista de colaboradores de CS está em `CS_TEAM`, em `src/lib/notion/config.ts`, e seus IDs são validados no Notion; para expandir a equipe, inclua o ID Notion do colaborador após conceder acesso ao espaço. Não confunda o ID de usuário do Notion com o da conta do BI.
+
+O Notion gera o código CLI existente. ID ERP fica vazio até o cliente ser identificado na futura importação. O cadastro entra com Status Ativo e Responsável principal selecionado. Não altera o ERP nem cria demandas. Marque Cadastro de teste para homologação; testes ficam fora dos indicadores por padrão.
+
+Aplique `supabase/migrations/20261004091500_client_registrations.sql` no banco do BI (já aplicada no projeto atual). A tabela de controle tem RLS e nenhum acesso para anon/authenticated; apenas o servidor autorizado usa a chave de serviço. Cada envio tem uma reserva única e um marcador `ID do cadastro BI` na base Clientes. Repetições e chamadas simultâneas com o mesmo identificador não criam uma segunda página. Se uma resposta for incerta, o formulário conserva os dados e oferece Confirmar envio; não reenvia a criação automaticamente. Um envio indefinidamente pendente exige conferir o marcador no Notion antes de liberar a reserva, para evitar duplicação.
+
+Depois do cadastro, o servidor tenta atualizar o snapshot. Falha na atualização do BI não desfaz o cliente criado: a mensagem pede Atualizar agora. Importação da carteira real, redistribuição automática e webhooks continuam pendentes.
+
+## Carteiras e páginas no Notion
+
+A base Clientes tem Minha carteira, filtrada por Responsável principal = usuário atual, excluindo Encerrado. Acompanhamento continua consolidado. Código e responsável ficam no cabeçalho; contatos e próxima ação têm destaque. Demandas, Onboarding, Upgrade, Interações e Changelog receberam layouts com identificação e campos operacionais primeiro, campos complementares na lateral.
+
+Pendente de configuração pela interface do Notion: botão Nova demanda no cliente, copiando Cliente e Responsável principal, e remoção do limite de uma demanda no vínculo inverso de Clientes. O conector MCP não oferece esses ajustes. O filtro Minha carteira organiza o trabalho; não restringe o seletor de relações nem substitui permissões.

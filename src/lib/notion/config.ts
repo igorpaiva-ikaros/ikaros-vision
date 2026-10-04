@@ -1,4 +1,9 @@
-// Public identifiers of the Notion sources (not secrets). Reading only.
+// Public identifiers of the Notion sources (not secrets).
+export const CS_TEAM = [
+  { id: "3edd872b-594c-8177-85dc-00022369482c", name: "Igor Paiva" },
+  { id: "3edd872b-594c-81a9-bafa-0002ad0bb855", name: "Pedro Manhães" },
+] as const;
+export const REGISTRATION_PROPERTY = "ID do cadastro BI";
 export const NOTION_SOURCES = {
   demandas: {
     dataSourceId: "dec12f4c-bcf8-493f-b3ad-c5485dd251e7",

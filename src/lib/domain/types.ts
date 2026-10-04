@@ -79,6 +79,7 @@ export interface Demand {
 
 export interface Client {
   id: string;
+  clientCode?: string | null;
   notionUrl: string | null;
   name: string | null;
   empresa: string | null;
@@ -121,4 +122,3 @@ export type ConnectionState =
       lastError: string | null;
       stale: boolean;
     };
-

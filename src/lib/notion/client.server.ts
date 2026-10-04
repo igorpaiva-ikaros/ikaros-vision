@@ -12,7 +12,7 @@ import {
   type NotionPage,
 } from "./mapping";
 
-interface Creds {
+export interface Creds {
   base: string;
   headers: Record<string, string>;
 }
@@ -61,6 +61,10 @@ export function notionErrorMessage(status: number): string {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+export class NotionHttpError extends Error {
+  constructor(public status: number) { super(notionErrorMessage(status)); }
+}
+
 export async function notionFetch(
   creds: Creds,
   path: string,
@@ -73,7 +77,8 @@ export async function notionFetch(
     headers: { ...creds.headers, "Content-Type": "application/json" },
     ...(init.body !== undefined ? { body: JSON.stringify(init.body) } : {}),
   });
-  if ((res.status === 429 || res.status >= 500) && attempt < 4) {
+  const safeToRetry = !init.method || init.method === "GET" || path.endsWith("/query");
+  if (safeToRetry && (res.status === 429 || res.status >= 500) && attempt < 4) {
     const retryAfter = Number(res.headers.get("retry-after"));
     await sleep(Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(retryAfter, 60) * 1000 : 500 * 2 ** attempt);
     return notionFetch(creds, path, init, attempt + 1);
@@ -81,7 +86,7 @@ export async function notionFetch(
   if (!res.ok) {
     // Provider bodies may contain identifiers or credential details. Do not
     // persist them in snapshots or send them to browser diagnostics.
-    throw new Error(notionErrorMessage(res.status));
+    throw new NotionHttpError(res.status);
   }
   return res.json();
 }

@@ -7,6 +7,7 @@ import { clientName, isBacklog } from "@/lib/domain/metrics";
 import type { Dataset } from "@/lib/domain/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { NewClientDialog } from "@/components/bi/NewClientDialog";
 
 export const Route = createFileRoute("/clientes")({
   head: () => ({
@@ -19,18 +20,17 @@ export const Route = createFileRoute("/clientes")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: () => <StateGate>{(ds) => <Page ds={ds} />}</StateGate>,
+  component: () => <><PageTitle title="Clientes" subtitle="Carteira de clientes e contatos do CS." actions={<NewClientDialog />} /><StateGate>{(ds) => <Page ds={ds} />}</StateGate></>,
 });
 
 function Page({ ds }: { ds: Dataset }) {
   const { clients, demands } = useScoped(ds);
   return (
     <>
-      <PageTitle title="Clientes" subtitle="Empresas assinantes do ERP. Links apenas abrem seu e-mail/WhatsApp; nada é enviado." />
       <div className="rounded-lg border bg-card">
         <Table>
           <TableHeader><TableRow>
-            <TableHead>Cliente</TableHead><TableHead>ID ERP</TableHead><TableHead>Plano</TableHead><TableHead>Status</TableHead>
+            <TableHead>Cliente</TableHead><TableHead>Código</TableHead><TableHead>ID ERP</TableHead><TableHead>Plano</TableHead><TableHead>Status</TableHead>
             <TableHead>Segmentos</TableHead><TableHead>Responsável</TableHead><TableHead>Backlog</TableHead><TableHead>Contato</TableHead>
           </TableRow></TableHeader>
           <TableBody>
@@ -39,6 +39,7 @@ function Page({ ds }: { ds: Dataset }) {
               return (
                 <TableRow key={c.id}>
                   <TableCell className="font-medium">{clientName(c)} {c.isTest && <Badge variant="outline">teste</Badge>}</TableCell>
+                  <TableCell className="font-mono text-xs"><Val v={c.clientCode} /></TableCell>
                   <TableCell className="font-mono text-xs"><Val v={c.idErp} /></TableCell>
                   <TableCell><Val v={c.plano} /></TableCell>
                   <TableCell><Val v={c.status} /></TableCell>
@@ -49,7 +50,7 @@ function Page({ ds }: { ds: Dataset }) {
                 </TableRow>
               );
             })}
-            {!clients.length && <TableRow><TableCell colSpan={8} className="py-10 text-center text-muted-foreground">Nenhum cliente.</TableCell></TableRow>}
+            {!clients.length && <TableRow><TableCell colSpan={9} className="py-10 text-center text-muted-foreground">Nenhum cliente.</TableCell></TableRow>}
           </TableBody>
         </Table>
       </div>

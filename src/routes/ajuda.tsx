@@ -38,6 +38,8 @@ function Page() {
             <li>Escolha o período no topo: hoje, 7 dias, mês ou personalizado.</li>
             <li>Na Visão geral veja os indicadores; em Demandas filtre, busque, ordene e clique para abrir o detalhe.</li>
             <li>Em Integração, use "Atualizar agora" para ler o Notion novamente.</li>
+            <li>Em Clientes → Novo cliente, informe empresa, contato e responsável de CS. O cadastro só é enviado ao Notion depois de escolher o responsável.</li>
+            <li>O código do cliente é gerado no Notion. Para cadastros fictícios, marque Cadastro de teste; eles ficam fora dos indicadores por padrão.</li>
             <li>Sem conexão, use "Explorar demonstração" — sempre sinalizada com faixa âmbar.</li>
           </ol>
         </Section>

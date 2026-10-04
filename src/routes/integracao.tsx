@@ -34,7 +34,7 @@ function Page() {
   const ok = state?.status === "ok" ? state : null;
   return (
     <>
-      <PageTitle title="Integração" subtitle="Leitura somente do Notion. O BI não cria nem edita bases." actions={<RefreshButton />} />
+      <PageTitle title="Integração" subtitle="Leitura da operação e cadastro de clientes com responsável de CS obrigatório." actions={<RefreshButton />} />
       <div className="grid gap-4 lg:grid-cols-2">
         <Section title="Estado">
           <dl className="space-y-2 text-sm">
