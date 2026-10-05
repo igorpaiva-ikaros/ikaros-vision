@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      client_registration_requests: {
+        Row: {
+          created_at: string
+          notion_page_id: string | null
+          payload_hash: string
+          request_id: string
+          state: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          notion_page_id?: string | null
+          payload_hash: string
+          request_id: string
+          state?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          notion_page_id?: string | null
+          payload_hash?: string
+          request_id?: string
+          state?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       sync_snapshots: {
         Row: {
           key: string
@@ -77,7 +104,7 @@ export type Database = {
       is_internal: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "viewer"
+      app_role: "admin" | "viewer" | "cs"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -205,7 +232,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "viewer"],
+      app_role: ["admin", "viewer", "cs"],
     },
   },
 } as const
