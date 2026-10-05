@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      client_registration_requests: {
+        Row: {
+          created_at: string
+          notion_page_id: string | null
+          payload_hash: string
+          request_id: string
+          state: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          notion_page_id?: string | null
+          payload_hash: string
+          request_id: string
+          state?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          notion_page_id?: string | null
+          payload_hash?: string
+          request_id?: string
+          state?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       sync_snapshots: {
         Row: {
           key: string
