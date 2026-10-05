@@ -1,69 +1,100 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageTitle, Section } from "@/components/bi/primitives";
-import { RefreshButton } from "@/components/bi/RefreshButton";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { useState } from "react";
+import { getAdminState, importNotionOperation } from "@/lib/workspace.functions";
 import { useBi } from "@/lib/bi-context";
-import { formatDateTime } from "@/lib/domain/period";
-import { NOTION_SOURCES } from "@/lib/notion/config";
-
+import { PageTitle, Section } from "@/components/bi/primitives";
+import { Button } from "@/components/ui/button";
+import { dateLabel } from "@/components/workspace/Operation";
 export const Route = createFileRoute("/integracao")({
-  head: () => ({
-    meta: [
-      { title: "Integração — Ikaros BI CS" },
-      { name: "description", content: "Estado da conexão de leitura com o Notion." },
-      { property: "og:title", content: "Integração — Ikaros BI CS" },
-      { property: "og:description", content: "Estado da conexão de leitura com o Notion." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-  }),
+  head: () => ({ meta: [{ title: "Migração — Ikaros Vision" }] }),
   component: Page,
 });
-
-const LABEL: Record<string, string> = {
-  error: "Falha ao consultar integração",
-  demo: "Modo demonstração (sem Notion)",
-  signed_out: "Entre para ver o estado da conexão",
-  forbidden: "Conta sem permissão interna",
-  not_configured: "Notion não conectado",
-  empty: "Configurado, sem sincronização concluída",
-  ok: "Conectado (leitura)",
-};
-
 function Page() {
-  const { state } = useBi();
-  const ok = state?.status === "ok" ? state : null;
+  const { profile, session, reload } = useBi();
+  const get = useServerFn(getAdminState);
+  const migrate = useServerFn(importNotionOperation);
+  const query = useQuery({
+    queryKey: ["admin-state", session?.user.id],
+    queryFn: () => get(),
+    enabled: profile?.role === "admin",
+    retry: false,
+  });
+  const [busy, setBusy] = useState(false);
+  const [report, setReport] = useState<any>(null);
+  const [error, setError] = useState("");
   return (
     <>
-      <PageTitle title="Integração" subtitle="Leitura da operação e cadastro de clientes com responsável de CS obrigatório." actions={<RefreshButton />} />
+      <PageTitle
+        title="Migração do Notion"
+        subtitle="O Ikaros Vision é a origem da operação e do BI."
+      />
       <div className="grid gap-4 lg:grid-cols-2">
-        <Section title="Estado">
-          <dl className="space-y-2 text-sm">
-            <div><dt className="text-muted-foreground">Conexão</dt><dd className="font-medium">{state ? LABEL[state.status] : "Carregando…"}</dd></div>
-            {state?.status === "not_configured" && <div><dt className="text-muted-foreground">Pendente</dt><dd>{state.missing.join(", ")}</dd></div>}
-            <div><dt className="text-muted-foreground">Última sincronização bem-sucedida</dt><dd>{ok ? formatDateTime(ok.lastSuccessAt) : "Sem informação"}</dd></div>
-            <div><dt className="text-muted-foreground">Último erro</dt><dd>{ok?.lastError ?? (state?.status === "empty" ? state.lastError ?? "Nenhum" : "Nenhum")}</dd></div>
-            {ok?.stale && <div className="text-warning">Snapshot anterior preservado e marcado como desatualizado.</div>}
-            {ok && ok.dataset.schemaWarnings.length > 0 && (
-              <div><dt className="text-muted-foreground">Propriedades não encontradas</dt><dd className="text-xs">{ok.dataset.schemaWarnings.join("; ")}</dd></div>
-            )}
-          </dl>
+        <Section title="Operação própria">
+          <p className="text-sm">
+            Clientes, demandas, onboarding, upgrades, interações e changelog são gravados no Vision.
+            O BI consulta esses mesmos registros.
+          </p>
+          <p className="mt-3 text-sm text-muted-foreground">
+            O Notion fica preservado como histórico. A importação traz apenas registros ainda
+            ausentes, sem sobrescrever o trabalho feito no Vision.
+          </p>
         </Section>
-        <Section title="Fontes lidas">
-          <ul className="space-y-2 font-mono text-xs">
-            <li>Demandas · data source {NOTION_SOURCES.demandas.dataSourceId}</li>
-            <li>Clientes · data source {NOTION_SOURCES.clientes.dataSourceId}</li>
-          </ul>
-          <p className="mt-3 text-xs text-muted-foreground">Atualização manual apenas. Webhook não implementado: exigiria segredo de assinatura configurado.</p>
+        <Section title="Importar registros restantes">
+          <Button
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setError("");
+              try {
+                setReport(await migrate());
+                reload();
+              } catch (e) {
+                setError(
+                  e instanceof Error
+                    ? e.message
+                    : "Não foi possível importar. Nenhuma leitura parcial foi aplicada.",
+                );
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            {busy ? "Importando…" : "Importar do Notion"}
+          </Button>
+          {error && (
+            <p role="alert" className="mt-3 text-sm text-destructive">
+              {error}
+            </p>
+          )}
+          {report && (
+            <pre className="mt-3 overflow-auto rounded bg-muted p-3 text-xs">
+              {JSON.stringify(report, null, 2)}
+            </pre>
+          )}
         </Section>
-        {state?.status === "not_configured" && <Section title="Como concluir a conexão" className="lg:col-span-2">
-          <ol className="list-decimal space-y-2 pl-5 text-sm">
-            <li>No Lovable, abra Mais → Conectores e confira as Conexões do projeto.</li>
-            <li>Vincule a conexão Notion do tipo App + chat ao projeto Ikaros Vision pelo chat do Lovable.</li>
-            <li>No Notion, compartilhe a Central de Operações e as bases Demandas e Clientes com essa conexão.</li>
-            <li>Volte ao BI e clique em Atualizar agora. A primeira leitura aparecerá aqui quando concluída.</li>
-          </ol>
-          <p className="mt-3 text-sm text-muted-foreground">A conta do BI dá acesso ao painel. A conexão Notion fornece os dados da empresa; são configurações independentes.</p>
-        </Section>}
+        <Section title="Histórico da migração" className="lg:col-span-2">
+          {query.isError ? (
+            <Button onClick={() => query.refetch()}>Tentar novamente</Button>
+          ) : query.data?.runs.length ? (
+            query.data.runs.map((r: any) => (
+              <div key={r.id} className="border-b py-3">
+                <p className="text-sm">
+                  {dateLabel(r.started_at)} · {r.status}
+                </p>
+                <pre className="mt-2 overflow-auto text-xs">
+                  {JSON.stringify(r.report, null, 2)}
+                </pre>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground">Sem importação confirmada.</p>
+          )}
+          <a className="mt-3 block text-sm underline" href="/administracao">
+            Resolver vínculos pendentes na administração
+          </a>
+        </Section>
       </div>
     </>
   );

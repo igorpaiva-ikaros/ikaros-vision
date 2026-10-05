@@ -1,37 +1,4 @@
-import { useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
-import { RefreshCw } from "lucide-react";
-import { toast } from "sonner";
-import { refreshNotion } from "@/lib/bi.functions";
-import { useBiOptional } from "@/lib/bi-context";
-import { Button } from "@/components/ui/button";
-
-export function RefreshButton() {
-  const run = useServerFn(refreshNotion);
-  const bi = useBiOptional();
-  const [busy, setBusy] = useState(false);
-  if (!bi || bi.mode === "demo" || !bi.session || bi.state?.status === "forbidden") return null;
-  const { reload } = bi;
-  return (
-    <Button
-      disabled={busy}
-      onClick={async () => {
-        setBusy(true);
-        try {
-          const r = await run();
-          if (r.ok) toast.success(`Sincronizado: ${r.message}`);
-          else toast.error(`Falha na sincronização: ${r.message}`);
-        } catch {
-          toast.error("Falha na sincronização.");
-        } finally {
-          setBusy(false);
-          reload();
-        }
-      }}
-    >
-      <RefreshCw className={busy ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
-      Atualizar agora
-    </Button>
-  );
-}
-
+import {RefreshCw} from "lucide-react";
+import {Button} from "@/components/ui/button";
+import {useBi} from "@/lib/bi-context";
+export function RefreshButton(){const {reload,loading}=useBi();return <Button variant="outline" size="sm" disabled={loading} onClick={reload}><RefreshCw className="h-4 w-4"/>Atualizar agora</Button>;}

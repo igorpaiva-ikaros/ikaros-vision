@@ -15,6 +15,7 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 vi.mock("@/lib/bi-context", () => ({ useBi: () => mocks.bi }));
 vi.mock("@/integrations/supabase/client", () => ({ backendConfigured: true, supabase: { auth: { signOut: mocks.signOut } } }));
+vi.mock("@/components/workspace/NotificationBell",()=>({NotificationBell:()=>null}));
 vi.mock("@/components/bi/PeriodPicker", () => ({ PeriodPicker: () => null }));
 vi.mock("@/components/bi/RefreshButton", () => ({ RefreshButton: () => null }));
 
@@ -52,15 +53,20 @@ describe("Entrada interna", () => {
     expect(screen.queryByRole("button", { name: "Explorar demonstração" })).not.toBeInTheDocument();
   });
 
-  it.each(["pedro@ikaros.com.br", "igor.paiva@ikaros.com.br"])("%s recebe todas as telas após autorização", (email) => {
-    mocks.bi["session"] = { user: { email } };
-    mocks.bi["state"] = { status: "not_configured", missing: ["Conexão Notion"] };
+  it("administrador recebe BI e administração", () => {
+    mocks.bi["session"]={user:{email:"admin@example.test"}};
+    mocks.bi["profile"]={role:"admin",full_name:"Gestor"};mocks.bi["state"]={status:"ok"};
     render(<AppShell><div>Conteúdo privado</div></AppShell>);
     expect(screen.getByText("Conteúdo privado")).toBeVisible();
-    for (const name of ["Visão geral", "Demandas", "Clientes", "Equipe", "Integração", "Ajuda e glossário"]) {
-      expect(screen.getAllByRole("link", { name }).length).toBeGreaterThan(0);
-    }
-    fireEvent.click(screen.getAllByRole("button", { name: "Sair" })[0]!);
-    expect(mocks.signOut).toHaveBeenCalledOnce();
+    for(const name of ["Visão geral","Demandas","Clientes","Equipe","Administração","Migração","Notificações","Ajuda"])expect(screen.getAllByRole("link",{name}).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getAllByRole("button",{name:"Sair"})[0]!);expect(mocks.signOut).toHaveBeenCalledOnce();
+  });
+  it.each(["/","/clientes","/administracao","/integracao"])("CS não monta tela administrativa na URL %s",path=>{
+    mocks.path=path;mocks.bi["session"]={user:{id:"cs"}};mocks.bi["profile"]={role:"cs",full_name:"Colaborador"};mocks.bi["state"]={status:"operator"};
+    render(<AppShell><div>Conteúdo administrativo</div></AppShell>);expect(screen.queryByText("Conteúdo administrativo")).not.toBeInTheDocument();expect(mocks.nav).toHaveBeenCalledWith({to:"/operacao",replace:true});
+  });
+  it("CS recebe somente carteira, produção e notificações",()=>{
+    mocks.path="/operacao";mocks.bi["session"]={user:{id:"cs"}};mocks.bi["profile"]={role:"cs",full_name:"Colaborador"};mocks.bi["state"]={status:"operator"};
+    render(<AppShell><div>Minha produção</div></AppShell>);expect(screen.getByText("Minha produção")).toBeVisible();expect(screen.getAllByRole("link",{name:"Minha carteira"})).not.toHaveLength(0);expect(screen.queryByRole("link",{name:"Administração"})).not.toBeInTheDocument();expect(screen.queryByRole("link",{name:"Visão geral"})).not.toBeInTheDocument();
   });
 });

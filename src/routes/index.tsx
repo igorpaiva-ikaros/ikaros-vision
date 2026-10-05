@@ -1,3 +1,4 @@
+import {ExecutiveOperation} from "@/components/workspace/ExecutiveOperation";
 import { createFileRoute } from "@tanstack/react-router";
 import { StateGate } from "@/components/bi/StateGate";
 import { KpiCard, PageTitle, Section } from "@/components/bi/primitives";
@@ -38,6 +39,7 @@ function Overview({ ds }: { ds: Dataset }) {
         <KpiCard label="Encaminhadas para desenvolvimento" value={k.forwarded} hint="Seguem acompanhadas pelo CS" />
         <KpiCard label="SLA em atraso" value={k.slaOverdue} tone={k.slaOverdue ? "alert" : "default"} hint={`Cobertura: ${k.slaCovered} de ${k.backlog} do backlog com dados de SLA`} />
       </div>
+      <ExecutiveOperation/>
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <Section title="Entradas x conclusões por dia" className="lg:col-span-2"><DailyChart data={dailySeries(demands, period)} /></Section>
         <Section title="Backlog por status"><HBar data={countBy(backlog, (d) => d.status)} /></Section>

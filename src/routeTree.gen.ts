@@ -10,16 +10,24 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdministracaoRouteImport } from './routes/administracao'
 import { Route as AjudaRouteImport } from './routes/ajuda'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as DemandasRouteImport } from './routes/demandas'
 import { Route as EquipeRouteImport } from './routes/equipe'
 import { Route as IntegracaoRouteImport } from './routes/integracao'
+import { Route as NotificacoesRouteImport } from './routes/notificacoes'
+import { Route as OperacaoRouteImport } from './routes/operacao'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdministracaoRoute = AdministracaoRouteImport.update({
+  id: '/administracao',
+  path: '/administracao',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AjudaRoute = AjudaRouteImport.update({
@@ -52,73 +60,104 @@ const IntegracaoRoute = IntegracaoRouteImport.update({
   path: '/integracao',
   getParentRoute: () => rootRouteImport,
 } as any)
+const NotificacoesRoute = NotificacoesRouteImport.update({
+  id: '/notificacoes',
+  path: '/notificacoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OperacaoRoute = OperacaoRouteImport.update({
+  id: '/operacao',
+  path: '/operacao',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/administracao': typeof AdministracaoRoute
   '/ajuda': typeof AjudaRoute
   '/auth': typeof AuthRoute
   '/clientes': typeof ClientesRoute
   '/demandas': typeof DemandasRoute
   '/equipe': typeof EquipeRoute
   '/integracao': typeof IntegracaoRoute
+  '/notificacoes': typeof NotificacoesRoute
+  '/operacao': typeof OperacaoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/administracao': typeof AdministracaoRoute
   '/ajuda': typeof AjudaRoute
   '/auth': typeof AuthRoute
   '/clientes': typeof ClientesRoute
   '/demandas': typeof DemandasRoute
   '/equipe': typeof EquipeRoute
   '/integracao': typeof IntegracaoRoute
+  '/notificacoes': typeof NotificacoesRoute
+  '/operacao': typeof OperacaoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/administracao': typeof AdministracaoRoute
   '/ajuda': typeof AjudaRoute
   '/auth': typeof AuthRoute
   '/clientes': typeof ClientesRoute
   '/demandas': typeof DemandasRoute
   '/equipe': typeof EquipeRoute
   '/integracao': typeof IntegracaoRoute
+  '/notificacoes': typeof NotificacoesRoute
+  '/operacao': typeof OperacaoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/administracao'
     | '/ajuda'
     | '/auth'
     | '/clientes'
     | '/demandas'
     | '/equipe'
     | '/integracao'
+    | '/notificacoes'
+    | '/operacao'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/administracao'
     | '/ajuda'
     | '/auth'
     | '/clientes'
     | '/demandas'
     | '/equipe'
     | '/integracao'
+    | '/notificacoes'
+    | '/operacao'
   id:
     | '__root__'
     | '/'
+    | '/administracao'
     | '/ajuda'
     | '/auth'
     | '/clientes'
     | '/demandas'
     | '/equipe'
     | '/integracao'
+    | '/notificacoes'
+    | '/operacao'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdministracaoRoute: typeof AdministracaoRoute
   AjudaRoute: typeof AjudaRoute
   AuthRoute: typeof AuthRoute
   ClientesRoute: typeof ClientesRoute
   DemandasRoute: typeof DemandasRoute
   EquipeRoute: typeof EquipeRoute
   IntegracaoRoute: typeof IntegracaoRoute
+  NotificacoesRoute: typeof NotificacoesRoute
+  OperacaoRoute: typeof OperacaoRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -128,6 +167,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/administracao': {
+      id: '/administracao'
+      path: '/administracao'
+      fullPath: '/administracao'
+      preLoaderRoute: typeof AdministracaoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ajuda': {
@@ -172,17 +218,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IntegracaoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/notificacoes': {
+      id: '/notificacoes'
+      path: '/notificacoes'
+      fullPath: '/notificacoes'
+      preLoaderRoute: typeof NotificacoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/operacao': {
+      id: '/operacao'
+      path: '/operacao'
+      fullPath: '/operacao'
+      preLoaderRoute: typeof OperacaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdministracaoRoute: AdministracaoRoute,
   AjudaRoute: AjudaRoute,
   AuthRoute: AuthRoute,
   ClientesRoute: ClientesRoute,
   DemandasRoute: DemandasRoute,
   EquipeRoute: EquipeRoute,
   IntegracaoRoute: IntegracaoRoute,
+  NotificacoesRoute: NotificacoesRoute,
+  OperacaoRoute: OperacaoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

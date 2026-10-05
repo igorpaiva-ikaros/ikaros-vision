@@ -7,8 +7,10 @@ const mocks = vi.hoisted(() => ({
   session: null as any,
   authEvent: null as ((event: string, session: any) => void) | null,
   getState: vi.fn(),
+  getAccess: vi.fn(),
 }));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: any) => fn }));
+vi.mock("@/lib/workspace.functions", () => ({getAccess:mocks.getAccess}));
 vi.mock("@/lib/bi.functions", () => ({ getBiState: mocks.getState }));
 vi.mock("@/integrations/supabase/client", () => ({
   backendConfigured: true,
@@ -35,6 +37,7 @@ beforeEach(() => {
   sessionStorage.clear();
   mocks.session = null;
   mocks.authEvent = null;
+  mocks.getAccess.mockResolvedValue(null);
 });
 
 it("modo demo gravado no navegador não libera dados sem sessão", async () => {
@@ -48,16 +51,18 @@ it("modo demo gravado no navegador não libera dados sem sessão", async () => {
 it("modo demo não ignora a autorização do servidor", async () => {
   sessionStorage.setItem("ikaros-bi-mode", "demo");
   mocks.session = { user: { id: "unapproved" } };
-  mocks.getState.mockResolvedValue({ status: "forbidden" });
+  mocks.getAccess.mockResolvedValue(null);
   mount();
   await waitFor(() => expect(screen.getByTestId("status")).toHaveTextContent("forbidden"));
   expect(screen.getByTestId("data")).toHaveTextContent("no-data");
-  expect(mocks.getState).toHaveBeenCalled();
+  expect(mocks.getAccess).toHaveBeenCalled();
+  expect(mocks.getState).not.toHaveBeenCalled();
 });
 
 it("sair remove os dados e a demonstração antes de permitir outra sessão", async () => {
   sessionStorage.setItem("ikaros-bi-mode", "demo");
   mocks.session = { user: { id: "approved" } };
+  mocks.getAccess.mockResolvedValue({id:"approved",role:"admin",active:true});
   mocks.getState.mockResolvedValue({ status: "not_configured", missing: [] });
   const client = mount();
   await waitFor(() => expect(screen.getByTestId("status")).toHaveTextContent("demo"));

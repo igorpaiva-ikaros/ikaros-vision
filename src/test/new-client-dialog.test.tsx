@@ -23,10 +23,10 @@ async function fill() {
 describe("Formulário de cliente", () => {
   it("não permite enviar até escolher um responsável e confirma o cadastro", async () => {
     renderDialog(); await fill();
-    expect(screen.getByRole("button", { name: "Enviar para o Notion" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cadastrar cliente" })).toBeDisabled();
     expect(mocks.create).not.toHaveBeenCalled();
     fireEvent.change(screen.getByLabelText("Responsável de CS *"), { target: { value: "76a3f1dc-d043-49ef-b9b3-bbfc8a29ef22" } });
-    fireEvent.click(screen.getByRole("button", { name: "Enviar para o Notion" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cadastrar cliente" }));
     await waitFor(() => expect(mocks.reload).toHaveBeenCalledOnce());
     expect(mocks.create).toHaveBeenCalledWith({ data: expect.objectContaining({ ownerId: "76a3f1dc-d043-49ef-b9b3-bbfc8a29ef22", name: "Corretora Exemplo" }) });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -35,7 +35,7 @@ describe("Formulário de cliente", () => {
     mocks.create.mockResolvedValueOnce({ ok: false, uncertain: true, message: "Confirme o envio." });
     renderDialog(); await fill();
     fireEvent.change(screen.getByLabelText("Responsável de CS *"), { target: { value: "76a3f1dc-d043-49ef-b9b3-bbfc8a29ef22" } });
-    fireEvent.click(screen.getByRole("button", { name: "Enviar para o Notion" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cadastrar cliente" }));
     fireEvent.click(await screen.findByRole("button", { name: "Confirmar envio" }));
     await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(2));
     expect(mocks.create.mock.calls[0]![0]).toEqual(mocks.create.mock.calls[1]![0]);

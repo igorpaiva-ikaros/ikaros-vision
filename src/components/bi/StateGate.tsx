@@ -38,7 +38,7 @@ export function StateGate({ children }: { children: (ds: Dataset) => ReactNode }
   if (state.status === "signed_out")
     return (
       <Panel icon={<Lock className="h-5 w-5" />} title="Acesso restrito">
-        <p>Os dados reais do Notion só aparecem para contas internas autorizadas.</p>
+        <p>Os dados internos só aparecem para contas internas autorizadas.</p>
         <div className="flex justify-center gap-2">
           <Button asChild><Link to="/auth">Entrar</Link></Button>
           {demoBtn}
@@ -53,8 +53,8 @@ export function StateGate({ children }: { children: (ds: Dataset) => ReactNode }
     );
   if (state.status === "not_configured")
     return (
-      <Panel icon={<PlugZap className="h-5 w-5" />} title="Notion não conectado">
-        <p>O BI ainda não recebeu uma conexão Notion utilizável. Conectar o Notion ao ChatGPT ou ao workspace do Lovable não vincula automaticamente a conexão a este projeto.</p>
+      <Panel icon={<PlugZap className="h-5 w-5" />} title="Acesso interno não configurado">
+        <p>A configuração do acesso ao Ikaros Vision precisa ser concluída.</p>
         <p className="text-xs">Pendente: {state.missing.join(", ")}</p>
         <div className="flex justify-center gap-2">
           <Button asChild variant="secondary"><Link to="/integracao">Ver integração</Link></Button>
@@ -64,8 +64,8 @@ export function StateGate({ children }: { children: (ds: Dataset) => ReactNode }
     );
   if (state.status === "empty")
     return (
-      <Panel icon={<PlugZap className="h-5 w-5" />} title="Nenhuma sincronização concluída">
-        <p>O Notion está configurado, mas ainda não houve leitura bem-sucedida.</p>
+      <Panel icon={<PlugZap className="h-5 w-5" />} title="Operação sem leitura confirmada">
+        <p>Ainda não houve leitura bem-sucedida da operação.</p>
         {state.lastError && <p className="text-destructive">Último erro: {state.lastError}</p>}
         <div className="flex justify-center"><RefreshButton /></div>
       </Panel>

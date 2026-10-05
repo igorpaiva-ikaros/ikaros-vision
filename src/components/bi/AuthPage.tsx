@@ -9,17 +9,17 @@ import { Label } from "@/components/ui/label";
 
 export function AuthPage() {
   const nav = useNavigate();
-  const { session, state } = useBi();
+  const { session, state, profile } = useBi();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (session && state && state.status !== "forbidden" && state.status !== "error") {
-      void nav({ to: "/", replace: true });
+    if (session && profile && state && state.status !== "forbidden" && state.status !== "error") {
+      void nav({ to: profile.role === "cs" ? "/operacao" : "/", replace: true });
     }
-  }, [session, state, nav]);
+  }, [session, state, profile, nav]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -29,7 +29,7 @@ export function AuthPage() {
     if (!backendConfigured) { setMsg("O acesso interno ainda não foi configurado."); return; }
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     if (error) setMsg("E-mail ou senha inválidos.");
-    else { setPassword(""); await nav({ to: "/", replace: true }); }
+    else { setPassword(""); }
     } catch { setMsg("Não foi possível entrar. Tente novamente."); } finally { setBusy(false); }
   }
 
@@ -38,7 +38,7 @@ export function AuthPage() {
       <form onSubmit={submit} className="w-full max-w-sm space-y-4 bi-card rounded-lg border border-border bg-card p-8">
         <div>
           <BrandLogo className="mb-5 h-auto w-48" />
-          <div className="bi-eyebrow text-muted-foreground">BI Customer Success · acesso interno</div>
+          <div className="bi-eyebrow text-muted-foreground">Customer Success · acesso interno</div>
           <h1 className="mt-5 font-display text-3xl">Entrar no Ikaros Vision</h1>
           <p className="mt-2 text-sm text-muted-foreground">Use sua conta autorizada para acessar o painel da empresa.</p>
         </div>
@@ -46,7 +46,7 @@ export function AuthPage() {
         <div className="space-y-1"><Label htmlFor="p">Senha</Label><Input id="p" type="password" autoComplete="current-password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} /></div>
         {msg && <p role="alert" className="text-sm text-muted-foreground">{msg}</p>}
         <Button className="w-full" disabled={busy}>{busy ? "Entrando…" : "Entrar"}</Button>
-        <p className="text-xs text-muted-foreground">Uso interno da IKAROS. Todos os usuários autorizados têm acesso completo ao BI. Não há cadastro público.</p>
+        <p className="text-xs text-muted-foreground">Uso interno da IKAROS. O CS acessa sua carteira. Administradores acessam a gestão. Não há cadastro público.</p>
 
       </form>
     </div>

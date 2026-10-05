@@ -1,5 +1,5 @@
-// Contract policy. Deadline statuses are read from Notion. The BI mapper does
-// not yet read the newly added event timestamps for compliance percentages.
+// Contract policy. Native PostgreSQL computes deadlines and event states.
+// Legacy demo imports retain their original timestamps.
 
 export const SLA_RULES = {
   firstResponseBusinessHours: 4,

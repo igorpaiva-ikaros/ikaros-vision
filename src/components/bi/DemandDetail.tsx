@@ -67,7 +67,7 @@ export function DemandDetail({
                   <a href={d.notionUrl} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4" /> Abrir no Notion</a>
                 </Button>
               ) : (
-                <p className="text-xs text-muted-foreground">Registro de demonstração — sem página no Notion.</p>
+                <p className="text-xs text-muted-foreground">Registro do Ikaros Vision.</p>
               )}
               <Block title="Descrição">
                 <Txt v={d.description} />
@@ -107,10 +107,10 @@ export function DemandDetail({
                   <Row k="Cliente validou?" v={<Bool v={d.clientValidated} />} />
                 </dl>
                 {d.status === "Publicada" && (
-                  <p className="mt-2 text-xs text-muted-foreground">Publicada não significa concluída: a conclusão exige comunicação e validação do cliente.</p>
+                  <p className="mt-2 text-xs text-muted-foreground">Publicada não significa concluída: a conclusão exige solução registrada e comunicação ao cliente.</p>
                 )}
               </Block>
-              <Block title="SLA (fórmulas do Notion)">
+              <Block title="SLA da operação">
                 <dl>
                   <Row k="Situação" v={overdue === null ? <Val v={null} /> : overdue ? <span className="font-medium text-destructive">Em atraso</span> : "Sem atraso indicado"} />
                   <Row k="Status SLA útil" v={<Val v={d.sla.statusUtil} />} />
@@ -119,7 +119,7 @@ export function DemandDetail({
                   <Row k="Prazo solução" v={formatDateTime(d.sla.prazoSolucao)} />
                   <Row k="Prazo final efetivo" v={formatDateTime(d.sla.prazoFinalEfetivo)} />
                 </dl>
-                <p className="mt-2 text-xs text-muted-foreground">Valores lidos das fórmulas/campos da base. O cumprimento real não é calculado por falta de horários de resposta e encaminhamento.</p>
+                <p className="mt-2 text-xs text-muted-foreground">Prazos calculados pelo servidor em horário útil.</p>
               </Block>
               <Block title="Solução e testes">
                 <dl>

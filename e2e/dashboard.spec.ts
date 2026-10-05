@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-for (const path of ['/', '/demandas', '/clientes', '/equipe', '/integracao', '/ajuda']) {
+for (const path of ['/', '/demandas', '/clientes', '/equipe', '/integracao', '/ajuda', '/operacao', '/administracao', '/notificacoes']) {
   test(`sem sessão, ${path} redireciona para o login e oculta o painel`, async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', error => errors.push(error.message));

@@ -56,7 +56,7 @@ export function NewClientDialog() {
     <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" />Novo cliente</Button>
     <Dialog open={open} onOpenChange={value => { if (!busy) setOpen(value); }}>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
-        <DialogHeader><DialogTitle>Novo cliente</DialogTitle><DialogDescription>Escolha o responsável pela carteira antes de enviar. O cliente será cadastrado diretamente no Notion do CS.</DialogDescription></DialogHeader>
+        <DialogHeader><DialogTitle>Novo cliente</DialogTitle><DialogDescription>Escolha o responsável pela carteira antes de enviar. O cliente será cadastrado na carteira do CS dentro do Ikaros Vision.</DialogDescription></DialogHeader>
         <form onSubmit={submit} className="space-y-4">
           <fieldset disabled={busy || uncertain} className="space-y-4">
             <div className="space-y-1"><Label htmlFor="client-name">Nome da empresa *</Label><Input id="client-name" value={data.name} onChange={e => update("name", e.target.value)} required maxLength={200} /></div>
@@ -77,7 +77,7 @@ export function NewClientDialog() {
           {options.isLoading && <p role="status" className="text-sm">Carregando colaboradores e planos…</p>}
           {options.isError && <div role="alert" className="text-sm text-destructive">{options.error instanceof Error ? options.error.message : "Não foi possível carregar o cadastro."}<Button type="button" variant="outline" className="mt-2" onClick={() => options.refetch()}>Tentar novamente</Button></div>}
           {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-          <div className="flex justify-end gap-2"><Button type="button" variant="outline" disabled={busy} onClick={() => setOpen(false)}>Fechar</Button><Button type="submit" disabled={busy || !ready}>{busy ? "Aguarde…" : uncertain ? "Confirmar envio" : "Enviar para o Notion"}</Button></div>
+          <div className="flex justify-end gap-2"><Button type="button" variant="outline" disabled={busy} onClick={() => setOpen(false)}>Fechar</Button><Button type="submit" disabled={busy || !ready}>{busy ? "Aguarde…" : uncertain ? "Confirmar envio" : "Cadastrar cliente"}</Button></div>
         </form>
       </DialogContent>
     </Dialog>

@@ -4,6 +4,8 @@ import { useServerFn } from "@tanstack/react-start";
 import type { Session } from "@supabase/supabase-js";
 import { supabase, backendConfigured } from "@/integrations/supabase/client";
 import { getBiState } from "./bi.functions";
+import { getAccess } from "./workspace.functions";
+import type { Profile } from "./workspace/types";
 import { buildDemoDataset } from "./demo/dataset";
 import { buildPeriod, type Period } from "./domain/period";
 import type { ConnectionState, Dataset } from "./domain/types";
@@ -18,6 +20,7 @@ interface BiCtx {
   period: Period;
   setPeriod: (p: Period) => void;
   session: Session | null;
+  profile: Profile | null;
   authReady: boolean;
   state: ConnectionState | null;
   loading: boolean;
@@ -36,26 +39,31 @@ export function BiProvider({ children }: { children: ReactNode }) {
   const [authReady, setAuthReady] = useState(false);
   const qc = useQueryClient();
   const fetchState = useServerFn(getBiState);
+  const fetchAccess = useServerFn(getAccess);
 
   useEffect(() => {
     if (sessionStorage.getItem(MODE_KEY) === "demo") setModeState("demo");
-    if (!backendConfigured) { setAuthReady(true); return; }
+    if (!backendConfigured) {
+      setAuthReady(true);
+      return;
+    }
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
       if (event === "SIGNED_OUT") {
-        void qc.cancelQueries({ queryKey: ["bi-state"] });
-        qc.removeQueries({ queryKey: ["bi-state"] });
-        void qc.cancelQueries({ queryKey: ["client-registration-options"] });
-        qc.removeQueries({ queryKey: ["client-registration-options"] });
+        void qc.cancelQueries();
+        qc.clear();
         setModeState("real");
         setIncludeTests(false);
         sessionStorage.removeItem(MODE_KEY);
       }
     });
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setAuthReady(true);
-    }).catch(() => setAuthReady(true));
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        setSession(data.session);
+        setAuthReady(true);
+      })
+      .catch(() => setAuthReady(true));
     return () => sub.subscription.unsubscribe();
   }, [qc]);
 
@@ -65,10 +73,20 @@ export function BiProvider({ children }: { children: ReactNode }) {
   };
 
   const userId = session?.user.id ?? null;
+  const access = useQuery({
+    queryKey: ["workspace-access", userId],
+    queryFn: () => fetchAccess(),
+    enabled: !!userId,
+    staleTime: 10_000,
+    refetchInterval: 30_000,
+    retry: false,
+  });
+  const profile = access.data ?? null;
   const q = useQuery({
     queryKey: ["bi-state", userId],
     queryFn: () => fetchState(),
-    enabled: !!userId,
+    enabled: !!userId && profile?.role === "admin",
+    refetchInterval: 30_000,
     staleTime: 60_000,
   });
 
@@ -76,9 +94,19 @@ export function BiProvider({ children }: { children: ReactNode }) {
 
   let state: ConnectionState | null;
   if (!authReady) state = null;
-  else if (!backendConfigured) state = { status: "not_configured", missing: ["Configuração do acesso interno pendente"] };
+  else if (!backendConfigured)
+    state = { status: "not_configured", missing: ["Configuração do acesso interno pendente"] };
   else if (!userId) state = { status: "signed_out" };
-  else if (q.isError) state = { status: "error", message: "Não foi possível consultar os dados. Tente atualizar ou confira seu acesso." };
+  else if (access.isError)
+    state = { status: "error", message: "Não foi possível verificar sua autorização." };
+  else if (access.isPending) state = null;
+  else if (!profile) state = { status: "forbidden" };
+  else if (profile.role === "cs") state = { status: "operator" };
+  else if (q.isError)
+    state = {
+      status: "error",
+      message: "Não foi possível consultar os dados. Tente atualizar ou confira seu acesso.",
+    };
   else if (!q.data) state = null;
   else if (q.data.status === "forbidden") state = q.data;
   else if (mode === "demo") state = { status: "demo" };
@@ -89,9 +117,30 @@ export function BiProvider({ children }: { children: ReactNode }) {
   return (
     <Ctx.Provider
       value={{
-        mode, setMode, includeTests, setIncludeTests, period, setPeriod, session, authReady,
-        state, loading: !authReady || (!!userId && q.isLoading), dataset,
-        reload: () => qc.invalidateQueries({ queryKey: ["bi-state"] }),
+        mode: profile?.role === "cs" ? "real" : mode,
+        setMode,
+        includeTests,
+        setIncludeTests,
+        period,
+        setPeriod,
+        session,
+        authReady,
+        profile,
+        state,
+        loading:
+          !authReady ||
+          (!!userId && access.isPending) ||
+          (profile?.role === "admin" && q.isLoading),
+        dataset,
+        reload: () => {
+          void qc.invalidateQueries({ queryKey: ["workspace-access"] });
+          void qc.invalidateQueries({ queryKey: ["client-registration-options"] });
+          void qc.invalidateQueries({ queryKey: ["bi-state"] });
+          void qc.invalidateQueries({ queryKey: ["operation-state"] });
+          void qc.invalidateQueries({ queryKey: ["admin-state"] });
+          void qc.invalidateQueries({ queryKey: ["notifications"] });
+          void qc.invalidateQueries({ queryKey: ["record-history"] });
+        },
       }}
     >
       {children}

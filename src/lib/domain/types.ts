@@ -99,7 +99,7 @@ export interface Client {
 }
 
 export interface Dataset {
-  source: "notion" | "demo";
+  source: "notion" | "demo" | "native";
   fetchedAt: string;
   demands: Demand[];
   clients: Client[];
@@ -109,6 +109,7 @@ export interface Dataset {
 
 export type ConnectionState =
   | { status: "demo" }
+  | { status: "operator" }
   | { status: "signed_out" }
   | { status: "forbidden" }
   | { status: "error"; message: string }
