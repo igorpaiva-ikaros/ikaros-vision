@@ -42,3 +42,13 @@ Aplicados paleta escura/coral/marfim, Instrument Serif/Geist/Geist Mono locais, 
 - Validação manual na prévia Lovable após recarga completa: raiz redirecionou para /auth com formulário IKAROS, sem shell/navegação/demonstração; seleção direta de /clientes também voltou a /auth. A recarga eliminou um erro transitório de contexto durante HMR. Não foi alterada a proteção para contornar esse erro.
 - Commit de implementação f9576819c72e2ce32a87bb0e42bf951c40a230f5 sincronizado no Lovable. GitHub Actions Verificar BI passou (run 37166234351).
 - Durante esta execução foi observada uma publicação preexistente do projeto. A atualização da versão de uso foi rejeitada pela revisão automática por manter URL pública no Lovable frente à instrução de uso exclusivamente interno. A correção está no GitHub e na prévia, mas não foi aplicada ao endereço publicado. A sincronização completa de registros e o login real continuam sem comprovação ponta a ponta.
+
+
+## Carteira e grupos WhatsApp — 2026-10-06
+
+- Cadastro nativo exige nome da empresa e CS ativo; contatos, segmento e plano podem ficar sem informação. Quando selecionado, plano continua validado no catálogo, sem texto livre.
+- Campo privado `whatsapp_group_url` disponível no cadastro e Perfil da carteira. Atalho abre o convite em outra aba na carteira e no formulário de demanda, onboarding ou upgrade. Validação aceita somente HTTPS de chat.whatsapp.com; RLS mantém carteira própria do CS e acesso global do administrador.
+- Migration 20261006130000 aplicada ao banco Vision. Conferência transacional preservou planos, políticas e configuração SLA.
+- Limpeza de produção removeu apenas registros marcados como teste e a tarefa vinculada, com notificações, histórico e pendências relacionados. Usuários e configurações preservados.
+- Importação de 25 empresas documentadas no repositório ERP, 22 com ID canônico e três identificadas por nome. Sem telefone, e-mail, plano ou link inventado; carteira atribuída ao único CS ativo. Importação usa IDs estáveis e verifica duplicatas, sem dados de clientes em bundles ou no Git. O código não contém a tabela completa de empresas: esta importação não comprova a base integral; exportação da lista de empresas continua necessária.
+- `npm run check`: strict typecheck, 92 testes e build passaram. Playwright operação: sete testes passaram, incluindo salvar grupo e atalho da carteira/demanda. Validação em ambiente local com fixtures e PostgreSQL PGlite; não substitui sessão real no site publicado.

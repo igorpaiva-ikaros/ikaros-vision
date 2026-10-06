@@ -119,7 +119,9 @@ export async function transitionRecord({ data }: any) {
 export async function saveRecord() {
   return { id: "fixture-record" };
 }
-export async function updateClientContact() {
+export async function updateClientContact({ data }: any) {
+  const row = ds.clients.find((c: any) => c.id === data.id);
+  Object.assign(row, data, { version: row.version + 1 });
   return { ok: true };
 }
 export async function getRecordHistory() {

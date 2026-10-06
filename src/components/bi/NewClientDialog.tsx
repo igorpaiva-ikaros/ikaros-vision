@@ -26,11 +26,12 @@ const initial = (): ClientRegistration => ({
   name: "",
   ownerId: "",
   contactName: "",
+  whatsappGroupUrl: "",
   email: "",
   phone: "",
   plan: "",
   productId: undefined,
-  segment: "Consórcio",
+  segment: "Não informado",
   notes: "",
   isTest: false,
 });
@@ -62,7 +63,7 @@ export function NewClientDialog() {
   const ready =
     !!options.data &&
     options.data.owners.some((o) => o.id === data.ownerId) &&
-    !!options.data.products?.some((p) => p.active && p.id === data.productId);
+    (!data.productId || !!options.data.products?.some((p) => p.active && p.id === data.productId));
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     if (submitting.current || !ready) return;
@@ -148,12 +149,11 @@ export function NewClientDialog() {
                 </select>
               </div>
               <div className="space-y-1">
-                <Label htmlFor="client-contact">Contato principal *</Label>
+                <Label htmlFor="client-contact">Contato principal</Label>
                 <Input
                   id="client-contact"
                   value={data.contactName}
                   onChange={(e) => update("contactName", e.target.value)}
-                  required
                   maxLength={200}
                 />
               </div>
@@ -180,7 +180,7 @@ export function NewClientDialog() {
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                Informe pelo menos um contato: e-mail ou telefone.
+                Contato e plano podem ser preenchidos depois.
               </p>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1">
@@ -193,21 +193,20 @@ export function NewClientDialog() {
                       update("segment", e.target.value as ClientRegistration["segment"])
                     }
                   >
-                    {["Consórcio", "Seguros", "Consórcio e seguros"].map((s) => (
+                    {["Não informado", "Consórcio", "Seguros", "Consórcio e seguros"].map((s) => (
                       <option key={s}>{s}</option>
                     ))}
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="client-plan">Plano contratado *</Label>
+                  <Label htmlFor="client-plan">Plano contratado</Label>
                   <select
-                    required
                     id="client-plan"
                     className={selectClass}
                     value={data.productId ?? ""}
                     onChange={(e) => update("productId", e.target.value || undefined)}
                   >
-                    <option value="">Selecione o plano</option>
+                    <option value="">Ainda não informado</option>
                     {options.data?.products
                       ?.filter((p) => p.active)
                       .map((p) => (
@@ -217,6 +216,17 @@ export function NewClientDialog() {
                       ))}
                   </select>
                 </div>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="client-group">Link do grupo (WhatsApp)</Label>
+                <Input
+                  id="client-group"
+                  type="url"
+                  placeholder="https://chat.whatsapp.com/…"
+                  value={data.whatsappGroupUrl}
+                  onChange={(e) => update("whatsappGroupUrl", e.target.value)}
+                  maxLength={500}
+                />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="client-notes">Observações para o CS</Label>

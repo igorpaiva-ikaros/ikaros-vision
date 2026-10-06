@@ -1,3 +1,4 @@
+import { whatsappGroupSchema } from "../workspace/whatsapp-group";
 import { z } from "zod";
 
 const text = z.string().trim().max(2000);
@@ -14,24 +15,25 @@ const phone = z
     "Informe um telefone válido.",
   );
 
-export const clientRegistrationSchema = z
-  .object({
-    requestId: z.string().uuid(),
-    name: text.min(2, "Informe o nome da empresa.").max(200),
-    ownerId: z.string().uuid("Selecione um responsável de CS."),
-    contactName: text.min(2, "Informe o contato principal.").max(200),
-    email: email.default(""),
-    phone: phone.default(""),
-    plan: text.max(100).default(""),
-    productId: z.string().uuid("Selecione um plano do catálogo.").optional(),
-    segment: z.enum(["Consórcio", "Seguros", "Consórcio e seguros"]),
-    notes: text.default(""),
-    isTest: z.boolean().default(false),
-  })
-  .refine((v) => !!v.email || !!v.phone, {
-    path: ["email"],
-    message: "Informe e-mail ou telefone para contato.",
-  });
+export const clientRegistrationSchema = z.object({
+  requestId: z.string().uuid(),
+  name: text.min(2, "Informe o nome da empresa.").max(200),
+  ownerId: z.string().uuid("Selecione um responsável de CS."),
+  contactName: text.max(200).default(""),
+  whatsappGroupUrl: whatsappGroupSchema,
+  email: email.default(""),
+  phone: phone.default(""),
+  plan: text.max(100).default(""),
+  productId: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.string().uuid("Selecione um plano do catálogo.").optional(),
+  ),
+  segment: z
+    .enum(["Consórcio", "Seguros", "Consórcio e seguros", "Não informado"])
+    .default("Não informado"),
+  notes: text.default(""),
+  isTest: z.boolean().default(false),
+});
 
 export type ClientRegistration = z.infer<typeof clientRegistrationSchema>;
 export interface ClientRegistrationOptions {

@@ -154,3 +154,22 @@ test("administrator configures catalogue and rules only on explicit save", async
   await policy.getByRole("button", { name: "Salvar regras e recalcular abertas" }).click();
   await expect.poll(() => page.evaluate(() => (window as any).qaPolicySaves)).toBe(1);
 });
+
+test("perfil salva grupo e oferece atalho na carteira e na demanda", async ({ page }) => {
+  await page.goto("/operacao?tab=clients");
+  await page.getByRole("button", { name: "Perfil", exact: true }).click();
+  await page
+    .getByLabel("Link do grupo (WhatsApp)")
+    .fill("https://chat.whatsapp.com/TestGroupInvite12345");
+  await page.getByRole("button", { name: "Salvar perfil" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Abrir grupo WhatsApp" })).toHaveAttribute(
+    "href",
+    "https://chat.whatsapp.com/TestGroupInvite12345",
+  );
+  await page.getByRole("link", { name: "CRM", exact: true }).click();
+  await page.getByText("Proposta de consórcio não carrega", { exact: true }).click();
+  await expect(
+    page.getByRole("dialog").getByRole("link", { name: "Abrir grupo WhatsApp" }),
+  ).toHaveAttribute("target", "_blank");
+});

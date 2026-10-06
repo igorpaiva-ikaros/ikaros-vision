@@ -22,6 +22,7 @@ export interface NativeClient {
   company_email: string | null;
   company_phone: string | null;
   whatsapp: string | null;
+  whatsapp_group_url?: string | null;
   notes: string | null;
   segments: string[];
   plan: string | null;

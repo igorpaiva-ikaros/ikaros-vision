@@ -53,19 +53,21 @@ export async function registerNativeClient(
           .maybeSingle(),
       )
     : null;
-  if (!product) return { ok: false, message: "Selecione um plano ativo do catálogo." };
+  if (data.productId && !product)
+    return { ok: false, message: "Selecione um plano ativo do catálogo." };
   const row = {
     id: data.requestId,
     name: data.name,
     empresa: data.name,
     owner_id: data.ownerId,
-    contact_name: data.contactName,
+    contact_name: data.contactName || null,
+    whatsapp_group_url: data.whatsappGroupUrl || null,
     contact_email: data.email || null,
     contact_phone: data.phone || null,
     notes: data.notes,
-    segments: [data.segment],
-    plan: product.name,
-    product_id: product.id,
+    segments: data.segment === "Não informado" ? [] : [data.segment],
+    plan: product?.name ?? null,
+    product_id: product?.id ?? null,
     status: "Ativo",
     is_test: data.isTest,
   };

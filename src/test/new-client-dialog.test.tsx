@@ -48,13 +48,13 @@ function renderDialog() {
 async function fill() {
   fireEvent.click(screen.getByRole("button", { name: "Novo cliente" }));
   await screen.findByRole("option", { name: "Pedro" }, { timeout: 4000 });
-  fireEvent.change(screen.getByLabelText("Plano contratado *"), {
+  fireEvent.change(screen.getByLabelText("Plano contratado"), {
     target: { value: "00000000-0000-4000-8000-000000000090" },
   });
   fireEvent.change(screen.getByLabelText("Nome da empresa *"), {
     target: { value: "Corretora Exemplo" },
   });
-  fireEvent.change(screen.getByLabelText("Contato principal *"), {
+  fireEvent.change(screen.getByLabelText("Contato principal"), {
     target: { value: "Contato Exemplo" },
   });
   fireEvent.change(screen.getByLabelText("E-mail do contato"), {
@@ -79,6 +79,31 @@ describe("Formulário de cliente", () => {
       }),
     });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+  it("cadastra somente nome e responsável e salva o grupo opcional", async () => {
+    renderDialog();
+    fireEvent.click(screen.getByRole("button", { name: "Novo cliente" }));
+    await screen.findByRole("option", { name: "Pedro" });
+    fireEvent.change(screen.getByLabelText("Nome da empresa *"), {
+      target: { value: "Empresa mínima" },
+    });
+    fireEvent.change(screen.getByLabelText("Responsável de CS *"), {
+      target: { value: "76a3f1dc-d043-49ef-b9b3-bbfc8a29ef22" },
+    });
+    fireEvent.change(screen.getByLabelText("Link do grupo (WhatsApp)"), {
+      target: { value: "https://chat.whatsapp.com/TestGroupInvite12345" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Cadastrar cliente" }));
+    await waitFor(() =>
+      expect(mocks.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          name: "Empresa mínima",
+          contactName: "",
+          productId: undefined,
+          whatsappGroupUrl: "https://chat.whatsapp.com/TestGroupInvite12345",
+        }),
+      }),
+    );
   });
   it("preserva campos e identificador após resposta incerta", async () => {
     mocks.create.mockResolvedValueOnce({

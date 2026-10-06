@@ -23,6 +23,12 @@ beforeAll(async () => {
     await readFile("supabase/migrations/20261006113000_operation_productivity.sql", "utf8"),
   );
   await db.exec(await readFile("supabase/migrations/20261006120000_crm_catalog_sla.sql", "utf8"));
+  await db.exec(
+    await readFile(
+      "supabase/migrations/20261006130000_client_group_and_minimal_registration.sql",
+      "utf8",
+    ),
+  );
   await db.exec(`insert into profiles(id,full_name,email) values('${other}','Other CS','other@example.test');insert into user_roles(user_id,role) values('${other}','cs');
  insert into clients(id,name,owner_id) values('${ownClient}','Own client','${cs}'),('${otherClient}','Other client','${other}');`);
 }, 30_000);
@@ -43,6 +49,49 @@ async function scalar(sql: string) {
   return (await db.query<any>(sql)).rows[0];
 }
 describe("Native PostgreSQL access and workflow", () => {
+  it("permite cadastro sem plano e edição de grupo somente na carteira autorizada", async () => {
+    await asUser(cs, async () => {
+      const row = await scalar(
+        `insert into clients(name,owner_id) values('Name only','${cs}') returning plan,product_id`,
+      );
+      expect(row).toEqual({ plan: null, product_id: null });
+      expect(
+        (
+          await db.query(
+            `update clients set whatsapp_group_url='https://chat.whatsapp.com/TestGroupInvite12345' where id='${ownClient}' returning id`,
+          )
+        ).rows,
+      ).toHaveLength(1);
+      expect(
+        (
+          await db.query(
+            `update clients set whatsapp_group_url='https://chat.whatsapp.com/TestGroupInvite12345' where id='${otherClient}' returning id`,
+          )
+        ).rows,
+      ).toHaveLength(0);
+    });
+    await asUser(admin, async () => {
+      expect(
+        (
+          await db.query(
+            `update clients set whatsapp_group_url='https://chat.whatsapp.com/TestGroupInvite12345' where id='${otherClient}' returning id`,
+          )
+        ).rows,
+      ).toHaveLength(1);
+    });
+    await expect(
+      asUser(cs, () =>
+        db.exec(
+          `update clients set whatsapp_group_url='javascript:alert(1)' where id='${ownClient}'`,
+        ),
+      ),
+    ).rejects.toThrow();
+    await expect(
+      asUser(cs, () =>
+        db.exec(`insert into clients(name,owner_id,plan) values('Free text','${cs}','Invented')`),
+      ),
+    ).rejects.toThrow();
+  });
   it("scopes clients and all record kinds to current owner, hides orphans", async () => {
     await db.exec(
       `insert into demands(client_id,owner_id,title,notion_id) values('${ownClient}','${cs}','Own demand',null),('${otherClient}','${other}','Foreign demand',null),(null,'${cs}','Unlinked','orphan-source');`,

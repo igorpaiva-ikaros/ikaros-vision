@@ -1,3 +1,4 @@
+import { WhatsAppGroup } from "./WhatsAppGroup";
 import { RecordHistory } from "./RecordHistory";
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -449,6 +450,7 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
                   <p>
                     {c.contact_name ?? "Sem contato"} · {c.plan ?? "Plano não informado"}
                   </p>
+                  <WhatsAppGroup url={c.whatsapp_group_url} />
                   {c.contact_email && (
                     <a className="block underline" href={`mailto:${c.contact_email}`}>
                       {c.contact_email}
@@ -793,6 +795,7 @@ function RecordEditor({
             {current?.stage ? ` · ${current.stage}` : ""}
           </DialogDescription>
         </DialogHeader>
+        <WhatsAppGroup url={ds.clients.find((c) => c.id === client)?.whatsapp_group_url} />
         <form className="space-y-4" onSubmit={submit}>
           <fieldset disabled={busy} className="space-y-4">
             {text(
@@ -1133,6 +1136,7 @@ function ClientEditor({
     contact_email: client.contact_email ?? "",
     contact_phone: client.contact_phone ?? "",
     whatsapp: client.whatsapp ?? "",
+    whatsapp_group_url: client.whatsapp_group_url ?? "",
     product_id: client.product_id ?? null,
     notes: client.notes ?? "",
     status: (client.status ?? "Ativo") as "Ativo" | "Atenção" | "Em risco" | "Encerrado",
@@ -1184,6 +1188,18 @@ function ClientEditor({
                 </Field>
               ),
             )}
+            <Field label="Link do grupo (WhatsApp)">
+              <Input
+                type="url"
+                placeholder="https://chat.whatsapp.com/…"
+                maxLength={500}
+                value={values.whatsapp_group_url}
+                onChange={(e) => setValues((v) => ({ ...v, whatsapp_group_url: e.target.value }))}
+              />
+              <div className="mt-2">
+                <WhatsAppGroup url={values.whatsapp_group_url} />
+              </div>
+            </Field>
             <Field label="Plano contratado">
               <select
                 className={selectClass}

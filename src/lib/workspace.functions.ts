@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { whatsappGroupSchema } from "./workspace/whatsapp-group";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
@@ -302,6 +303,7 @@ export const updateClientContact = createServerFn({ method: "POST" })
         contact_email: z.union([z.literal(""), z.string().email()]),
         contact_phone: z.string().max(40),
         whatsapp: z.string().max(300),
+        whatsapp_group_url: whatsappGroupSchema,
         product_id: z.string().uuid().nullable().optional(),
         notes: z.string().max(2000),
         status: z.enum(["Ativo", "Atenção", "Em risco", "Encerrado"]),
