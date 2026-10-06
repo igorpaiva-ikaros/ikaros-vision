@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useBi } from "@/lib/bi-context";
 import {
   getOperationState,
+  getScheduledTasks,
   saveRecord,
   transitionRecord,
   updateClientContact,
@@ -31,6 +32,7 @@ import {
 import { PageTitle, Section } from "@/components/bi/primitives";
 import { NewClientDialog } from "@/components/bi/NewClientDialog";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -122,6 +124,7 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
   const [editor, setEditor] = useState<{ kind: Entity; client: string; row?: RecordRow } | null>(
     null,
   );
+  const [choosingClient, setChoosingClient] = useState(false);
   const [clientEditor, setClientEditor] = useState<NativeClient | null>(null);
   const [busy, setBusy] = useState(false);
   const moving = useRef(false);
@@ -133,6 +136,7 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
   const [stageLimit, setStageLimit] = useState<Record<string, number>>({});
   useEffect(() => {
     setSearch("");
+    setChoosingClient(false);
     setEditor(null);
     setClientEditor(null);
     setTaskDraft(null);
@@ -355,31 +359,39 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
             <Button variant="outline" onClick={() => query.refetch()}>
               Atualizar
             </Button>
-            <NewClientDialog />
+            {tab === "clients" && <NewClientDialog />}
+            {["demands", "onboardings", "upgrades"].includes(tab) && (
+              <Button onClick={() => setChoosingClient(true)}>Nova demanda</Button>
+            )}
           </div>
         }
       />
       {["demands", "onboardings", "upgrades"].includes(tab) && (
-        <div className="mb-5 flex flex-wrap items-center gap-3">
-          <span className="text-sm font-medium">Funil</span>
-          <select
-            aria-label="Funil CRM"
-            className={selectClass + " max-w-xs"}
-            value={tab}
-            onChange={(e) =>
-              void navigate({
-                to: "/operacao",
-                search: { tab: "crm", pipeline: e.target.value as "demands" },
-              })
-            }
+        <Tabs
+          value={tab}
+          onValueChange={(pipeline) =>
+            void navigate({
+              to: "/operacao",
+              search: { tab: "crm", pipeline: pipeline as "demands" },
+            })
+          }
+          className="mb-5 overflow-x-auto"
+        >
+          <TabsList
+            aria-label="Funis CRM"
+            className="h-auto w-full justify-start rounded-none bg-transparent p-0 border-b border-border"
           >
             {(["demands", "onboardings", "upgrades"] as const).map((kind) => (
-              <option key={kind} value={kind}>
+              <TabsTrigger
+                key={kind}
+                value={kind}
+                className="shrink-0 rounded-none border-b-2 border-transparent px-5 py-3 data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-none"
+              >
                 {AREA_GUIDE[kind].label}
-              </option>
+              </TabsTrigger>
             ))}
-          </select>
-        </div>
+          </TabsList>
+        </Tabs>
       )}
       {tab === "onboardings" && (
         <div className="mb-4 flex flex-wrap gap-2">
@@ -578,6 +590,16 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
           })}
         </div>
       )}
+      {choosingClient && (
+        <ClientDemandPicker
+          clients={ds.clients.filter((c) => includeTests || !c.is_test)}
+          close={() => setChoosingClient(false)}
+          select={(client) => {
+            setChoosingClient(false);
+            setEditor({ kind: "demands", client });
+          }}
+        />
+      )}
       {taskDraft && (
         <TaskDialog
           key={taskDraft.task?.id ?? `${taskDraft.client}-${taskDraft.record ?? ""}`}
@@ -591,6 +613,11 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
           key={`${editor.kind}-${editor.row?.id ?? editor.client}`}
           {...editor}
           ds={ds}
+          openClient={() => {
+            const c = clientById.get(editor.client);
+            if (c) setClientEditor(c);
+          }}
+          openTask={setTaskDraft}
           close={() => setEditor(null)}
         />
       )}
@@ -612,18 +639,143 @@ export function Field({ label, children }: { label: string; children: React.Reac
     </label>
   );
 }
+function LinkedRecordTasks({
+  client,
+  kind,
+  record,
+  open,
+}: {
+  client: string;
+  kind: Entity;
+  record: string;
+  open: (draft: TaskDraft) => void;
+}) {
+  const { session } = useBi();
+  const get = useServerFn(getScheduledTasks);
+  const query = useQuery({
+    queryKey: ["scheduled-tasks", session?.user.id],
+    queryFn: () => get(),
+    staleTime: 30000,
+    refetchInterval: 30000,
+    retry: false,
+  });
+  const tasks =
+    query.data?.filter(
+      (t) => t.client_id === client && t.record_kind === kind && t.record_id === record,
+    ) ?? [];
+  return (
+    <section aria-label="Tarefas desta demanda" className="rounded-lg border p-3 space-y-2">
+      <h3 className="text-sm font-medium">Tarefas vinculadas</h3>
+      {query.isPending ? (
+        <p role="status" className="text-xs">
+          Carregando tarefas…
+        </p>
+      ) : query.isError ? (
+        <Button type="button" variant="ghost" size="sm" onClick={() => query.refetch()}>
+          Tentar carregar tarefas
+        </Button>
+      ) : !tasks.length ? (
+        <p className="text-xs text-muted-foreground">Nenhuma tarefa agendada.</p>
+      ) : (
+        tasks.map((task) => (
+          <Button
+            key={task.id}
+            type="button"
+            variant="ghost"
+            className="h-auto w-full justify-start text-left whitespace-normal"
+            onClick={() => open({ client, task })}
+          >
+            <span>
+              {task.title}
+              <span className="block text-xs text-muted-foreground">
+                {dateLabel(task.due_at)} ·{" "}
+                {task.status === "completed"
+                  ? "Concluída"
+                  : task.status === "canceled"
+                    ? "Cancelada"
+                    : "Pendente"}
+              </span>
+            </span>
+          </Button>
+        ))
+      )}
+    </section>
+  );
+}
+function ClientDemandPicker({
+  clients,
+  close,
+  select,
+}: {
+  clients: NativeClient[];
+  close: () => void;
+  select: (id: string) => void;
+}) {
+  const [search, setSearch] = useState("");
+  const matched = clients.filter((c) =>
+    `${c.name} ${c.code}`
+      .toLocaleLowerCase("pt-BR")
+      .includes(search.trim().toLocaleLowerCase("pt-BR")),
+  );
+  return (
+    <Dialog
+      open
+      onOpenChange={(v) => {
+        if (!v) close();
+      }}
+    >
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Nova demanda</DialogTitle>
+          <DialogDescription>Selecione o cliente da sua carteira.</DialogDescription>
+        </DialogHeader>
+        <Input
+          autoFocus
+          aria-label="Pesquisar cliente para nova demanda"
+          placeholder="Pesquisar empresa ou código"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <div className="max-h-[45dvh] overflow-y-auto space-y-1" aria-label="Clientes disponíveis">
+          {matched.map((c) => (
+            <Button
+              key={c.id}
+              variant="ghost"
+              className="h-auto w-full justify-start text-left whitespace-normal"
+              onClick={() => select(c.id)}
+            >
+              <span>
+                {c.name}
+                <span className="block text-xs text-muted-foreground">{c.code}</span>
+              </span>
+            </Button>
+          ))}
+          {!matched.length && (
+            <p role="status" className="p-3 text-sm text-muted-foreground">
+              Nenhum cliente encontrado na sua carteira.
+            </p>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 function RecordEditor({
   kind,
   client,
   row,
   ds,
   close,
+  openClient,
+  openTask,
 }: {
   kind: Entity;
   client: string;
   row?: RecordRow;
   ds: OperationState;
   close: () => void;
+  openClient: () => void;
+  openTask: (draft: TaskDraft) => void;
 }) {
   const { reload, profile } = useBi();
   const save = useServerFn(saveRecord);
@@ -795,7 +947,31 @@ function RecordEditor({
             {current?.stage ? ` · ${current.stage}` : ""}
           </DialogDescription>
         </DialogHeader>
-        <WhatsAppGroup url={ds.clients.find((c) => c.id === client)?.whatsapp_group_url} />
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={openClient}>
+            Ver cliente
+          </Button>
+          <WhatsAppGroup url={ds.clients.find((c) => c.id === client)?.whatsapp_group_url} />
+          {current && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => openTask({ client, kind, record: current.id })}
+            >
+              <CalendarClock className="h-4 w-4" />
+              Agendar tarefa
+            </Button>
+          )}
+        </div>
+        {current && (
+          <LinkedRecordTasks client={client} kind={kind} record={current.id} open={openTask} />
+        )}
+        {!current && (
+          <p className="text-xs text-muted-foreground">
+            Salve a demanda para agendar tarefas vinculadas a ela.
+          </p>
+        )}
         <form className="space-y-4" onSubmit={submit}>
           <fieldset disabled={busy} className="space-y-4">
             {text(

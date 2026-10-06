@@ -16,7 +16,6 @@ import { useBi } from "@/lib/bi-context";
 import { PageTitle, Section } from "@/components/bi/primitives";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { NewClientDialog } from "@/components/bi/NewClientDialog";
 import { Field, selectClass, dateLabel } from "./Operation";
 export function Admin() {
   const { profile, reload, session } = useBi();
@@ -69,11 +68,7 @@ export function Admin() {
   const healthy = job?.ok && Date.now() - new Date(job.ran_at).getTime() < 12 * 60000;
   return (
     <>
-      <PageTitle
-        title="Administração"
-        subtitle="Contas, carteiras e regras da operação"
-        actions={<NewClientDialog />}
-      />
+      <PageTitle title="Administração" subtitle="Contas, carteiras e regras da operação" />
       {error && (
         <p role="alert" className="mb-4 text-destructive">
           {error}

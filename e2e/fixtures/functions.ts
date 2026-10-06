@@ -116,8 +116,19 @@ export async function transitionRecord({ data }: any) {
   row.version++;
   return structuredClone(row);
 }
-export async function saveRecord() {
-  return { id: "fixture-record" };
+export async function saveRecord({ data }: any) {
+  const row = {
+    ...data.values,
+    id: data.id ?? crypto.randomUUID(),
+    code: "DEM-00002",
+    owner_id: owner,
+    stage: "Nova",
+    version: 1,
+    is_test: false,
+  };
+  ds[data.kind] = [...ds[data.kind].filter((r: any) => r.id !== row.id), row];
+  (window as any).qaSavedRecord = structuredClone({ kind: data.kind, ...row });
+  return row;
 }
 export async function updateClientContact({ data }: any) {
   const row = ds.clients.find((c: any) => c.id === data.id);

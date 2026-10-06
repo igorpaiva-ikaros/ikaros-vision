@@ -18,14 +18,14 @@ test("desktop drag and cached tab navigation use real UI and router", async ({ p
     return (window as any).qaToken;
   });
   const reads = await page.evaluate(() => (window as any).qaMetrics.reads);
-  await page.getByLabel("Funil CRM").selectOption("onboardings");
+  await page.getByRole("tab", { name: "Onboarding", exact: true }).click();
   await expect(page.getByRole("heading", { name: "CRM", exact: true })).toBeVisible();
   expect(await page.evaluate(() => (window as any).qaToken)).toBe(token);
   expect(await page.evaluate(() => (window as any).qaMetrics.reads)).toBe(reads);
   await expect(page.locator('[data-stage="2. Cadastro"]')).toContainText(
     "Implantar carteira de seguros",
   );
-  await page.getByLabel("Funil CRM").selectOption("upgrades");
+  await page.getByRole("tab", { name: "Upgrades", exact: true }).click();
   await expect(page.locator('[data-stage="Oportunidade identificada"]')).toContainText(
     "Ampliar equipe comercial",
   );
@@ -172,4 +172,70 @@ test("perfil salva grupo e oferece atalho na carteira e na demanda", async ({ pa
   await expect(
     page.getByRole("dialog").getByRole("link", { name: "Abrir grupo WhatsApp" }),
   ).toHaveAttribute("target", "_blank");
+});
+
+test("cadastro de cliente só aparece na carteira e CRM cria demanda pela pesquisa", async ({
+  page,
+}) => {
+  await page.goto("/operacao?tab=demands");
+  await expect(page.getByRole("button", { name: "Novo cliente", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("tablist", { name: "Funis CRM" }).getByRole("tab")).toHaveCount(3);
+  await expect(page.getByRole("tab", { name: "Demandas", exact: true })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await page.getByRole("button", { name: "Nova demanda", exact: true }).click();
+  await page.getByLabel("Pesquisar cliente para nova demanda").fill("não existe");
+  await expect(page.getByText("Nenhum cliente encontrado na sua carteira.")).toBeVisible();
+  await page.getByLabel("Pesquisar cliente para nova demanda").fill("CLI-00001");
+  await page.getByRole("button", { name: /Corretora Exemplo CLI-00001/ }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toContainText("Corretora Exemplo");
+  await dialog.getByLabel("Nome *", { exact: true }).fill("Validar proposta do cliente");
+  await dialog.getByLabel("Demanda *", { exact: true }).fill("Revisar dados da proposta enviada");
+  await dialog.getByRole("button", { name: "Criar registro", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect
+    .poll(() => page.evaluate(() => (window as any).qaSavedRecord?.client_id))
+    .toBe("00000000-0000-4000-8000-000000000011");
+  await expect(page.getByText("Validar proposta do cliente", { exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "Tarefas", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Novo cliente", exact: true })).toHaveCount(0);
+  await page.getByRole("link", { name: "Carteira", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Novo cliente", exact: true })).toBeVisible();
+});
+
+test("demanda abre perfil sem perder edição e agenda tarefa vinculada", async ({ page }) => {
+  await page.goto("/operacao?tab=demands");
+  await page.getByText("Proposta de consórcio não carrega", { exact: true }).click();
+  let demand = page
+    .getByRole("dialog")
+    .filter({ has: page.getByRole("heading", { name: /DEM-00001/ }) });
+  await demand.getByLabel("Nome *", { exact: true }).fill("Título preservado");
+  await demand.getByRole("button", { name: "Ver cliente", exact: true }).click();
+  const profile = page
+    .getByRole("dialog")
+    .filter({ has: page.getByRole("heading", { name: /Perfil do cliente/ }) });
+  await expect(profile.getByLabel("Nome", { exact: true })).toHaveValue("Corretora Exemplo");
+  await profile.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(demand.getByLabel("Nome *", { exact: true })).toHaveValue("Título preservado");
+  await demand.getByRole("button", { name: "Agendar tarefa", exact: true }).click();
+  const task = page.getByRole("dialog").filter({ has: page.getByLabel("Tarefa *") });
+  await expect(task.getByLabel("Cliente *")).toBeDisabled();
+  await task.getByLabel("Tarefa *").fill("Retorno vinculado à demanda");
+  await task.getByRole("button", { name: "Agendar", exact: true }).click();
+  await expect(
+    demand
+      .getByRole("region", { name: "Tarefas desta demanda" })
+      .getByRole("button", { name: /Retorno vinculado à demanda/ }),
+  ).toBeVisible();
+  await expect(demand.getByLabel("Nome *", { exact: true })).toHaveValue("Título preservado");
+  await demand.getByRole("button", { name: /Retorno vinculado à demanda/ }).click();
+  await page.getByRole("button", { name: "Concluir tarefa", exact: true }).click();
+  await expect(demand.getByRole("region", { name: "Tarefas desta demanda" })).toContainText(
+    "Concluída",
+  );
+  await demand.getByRole("button", { name: "Close", exact: true }).click();
+  await page.getByRole("link", { name: "Tarefas", exact: true }).click();
+  await expect(page.getByRole("button", { name: /Retorno vinculado à demanda/ })).toBeVisible();
 });

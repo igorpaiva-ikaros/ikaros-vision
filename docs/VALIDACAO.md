@@ -52,3 +52,11 @@ Aplicados paleta escura/coral/marfim, Instrument Serif/Geist/Geist Mono locais, 
 - Limpeza de produção removeu apenas registros marcados como teste e a tarefa vinculada, com notificações, histórico e pendências relacionados. Usuários e configurações preservados.
 - Importação de 25 empresas documentadas no repositório ERP, 22 com ID canônico e três identificadas por nome. Sem telefone, e-mail, plano ou link inventado; carteira atribuída ao único CS ativo. Importação usa IDs estáveis e verifica duplicatas, sem dados de clientes em bundles ou no Git. O código não contém a tabela completa de empresas: esta importação não comprova a base integral; exportação da lista de empresas continua necessária.
 - `npm run check`: strict typecheck, 92 testes e build passaram. Playwright operação: sete testes passaram, incluindo salvar grupo e atalho da carteira/demanda. Validação em ambiente local com fixtures e PostgreSQL PGlite; não substitui sessão real no site publicado.
+
+
+## CRM, carteira e tarefas vinculadas — 2026-10-06
+
+- Novo cliente restrito à Carteira; retirado dos demais cabeçalhos, incluindo Administração e a listagem executiva de clientes. CRM oferece Nova demanda e seleção pesquisável/rolável dos clientes retornados pela carteira autorizada. Criação reaproveita o formulário nativo e o mesmo vínculo cliente/responsável da Carteira.
+- Demandas, Onboarding e Upgrades ficam em abas no topo com navegação pelo teclado e cache preservado.
+- Card aberto oferece Ver cliente e Agendar tarefa. Perfil e agendamento abrem sobre a demanda, conservando edições não salvas; tarefas herdam cliente e registro e usam a RPC existente. Consulta de tarefas vinculadas compartilha cache com o calendário e atualiza após criação/conclusão. Registro novo precisa ser salvo antes de agendar para não gerar tarefa órfã.
+- `npm run check` passou: TypeScript estrito, 92 testes e build. Playwright operação cobre criação por pesquisa, cabeçalhos, abas, perfil sem perda de edição, tarefa vinculada, conclusão e calendário. Verificação local com fixtures; não houve modificação da base, das regras SLA ou de permissões.

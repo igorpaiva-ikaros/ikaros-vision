@@ -7,7 +7,6 @@ import { clientName, isBacklog } from "@/lib/domain/metrics";
 import type { Dataset } from "@/lib/domain/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { NewClientDialog } from "@/components/bi/NewClientDialog";
 
 export const Route = createFileRoute("/clientes")({
   head: () => ({
@@ -20,7 +19,7 @@ export const Route = createFileRoute("/clientes")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: () => <><PageTitle title="Clientes" subtitle="Carteira de clientes e contatos do CS." actions={<NewClientDialog />} /><StateGate>{(ds) => <Page ds={ds} />}</StateGate></>,
+  component: () => <><PageTitle title="Clientes" subtitle="Carteira de clientes e contatos do CS." /><StateGate>{(ds) => <Page ds={ds} />}</StateGate></>,
 });
 
 function Page({ ds }: { ds: Dataset }) {
