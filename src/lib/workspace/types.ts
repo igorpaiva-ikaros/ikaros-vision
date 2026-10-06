@@ -4,6 +4,7 @@ export interface Profile {
   id: string;
   full_name: string;
   email: string;
+  avatar_url?: string | null;
   active: boolean;
   commission_eligible: boolean;
   role: Role;
@@ -116,12 +117,14 @@ export interface SlaRow {
   resolution_due: string | null;
 }
 export interface Notification {
+  entity_id?: string;
+  deadline?: string;
   id: string;
   title: string;
   link: string;
   read_at: string | null;
   created_at: string;
-  level: "risk" | "overdue";
+  level: "risk" | "overdue" | "reminder";
 }
 export interface OperationState {
   people?: { id: string; full_name: string }[];
@@ -194,3 +197,19 @@ export const SLA_LABEL: Record<SlaStatus, string> = {
   sem_dados: "Sem dados",
   sem_registro: "Sem registro",
 };
+
+export type OperationTab = "clients" | "tasks" | Entity;
+export interface ScheduledTask {
+  id: string;
+  client_id: string;
+  record_kind: Entity | null;
+  record_id: string | null;
+  title: string;
+  task_type: string;
+  notes: string;
+  due_at: string;
+  status: "pending" | "completed" | "canceled";
+  version: number;
+  created_by: string;
+  created_at: string;
+}

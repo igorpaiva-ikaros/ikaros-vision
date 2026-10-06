@@ -12,8 +12,9 @@ export const Route = createFileRoute("/ajuda")({
             <li>Crie o registro no cliente. O responsável é preenchido automaticamente.</li>
             <li>Abra o card para editar, salvar e registrar as ações realizadas.</li>
             <li>
-              Use o seletor do card para mover o Kanban. Conclusão, aceite e efetivação têm botões
-              próprios.
+              Arraste o card para a etapa desejada ou use o seletor, inclusive no celular. A
+              alteração aparece imediatamente; se houver erro, o card retorna à etapa anterior.
+              Conclusão, aceite e efetivação mantêm as validações do processo.
             </li>
             <li>
               Registre interações quando houver decisão ou próxima ação importante. Use changelog
@@ -37,13 +38,20 @@ export const Route = createFileRoute("/ajuda")({
               Aguardando cliente e bloqueios não suspendem o SLA automaticamente. Alertas internos
               são gerados a cada 5 minutos para CS e administradores.
             </li>
+            <li>
+              Use Agendar tarefa no cliente ou no card, ou abra Agenda. O horário é de São Paulo. O
+              lembrete aparece nas notificações em até 1 minuto, mesmo com o navegador fechado; com
+              o sistema aberto há também um aviso na tela. Agendamento não muda o SLA. Conclua ou
+              cancele a tarefa após atendê-la.
+            </li>
             <li>O atraso sinaliza o risco do cliente, preservando a etapa real do trabalho.</li>
           </ul>
         </Section>
         <Section title="Gestão e comissões">
           <p className="text-sm">
-            O administrador cria contas, distribui clientes e vê todos os indicadores. O CS acessa
-            somente a carteira atribuída. A distribuição transfere também os registros vinculados.
+            O administrador cria contas com nome, e-mail de login, senha inicial e foto opcional,
+            distribui clientes e vê todos os indicadores. O CS acessa somente a carteira atribuída.
+            A distribuição transfere também os registros vinculados.
           </p>
           <p className="mt-3 text-sm">
             Para o contrato de Igor, a comissão é uma única mensalidade integral do novo plano, após
@@ -60,8 +68,9 @@ export const Route = createFileRoute("/ajuda")({
         <Section title="Relatório e registros de teste">
           <p className="text-sm">
             Relatório mensal até o 5º dia útil do mês seguinte. O filtro Mostrar testes permite
-            conferir os cadastros fictícios importados. Testes ficam fora das métricas e
-            notificações por padrão.
+            conferir os cadastros fictícios importados. Testes ficam fora das métricas e dos alertas
+            de SLA por padrão. Tarefas que você agendar manualmente na carteira de teste geram
+            lembretes para permitir a conferência.
           </p>
           <p className="mt-3 text-sm">
             Registros antigos sem cliente ou responsável ficam na fila de vínculos do administrador,

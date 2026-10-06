@@ -19,6 +19,9 @@ beforeAll(async () => {
     `alter type public.app_role add value 'cs'; insert into public.user_roles(user_id,role) values('${admin}','admin'),('${cs}','admin');`,
   );
   await db.exec(await readFile("supabase/migrations/20261005214500_native_operation.sql", "utf8"));
+  await db.exec(
+    await readFile("supabase/migrations/20261006113000_operation_productivity.sql", "utf8"),
+  );
   await db.exec(`insert into profiles(id,full_name,email) values('${other}','Other CS','other@example.test');insert into user_roles(user_id,role) values('${other}','cs');
  insert into clients(id,name,owner_id) values('${ownClient}','Own client','${cs}'),('${otherClient}','Other client','${other}');`);
 }, 30_000);
@@ -241,5 +244,127 @@ describe("Contractual useful time", () => {
     );
     expect(new Date(r.response).toISOString()).toBe("2026-10-13T16:00:00.000Z");
     expect(new Date(r.onboarding).toISOString()).toBe("2026-10-23T21:00:00.000Z");
+  });
+});
+
+describe("Scheduled tasks and member profiles", () => {
+  const task = "00000000-0000-4000-8000-000000000090";
+  it("schedules, inherits the current portfolio and refuses foreign or mismatched records", async () => {
+    await asUser(cs, async () => {
+      const row = await scalar(
+        `select * from save_scheduled_task('${task}','${ownClient}','Client follow up','Retorno',now()+interval '1 day','','demands',(select id from demands where title='Own demand'))`,
+      );
+      expect(row.status).toBe("pending");
+      expect(row.version).toBe(1);
+      expect((await db.query(`select * from scheduled_tasks`)).rows).toHaveLength(1);
+    });
+    await expect(
+      asUser(cs, () =>
+        db.exec(
+          `select save_scheduled_task('${task}','${otherClient}','Foreign','Retorno',now()+interval '1 day','')`,
+        ),
+      ),
+    ).rejects.toThrow(/not_found/);
+    await expect(
+      asUser(cs, () =>
+        db.exec(
+          `select save_scheduled_task('${task}','${ownClient}','Mismatch','Retorno',now()+interval '1 day','','demands',(select id from demands where title='Foreign demand'))`,
+        ),
+      ),
+    ).rejects.toThrow(/invalid_record/);
+  });
+  it("reminds once, survives browser closure, follows portfolio transfers and respects completion", async () => {
+    await db.exec("begin;");
+    try {
+      await db.exec(
+        `insert into scheduled_tasks(id,client_id,title,task_type,due_at,created_by) values('${task}','${ownClient}','Due task','Ligação',now()-interval '1 minute','${cs}');select task_reminder_tick();select task_reminder_tick();`,
+      );
+      expect(
+        (await scalar(`select count(*)::int as n from notifications where entity_type='task'`)).n,
+      ).toBe(1);
+      await db.exec(
+        `set local role authenticated;select set_config('request.jwt.claim.sub','${cs}',true);`,
+      );
+      expect(
+        (await db.query(`select title from notifications where entity_type='task'`)).rows,
+      ).toHaveLength(1);
+      await db.exec(
+        `select set_config('request.jwt.claim.sub','${admin}',true);select assign_client('${ownClient}','${other}',(select version from clients where id='${ownClient}'));select set_config('request.jwt.claim.sub','${cs}',true);`,
+      );
+      expect((await db.query("select * from scheduled_tasks")).rows).toHaveLength(0);
+      expect(
+        (await db.query(`select * from notifications where entity_type='task'`)).rows,
+      ).toHaveLength(0);
+      await db.exec(`reset role;select task_reminder_tick();`);
+      expect(
+        (
+          await scalar(
+            `select count(*)::int as n from notifications where entity_type='task' and recipient_id='${other}'`,
+          )
+        ).n,
+      ).toBe(1);
+      await db.exec(
+        `set local role authenticated;select set_config('request.jwt.claim.sub','${other}',true);`,
+      );
+      const completed = await scalar(
+        `select * from save_scheduled_task('${task}','${ownClient}','Due task','Ligação',now()-interval '1 minute','',null,null,1,'completed')`,
+      );
+      expect(completed.status).toBe("completed");
+      expect(completed.completed_at).toBeTruthy();
+      await db.exec(`reset role;select task_reminder_tick();`);
+      expect(
+        (await scalar(`select count(*)::int as n from notifications where entity_type='task'`)).n,
+      ).toBe(2);
+    } finally {
+      await db.exec("rollback;");
+    }
+  });
+  it("rejects stale task writes, past schedules and direct unprivileged inserts", async () => {
+    await expect(
+      asUser(cs, () =>
+        db.exec(
+          `select save_scheduled_task('${task}','${ownClient}','Past','Retorno',now()-interval '1 minute','')`,
+        ),
+      ),
+    ).rejects.toThrow(/incomplete/);
+    await expect(
+      asUser(cs, () =>
+        db.exec(
+          `insert into scheduled_tasks(id,client_id,title,task_type,due_at,created_by) values('${task}','${ownClient}','Direct','Retorno',now(),'${cs}')`,
+        ),
+      ),
+    ).rejects.toThrow();
+    await expect(
+      asUser(cs, async () => {
+        await db.exec(
+          `select save_scheduled_task('${task}','${ownClient}','Initial','Retorno',now()+interval '1 day','')`,
+        );
+        await db.exec(
+          `select save_scheduled_task('${task}','${ownClient}','Stale','Retorno',now()+interval '1 day','',null,null,2,'pending')`,
+        );
+      }),
+    ).rejects.toThrow(/conflict/);
+  });
+  it("allows only administrators to edit profiles and rejects unsafe photo formats", async () => {
+    await expect(
+      asUser(cs, () =>
+        db.exec(`select admin_edit_member_profile('${other}','Hacked',null,'admin',true,true)`),
+      ),
+    ).rejects.toThrow(/forbidden/);
+    await asUser(admin, async () => {
+      await db.exec(
+        `select admin_edit_member_profile('${other}','Updated CS','data:image/jpeg;base64,YQ==','cs',true,false)`,
+      );
+      expect(
+        (await scalar(`select full_name,avatar_url from profiles where id='${other}'`)).full_name,
+      ).toBe("Updated CS");
+    });
+    await expect(
+      asUser(admin, () =>
+        db.exec(
+          `select admin_edit_member_profile('${other}','Unsafe','data:image/svg+xml;base64,YQ==','cs',true,false)`,
+        ),
+      ),
+    ).rejects.toThrow();
   });
 });

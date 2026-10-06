@@ -116,12 +116,38 @@ export const transitionInput = z.object({
   stage: z.string().max(100).optional(),
   reason: text.optional(),
 });
+export const avatarInput = z
+  .union([
+    z.literal(""),
+    z
+      .string()
+      .max(350000)
+      .regex(/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/),
+  ])
+  .nullable()
+  .optional();
+export const scheduledTaskInput = z
+  .object({
+    id: z.string().uuid(),
+    client: z.string().uuid(),
+    title: z.string().trim().min(2).max(300),
+    type: z.enum(["Retorno", "Ligação", "Reunião", "Treinamento", "Validação", "Outro"]),
+    due: z.string().datetime({ offset: true }),
+    notes: z.string().max(2000),
+    kind: entitySchema.nullable().optional(),
+    record: z.string().uuid().nullable().optional(),
+    version: z.number().int().positive().optional(),
+    status: z.enum(["pending", "completed", "canceled"]).default("pending"),
+  })
+  .strict()
+  .refine((v) => !!v.kind === !!v.record, "Vincule um registro válido.");
 export const createUserInput = z
   .object({
     name: text.min(2).max(200),
     email: z.string().trim().email().max(254),
     password: z.string().min(8).max(128),
     role: z.enum(["cs", "admin"]).default("cs"),
+    avatar: avatarInput,
   })
   .strict();
 export const memberInput = z
@@ -130,5 +156,7 @@ export const memberInput = z
     role: z.enum(["cs", "admin"]),
     active: z.boolean(),
     commission: z.boolean(),
+    name: text.min(2).max(200).optional(),
+    avatar: avatarInput,
   })
   .strict();

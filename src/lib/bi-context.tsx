@@ -140,6 +140,7 @@ export function BiProvider({ children }: { children: ReactNode }) {
           void qc.invalidateQueries({ queryKey: ["admin-state"] });
           void qc.invalidateQueries({ queryKey: ["notifications"] });
           void qc.invalidateQueries({ queryKey: ["record-history"] });
+          void qc.invalidateQueries({ queryKey: ["scheduled-tasks"] });
         },
       }}
     >

@@ -39,7 +39,7 @@ async function allRows(db: any, table: string, columns: string) {
 }
 export async function operationState(context: AuthContext): Promise<OperationState> {
   await assertOperator(context);
-  const entries = await Promise.all(
+  const entriesPromise = Promise.all(
     Object.entries(COLUMNS).map(async ([table, cols]) => [
       table,
       await allRows(context.supabase, table, cols),
@@ -56,6 +56,7 @@ export async function operationState(context: AuthContext): Promise<OperationSta
     context.supabase.from("app_settings").select("value").eq("key", "sla_risk_minutes").single(),
     context.supabase.from("profiles").select("id,full_name"),
   ]);
+  const entries = await entriesPromise;
   return {
     ...Object.fromEntries(entries),
     sla,

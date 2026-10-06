@@ -10,7 +10,7 @@ Administradores consultam todo o BI, equipe, carteiras, contas, migração e not
 
 ## Operação
 
-Minha carteira → cliente → nova Demanda, Onboarding, Upgrade, Interação ou Changelog. O cliente e o responsável acompanham a criação automaticamente. O card reúne nome, código, cliente, estágio e SLA; os campos adicionais ficam no detalhe. O seletor do Kanban move etapas. Ações específicas registram primeira resposta, encaminhamento, publicação, validação, conclusão, recebimento de informações completas, aceite e efetivação. Eventos não são inferidos do status. Versões evitam sobrescrever alterações concorrentes.
+Minha carteira → cliente → nova Demanda, Onboarding, Upgrade, Interação ou Changelog. O cliente e o responsável acompanham a criação automaticamente. O card reúne nome, código, cliente, estágio e SLA; os campos adicionais ficam no detalhe. Os cards podem ser arrastados entre etapas (com atualização imediata e retorno se a gravação falhar), ou movidos pelo seletor acessível no celular. Onboarding possui funil de implantação e quadro separado de situação. As áreas e etapas trazem orientações curtas. Ações específicas registram primeira resposta, encaminhamento, publicação, validação, conclusão, recebimento de informações completas, aceite e efetivação. Movimentos para encaminhamento, publicação, aceite e efetivação usam as ações auditadas correspondentes; conclusão exige informações completas, e cancelamento de demanda exige motivo. Mover para triagem não registra automaticamente a primeira resposta. Versões evitam sobrescrever alterações concorrentes.
 
 Concluir demanda exige solução aplicada e confirmação de comunicação ao cliente; cancelar exige motivo. Onboarding precisa de informações completas antes da conclusão. Upgrade precisa de aceite antes da efetivação. Uma oportunidade efetivada preserva valores, plano, data e atribuição da comissão. Interações registram decisões e próximas ações; changelog documenta a entrega técnica. Ambos podem ser vinculados a uma demanda do mesmo cliente.
 
@@ -48,3 +48,15 @@ npm run test:e2e
 Os testes de banco executam PostgreSQL em PGlite, com identidades fictícias e o esquema real: RLS, atribuição, conflitos, eventos, conclusão, importação idempotente, calendário, comissão e deduplicação de alertas. Os testes de navegador conferem a barreira de login em rotas diretas e no celular. Para usar um Chromium já instalado, configure `PLAYWRIGHT_CHROMIUM_PATH`.
 
 O repositório `igorpaiva-ikaros/ikaros-vision`, branch `main`, permanece sincronizado com Lovable. Envie commits normais sem reescrever história publicada. Publique o projeto existente após aplicar e verificar o banco. O app mantém a identidade visual existente da IKAROS.
+
+## Agenda e perfis
+
+Agenda CS: tarefas vinculadas a clientes e opcionalmente a um registro, com data e hora em São Paulo. O responsável acompanha a carteira, inclusive após redistribuição. Concluir ou cancelar interrompe os lembretes futuros. O servidor `task_reminder_tick` gera uma notificação interna idempotente por tarefa/data/responsável, a cada minuto, sem navegador aberto; o painel também mostra um toast no horário com a sessão aberta. Não há envio automático de WhatsApp, e-mail ou push. Tarefas agendadas manualmente em clientes de teste também lembram o CS, para validação da agenda.
+
+Administradores criam acessos por nome, e-mail e senha, com foto opcional. Fotos PNG/JPEG/WebP são redimensionadas para 320px e armazenadas em formato JPEG no perfil protegido por RLS, sem bucket público. Editar nome/foto preserva a proteção do último administrador e as permissões existentes.
+
+Navegação interna usa TanStack Link, sem recarregar o documento. A operação mantém cache por usuário por 30 segundos, limpa ao sair, e atualiza no servidor em paralelo. Cada coluna renderiza até 30 cards inicialmente e oferece Mostrar mais.
+
+Aplicar `20261006113000_operation_productivity.sql` antes da publicação do frontend; em seguida `20261006113100_task_schedule.sql` para registrar o cron (pg_cron já provisionado no Vision).
+
+`npm run test:e2e:operation` executa QA dos componentes reais com router real e dados fictícios locais: arraste, troca de aba sem reload/reconsulta, agenda, mobile e foto. A fixture não é importada nem publicada na aplicação. Os testes PostgreSQL cobrem RLS, concorrência, carteira e despacho dos lembretes separadamente.

@@ -1,9 +1,9 @@
 import { defineConfig } from "@playwright/test";
 export default defineConfig({
   testDir: "./e2e",
-  testMatch: "dashboard.spec.ts",
+  testMatch: "operation.spec.ts",
   use: {
-    baseURL: "http://127.0.0.1:4173",
+    baseURL: "http://127.0.0.1:4174",
     headless: true,
     ...(process.env["PLAYWRIGHT_CHROMIUM_PATH"]
       ? {
@@ -15,8 +15,8 @@ export default defineConfig({
       : {}),
   },
   webServer: {
-    command: "npm run dev -- --host 127.0.0.1 --port 4173",
-    url: "http://127.0.0.1:4173",
+    command: "npx vite --config e2e/fixture.config.ts --host 127.0.0.1 --port 4174",
+    url: "http://127.0.0.1:4174/operacao",
     reuseExistingServer: false,
   },
 });

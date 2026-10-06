@@ -14,7 +14,8 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm test && npm run build",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:operation": "playwright test --config playwright.operation.config.ts"
   },
   "overrides": {
     "rolldown": "1.2.1"

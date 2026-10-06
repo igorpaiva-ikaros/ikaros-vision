@@ -7,6 +7,7 @@ import {
   transitionInput,
   createUserInput,
   memberInput,
+  scheduledTaskInput,
 } from "./workspace/validation";
 import { clientRegistrationSchema } from "./domain/client-registration";
 export const getAccess = createServerFn({ method: "POST" })
@@ -110,7 +111,7 @@ export const getAdminState = createServerFn({ method: "POST" })
     const [profiles, roles, issues, runs, jobs, clients, settings] = await Promise.all([
       db
         .from("profiles")
-        .select("id,full_name,email,active,commission_eligible")
+        .select("id,full_name,email,active,commission_eligible,avatar_url")
         .order("full_name"),
       db.from("user_roles").select("user_id,role"),
       db.from("import_issues").select("*").is("resolved_at", null).order("created_at").limit(500),
@@ -174,12 +175,13 @@ export const createMember = createServerFn({ method: "POST" })
       );
     try {
       checkResult(
-        await db.rpc("provision_member", {
+        await db.rpc("provision_member_profile", {
           _id: result.user.id,
           _name: data.name,
           _email: data.email,
           _role: data.role,
           _actor: context.userId,
+          _avatar: data.avatar ?? null,
         }),
       );
     } catch (e) {
@@ -195,12 +197,16 @@ export const updateMember = createServerFn({ method: "POST" })
     const { assertAdmin, checkResult } = await import("./workspace/access.server");
     await assertAdmin(context);
     checkResult(
-      await (context.supabase as any).rpc("admin_update_member", {
-        _id: data.id,
-        _role: data.role,
-        _active: data.active,
-        _commission: data.commission,
-      }),
+      await (context.supabase as any).rpc(
+        data.name ? "admin_edit_member_profile" : "admin_update_member",
+        {
+          _id: data.id,
+          _role: data.role,
+          _active: data.active,
+          _commission: data.commission,
+          ...(data.name ? { _name: data.name, _avatar: data.avatar ?? null } : {}),
+        },
+      ),
     );
     return { ok: true };
   });
@@ -308,15 +314,13 @@ export const getNotifications = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const { assertOperator, checkResult } = await import("./workspace/access.server");
     await assertOperator(context);
-    return (
-      checkResult(
-        await (context.supabase as any)
-          .from("notifications")
-          .select("id,title,link,level,read_at,created_at")
-          .order("created_at", { ascending: false })
-          .limit(200),
-      ) ?? []
-    );
+    return (checkResult(
+      await (context.supabase as any)
+        .from("notifications")
+        .select("id,title,link,level,read_at,created_at,entity_id,deadline")
+        .order("created_at", { ascending: false })
+        .limit(200),
+    ) ?? []) as import("./workspace/types").Notification[];
   });
 export const getRecordHistory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -367,4 +371,38 @@ export const getRecordHistory = createServerFn({ method: "POST" })
         people.find((p: any) => p.id === r.actor_id)?.full_name ??
         (r.actor_id ? "Outro responsável" : "Migração"),
     }));
+  });
+
+export const getScheduledTasks = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { assertOperator, checkResult } = await import("./workspace/access.server");
+    await assertOperator(context);
+    const { data, error } = await (context.supabase as any)
+      .from("scheduled_tasks")
+      .select("*")
+      .order("due_at")
+      .limit(2000);
+    return checkResult({ data, error }) as import("./workspace/types").ScheduledTask[];
+  });
+export const saveScheduledTask = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => scheduledTaskInput.parse(d))
+  .handler(async ({ context, data }) => {
+    const { assertOperator, checkResult } = await import("./workspace/access.server");
+    await assertOperator(context);
+    return checkResult(
+      await (context.supabase as any).rpc("save_scheduled_task", {
+        _id: data.id,
+        _client: data.client,
+        _title: data.title,
+        _type: data.type,
+        _due: data.due,
+        _notes: data.notes,
+        _kind: data.kind ?? null,
+        _record: data.record ?? null,
+        _version: data.version ?? null,
+        _status: data.status,
+      }),
+    ) as import("./workspace/types").ScheduledTask;
   });

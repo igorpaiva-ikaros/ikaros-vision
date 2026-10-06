@@ -1,3 +1,4 @@
+import { AvatarPicker } from "./AvatarPicker";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -35,6 +36,7 @@ export function Admin() {
     email: "",
     password: "",
     role: "cs" as "cs" | "admin",
+    avatar: null as string | null,
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -84,11 +86,16 @@ export function Admin() {
               e.preventDefault();
               void perform(async () => {
                 await create({ data: newUser });
-                setNewUser({ name: "", email: "", password: "", role: "cs" });
+                setNewUser({ name: "", email: "", password: "", role: "cs", avatar: null });
               }, "Conta criada. Compartilhe o acesso diretamente com o colaborador.");
             }}
           >
             <fieldset disabled={busy} className="space-y-3">
+              <AvatarPicker
+                value={newUser.avatar}
+                name={newUser.name}
+                onChange={(avatar) => setNewUser((v) => ({ ...v, avatar }))}
+              />
               <Field label="Nome">
                 <Input
                   required
@@ -97,7 +104,7 @@ export function Admin() {
                   onChange={(e) => setNewUser((v) => ({ ...v, name: e.target.value }))}
                 />
               </Field>
-              <Field label="E-mail">
+              <Field label="E-mail (login)">
                 <Input
                   type="email"
                   required
@@ -287,6 +294,8 @@ function MemberRow({ member }: { member: any }) {
     role: member.role as "admin" | "cs",
     active: member.active as boolean,
     commission: member.commission_eligible as boolean,
+    name: member.full_name as string,
+    avatar: member.avatar_url as string | null,
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -309,8 +318,21 @@ function MemberRow({ member }: { member: any }) {
         }
       }}
     >
-      <div>
-        <p className="text-sm font-medium">{member.full_name}</p>
+      <div className="space-y-2">
+        <Field label={`Nome de ${member.full_name}`}>
+          <Input
+            required
+            minLength={2}
+            maxLength={200}
+            value={values.name}
+            onChange={(e) => setValues((v) => ({ ...v, name: e.target.value }))}
+          />
+        </Field>
+        <AvatarPicker
+          value={values.avatar}
+          name={values.name}
+          onChange={(avatar) => setValues((v) => ({ ...v, avatar }))}
+        />
         <p className="text-xs text-muted-foreground">{member.email}</p>
       </div>
       <select

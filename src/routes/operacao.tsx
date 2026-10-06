@@ -4,7 +4,7 @@ import { Operation } from "@/components/workspace/Operation";
 export const Route = createFileRoute("/operacao")({
   validateSearch: z.object({
     tab: z
-      .enum(["clients", "demands", "onboardings", "upgrades", "interactions", "changelog"])
+      .enum(["clients", "demands", "onboardings", "upgrades", "interactions", "changelog", "tasks"])
       .catch("clients"),
     id: z.string().uuid().optional(),
   }),

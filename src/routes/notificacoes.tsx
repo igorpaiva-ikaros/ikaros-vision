@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -26,7 +26,10 @@ function Page() {
   });
   return (
     <>
-      <PageTitle title="Notificações" subtitle="Alertas de risco e atraso da sua operação" />
+      <PageTitle
+        title="Notificações"
+        subtitle="Lembretes de tarefas e alertas de SLA da sua operação"
+      />
       {query.isError ? (
         <Section title="Não foi possível consultar">
           <Button onClick={() => query.refetch()}>Tentar novamente</Button>
@@ -47,20 +50,33 @@ function Page() {
                   <div>
                     <p className="text-sm font-semibold">{n.title}</p>
                     <p className="text-xs text-muted-foreground">
-                      {dateLabel(n.created_at)} · {n.level === "overdue" ? "Atraso" : "Risco"}
+                      {dateLabel(n.created_at)} ·{" "}
+                      {n.level === "reminder"
+                        ? "Tarefa agendada"
+                        : n.level === "overdue"
+                          ? "Atraso"
+                          : "Risco"}
                     </p>
                   </div>
                   <div className="flex gap-2">
                     <Button asChild variant="outline" size="sm">
-                      <a
-                        href={
-                          /^\/operacao\?tab=(demands|onboardings)&id=[a-f\d-]+$/.test(n.link)
-                            ? n.link
-                            : "/operacao"
+                      <Link
+                        to="/operacao"
+                        search={
+                          /^\/operacao\?tab=(demands|onboardings|tasks)&id=[a-f\d-]{36}$/.test(
+                            n.link,
+                          )
+                            ? {
+                                tab: new URLSearchParams(n.link.split("?")[1]).get(
+                                  "tab",
+                                ) as "tasks",
+                                id: new URLSearchParams(n.link.split("?")[1]).get("id")!,
+                              }
+                            : { tab: "clients" }
                         }
                       >
                         Abrir registro
-                      </a>
+                      </Link>
                     </Button>
                     {!n.read_at && (
                       <Button

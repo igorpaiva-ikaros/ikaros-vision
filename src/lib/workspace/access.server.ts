@@ -14,7 +14,7 @@ export async function assertAdmin(context: AuthContext) {
 export async function readProfile(context: AuthContext): Promise<Profile | null> {
   const { data: p, error } = await context.supabase
     .from("profiles")
-    .select("id,full_name,email,active,commission_eligible")
+    .select("id,full_name,email,active,commission_eligible,avatar_url")
     .eq("id", context.userId)
     .maybeSingle();
   if (error || !p?.active) return null;
@@ -35,6 +35,9 @@ export function checkResult(result: { error?: any; data?: any }) {
   return result.data;
 }
 export function safeDbMessage(message: string) {
+  if (/closed/.test(message)) return "Este registro já foi encerrado.";
+  if (/invalid_stage|invalid_step/.test(message))
+    return "Esta etapa não está disponível para o estado atual do registro. Use as ações de aceite, conclusão ou efetivação no card.";
   if (/conflict/.test(message))
     return "Outra pessoa alterou este registro. Recarregue e tente novamente.";
   if (/last_admin/.test(message)) return "É necessário manter pelo menos um administrador ativo.";

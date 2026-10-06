@@ -1,4 +1,4 @@
-import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 import {
   BarChart3,
@@ -15,7 +15,9 @@ import {
   MessagesSquare,
   History,
   UserPlus,
+  CalendarClock,
 } from "lucide-react";
+import { MemberAvatar } from "@/components/workspace/AvatarPicker";
 import { NotificationBell } from "@/components/workspace/NotificationBell";
 import { AuthPage } from "./AuthPage";
 import { StateGate } from "./StateGate";
@@ -32,8 +34,10 @@ const ADMIN_NAV = [
   { href: "/demandas", label: "Demandas", icon: ListChecks },
   { href: "/clientes", label: "Clientes", icon: Building2 },
   { href: "/equipe", label: "Equipe", icon: Users },
+  { href: "/operacao?tab=clients", label: "Operação CS", icon: PanelsTopLeft },
   { href: "/administracao", label: "Administração", icon: Settings },
   { href: "/integracao", label: "Migração", icon: PlugZap },
+  { href: "/operacao?tab=tasks", label: "Agenda CS", icon: CalendarClock },
   { href: "/notificacoes", label: "Notificações", icon: Bell },
   { href: "/ajuda", label: "Ajuda", icon: BookOpen },
 ];
@@ -44,6 +48,7 @@ const CS_NAV = [
   { href: "/operacao?tab=upgrades", label: "Upgrades", icon: ArrowUpCircle },
   { href: "/operacao?tab=interactions", label: "Interações", icon: MessagesSquare },
   { href: "/operacao?tab=changelog", label: "Changelog", icon: History },
+  { href: "/operacao?tab=tasks", label: "Agenda CS", icon: CalendarClock },
   { href: "/notificacoes", label: "Notificações", icon: Bell },
   { href: "/ajuda", label: "Ajuda", icon: BookOpen },
 ];
@@ -95,9 +100,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const current = location.href;
   const links = (mobile = false) =>
     items.map(({ href, label, icon: Icon }) => (
-      <a
+      <Link
         key={href}
-        href={href}
+        to={href.split("?")[0] as "/operacao"}
+        search={href.includes("?") ? { tab: href.split("tab=")[1] as "clients" } : {}}
         className={cn(
           mobile
             ? "flex items-center gap-2 whitespace-nowrap rounded px-3 py-2 text-sm"
@@ -109,7 +115,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       >
         <Icon className="h-4 w-4 shrink-0" />
         {label}
-      </a>
+      </Link>
     ));
   return (
     <div className="flex min-h-screen">
@@ -151,7 +157,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="bi-eyebrow text-muted-foreground">
               {isCs ? "MINHA OPERAÇÃO" : "ADMINISTRAÇÃO"}
             </div>
-            <div className="font-display text-2xl font-normal">{profile.full_name}</div>
+            <div className="mt-1 flex items-center gap-3">
+              <MemberAvatar src={profile.avatar_url} name={profile.full_name} />
+              <span className="font-display text-2xl font-normal">{profile.full_name}</span>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-5">
             <Button

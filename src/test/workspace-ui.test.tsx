@@ -9,6 +9,13 @@ const mocks = vi.hoisted(() => ({
   reload: vi.fn(),
   includeTests: false,
 }));
+vi.mock("@tanstack/react-router", () => ({
+  Link: ({ children, to, search, ...props }: any) => (
+    <a href={`${to}?tab=${search?.tab}`} {...props}>
+      {children}
+    </a>
+  ),
+}));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: any) => fn }));
 vi.mock("@/lib/workspace.functions", () => ({
   getRecordHistory: async () => [],
@@ -16,6 +23,8 @@ vi.mock("@/lib/workspace.functions", () => ({
   saveRecord: mocks.save,
   transitionRecord: mocks.transition,
   updateClientContact: vi.fn(),
+  getScheduledTasks: async () => [],
+  saveScheduledTask: vi.fn(),
 }));
 vi.mock("@/lib/bi-context", () => ({
   useBi: () => ({
@@ -73,7 +82,7 @@ const ds = () => ({
   riskMinutes: 60,
 });
 function mount(tab: "clients" | "demands") {
-  render(
+  return render(
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
     >
@@ -144,5 +153,89 @@ describe("Client-first operation", () => {
     await screen.findByText("Nenhum registro nesta seleção");
     expect(screen.queryByRole("button", { name: /DEM-00001/ })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Mostrar carteira de teste" })).toBeVisible();
+  });
+});
+
+describe("Fast operational funnels", () => {
+  it("moves by drag with immediate feedback and uses the audited action", async () => {
+    let resolve!: (value: unknown) => void;
+    mocks.transition.mockImplementationOnce(
+      () =>
+        new Promise((r) => {
+          resolve = r;
+        }),
+    );
+    const view = mount("demands");
+    const card = (await screen.findByRole("button", { name: /DEM-00001/ })).closest("article")!;
+    const transfer = {
+      data: {} as Record<string, string>,
+      setData(key: string, value: string) {
+        this.data[key] = value;
+      },
+      getData(key: string) {
+        return this.data[key];
+      },
+      effectAllowed: "",
+    };
+    fireEvent.dragStart(card, { dataTransfer: transfer });
+    fireEvent.drop(view.container.querySelector('[data-stage="Em execução"]')!, {
+      dataTransfer: transfer,
+    });
+    await waitFor(() =>
+      expect(
+        view.container.querySelector('[data-card-id="' + demand + '"]')?.closest("section"),
+      ).toHaveAttribute("data-stage", "Em execução"),
+    );
+    expect(mocks.transition).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        kind: "demands",
+        id: demand,
+        version: 1,
+        action: "move",
+        stage: "Em execução",
+      }),
+    });
+    resolve({ id: demand, stage: "Em execução", version: 2 });
+    await waitFor(() => expect(mocks.reload).toHaveBeenCalled());
+  });
+  it("restores the prior stage if saving fails", async () => {
+    mocks.transition.mockRejectedValueOnce(new Error("conflict"));
+    mount("demands");
+    const select = await screen.findByLabelText("Mover DEM-00001");
+    fireEvent.change(select, { target: { value: "Em execução" } });
+    await waitFor(() => expect(mocks.transition).toHaveBeenCalled());
+    await waitFor(() => expect(select).toHaveValue("Nova"));
+  });
+  it("does not conclude an incomplete card just because it was moved", async () => {
+    mount("demands");
+    fireEvent.change(await screen.findByLabelText("Mover DEM-00001"), {
+      target: { value: "Concluída" },
+    });
+    expect(await screen.findByRole("dialog")).toHaveTextContent("Solução aplicada");
+    expect(mocks.transition).not.toHaveBeenCalled();
+  });
+  it("reuses cached data when switching from demands to onboarding and shows empty columns", async () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const view = render(
+      <QueryClientProvider client={qc}>
+        <Operation tab="demands" />
+      </QueryClientProvider>,
+    );
+    await screen.findByLabelText("Mover DEM-00001");
+    view.rerender(
+      <QueryClientProvider client={qc}>
+        <Operation tab="onboardings" />
+      </QueryClientProvider>,
+    );
+    expect(screen.getByRole("heading", { name: "Onboarding" })).toBeVisible();
+    expect(view.container.querySelector('[data-stage="7. Treinamento"]')).toBeInTheDocument();
+    expect(mocks.get).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText("Carregando sua carteira…")).not.toBeInTheDocument();
+  });
+  it("opens scheduling from the client with portfolio assignment preserved", async () => {
+    mount("clients");
+    fireEvent.click(await screen.findByRole("button", { name: "Agendar tarefa" }));
+    expect(screen.getByRole("dialog")).toHaveTextContent("Horário de São Paulo");
+    expect(screen.getByLabelText("Cliente *")).toBeDisabled();
   });
 });

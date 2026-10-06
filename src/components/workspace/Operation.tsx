@@ -1,6 +1,10 @@
 import { RecordHistory } from "./RecordHistory";
-import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState, useRef, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
+import { GripVertical, CalendarClock } from "lucide-react";
+import { AREA_GUIDE, STAGE_GUIDE, stageAction, isClosed } from "@/lib/workspace/guidance";
+import { Tasks, TaskDialog, type TaskDraft } from "./Tasks";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { useBi } from "@/lib/bi-context";
@@ -21,6 +25,7 @@ import {
   type NativeClient,
   type RecordRow,
   type OperationState,
+  type OperationTab,
 } from "@/lib/workspace/types";
 import { PageTitle, Section } from "@/components/bi/primitives";
 import { NewClientDialog } from "@/components/bi/NewClientDialog";
@@ -96,14 +101,18 @@ export function SlaBadge({ row, ds }: { row: RecordRow; ds: OperationState }) {
     </span>
   );
 }
-export function Operation({ tab, id }: { tab: "clients" | Entity; id?: string | undefined }) {
+export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefined }) {
   const { session, profile, includeTests, setIncludeTests, reload } = useBi();
+  const qc = useQueryClient();
+  const queryKey = ["operation-state", session?.user.id];
   const get = useServerFn(getOperationState);
   const transition = useServerFn(transitionRecord);
   const query = useQuery({
-    queryKey: ["operation-state", session?.user.id],
+    queryKey,
     queryFn: () => get(),
     enabled: !!profile,
+    staleTime: 30_000,
+    gcTime: 10 * 60_000,
     refetchInterval: 30_000,
     retry: false,
   });
@@ -113,10 +122,32 @@ export function Operation({ tab, id }: { tab: "clients" | Entity; id?: string | 
   );
   const [clientEditor, setClientEditor] = useState<NativeClient | null>(null);
   const [busy, setBusy] = useState(false);
+  const moving = useRef(false);
+  const [dragged, setDragged] = useState<string | null>(null);
+  const [dropStage, setDropStage] = useState<string | null>(null);
+  const [production, setProduction] = useState(true);
+  const openedId = useRef<string | undefined>(undefined);
+  const [taskDraft, setTaskDraft] = useState<TaskDraft | null>(null);
+  const [stageLimit, setStageLimit] = useState<Record<string, number>>({});
   useEffect(() => {
-    if (id && query.data && tab !== "clients") {
+    setSearch("");
+    setEditor(null);
+    setClientEditor(null);
+    setTaskDraft(null);
+    setDragged(null);
+    setDropStage(null);
+  }, [tab]);
+  const clientById = useMemo(
+    () => new Map(query.data?.clients.map((c) => [c.id, c]) ?? []),
+    [query.data?.clients],
+  );
+  useEffect(() => {
+    if (id && openedId.current !== id && query.data && tab !== "clients" && tab !== "tasks") {
       const row = query.data[tab].find((r) => r.id === id);
-      if (row?.client_id) setEditor({ kind: tab, client: row.client_id, row });
+      if (row?.client_id) {
+        openedId.current = id;
+        setEditor({ kind: tab, client: row.client_id, row });
+      }
     }
   }, [id, tab, query.data?.clients]);
   const ds = query.data!;
@@ -127,7 +158,7 @@ export function Operation({ tab, id }: { tab: "clients" | Entity; id?: string | 
         <Button onClick={() => query.refetch()}>Tentar novamente</Button>
       </Section>
     );
-  const clientById = new Map(ds.clients.map((c) => [c.id, c]));
+
   const clients = ds.clients.filter(
     (c) =>
       (includeTests || !c.is_test) &&
@@ -138,26 +169,112 @@ export function Operation({ tab, id }: { tab: "clients" | Entity; id?: string | 
     `${title(row)} ${row.code} ${clientById.get(row.client_id ?? "")?.name ?? ""}`
       .toLowerCase()
       .includes(search.toLowerCase());
-  const rows = tab === "clients" ? [] : ds[tab].filter(visible);
+  const rows = tab === "clients" || tab === "tasks" ? [] : ds[tab].filter(visible);
   const empty = tab === "clients" ? clients.length === 0 : rows.length === 0;
   async function move(row: RecordRow, stage: string) {
-    if (tab === "clients" || tab === "interactions" || tab === "changelog" || busy) return;
+    if (!["demands", "onboardings", "upgrades"].includes(tab) || moving.current || isClosed(row))
+      return;
+    const kind = tab as "demands" | "onboardings" | "upgrades";
+    const action = stageAction(kind, stage, kind === "onboardings" && production);
+    if (stage === (kind === "onboardings" && production ? row.current_step : row.stage)) return;
+    if (
+      action === "cancel" ||
+      (action === "complete" &&
+        kind === "demands" &&
+        (!row.solution?.trim() || !row.client_informed)) ||
+      (action === "complete" && kind === "onboardings" && !row.info_complete_at) ||
+      (action === "effective" && !row.accepted_at)
+    ) {
+      if (row.client_id) setEditor({ kind, client: row.client_id, row });
+      toast.info(
+        action === "cancel"
+          ? "Informe o motivo no card para cancelar."
+          : action === "effective"
+            ? "Registre o aceite antes de efetivar."
+            : "Complete as informações no card antes de concluir.",
+      );
+      return;
+    }
+    moving.current = true;
     setBusy(true);
+    setDragged(null);
+    setDropStage(null);
+    await qc.cancelQueries({ queryKey });
+    const original = qc.getQueryData<OperationState>(queryKey);
+    const field =
+      kind === "onboardings" && production && action === "step" ? "current_step" : "stage";
+    qc.setQueryData<OperationState>(queryKey, (old) =>
+      old
+        ? {
+            ...old,
+            [kind]: old[kind].map((r) =>
+              r.id === row.id
+                ? {
+                    ...r,
+                    [field]: action === "complete" && kind === "onboardings" ? "Concluído" : stage,
+                  }
+                : r,
+            ),
+          }
+        : old,
+    );
     try {
-      await transition({
-        data: { kind: tab, id: row.id, version: row.version, action: "move", stage },
+      const updated = await transition({
+        data: { kind, id: row.id, version: row.version, action: action as "move", stage },
       });
+      qc.setQueryData<OperationState>(queryKey, (old) =>
+        old
+          ? { ...old, [kind]: old[kind].map((r) => (r.id === row.id ? { ...r, ...updated } : r)) }
+          : old,
+      );
+      toast.success(`Movido para ${stage}.`);
       reload();
     } catch (e) {
+      // Restore only this row, preserving other concurrent cache edits.
+      const previous = original?.[kind].find((r) => r.id === row.id);
+      if (previous)
+        qc.setQueryData<OperationState>(queryKey, (old) =>
+          old ? { ...old, [kind]: old[kind].map((r) => (r.id === row.id ? previous : r)) } : old,
+        );
       toast.error(e instanceof Error ? e.message : "Não foi possível mover.");
+      void query.refetch();
     } finally {
+      moving.current = false;
       setBusy(false);
     }
   }
   function card(row: RecordRow) {
     const client = clientById.get(row.client_id ?? "");
     return (
-      <div key={row.id} className="rounded-lg border bg-background p-3 shadow-sm space-y-2">
+      <article
+        key={row.id}
+        data-card-id={row.id}
+        draggable={!busy && !isClosed(row) && ["demands", "onboardings", "upgrades"].includes(tab)}
+        onDragStart={(e) => {
+          e.dataTransfer.setData(
+            "application/x-ikaros-card",
+            JSON.stringify({ id: row.id, kind: tab }),
+          );
+          e.dataTransfer.effectAllowed = "move";
+          setDragged(row.id);
+        }}
+        onDragEnd={() => {
+          setDragged(null);
+          setDropStage(null);
+        }}
+        className={`rounded-xl border border-l-4 bg-card p-3 shadow-sm space-y-2 transition-shadow hover:shadow-md ${dragged === row.id ? "opacity-40" : ""} ${riskFor(row, ds) === "atrasado" ? "border-l-destructive" : riskFor(row, ds) === "em_risco" ? "border-l-warning" : "border-l-primary/60"} ${!isClosed(row) ? "cursor-grab active:cursor-grabbing" : ""}`}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            {ds.people?.find((p) => p.id === row.owner_id)?.full_name ?? profile?.full_name}
+          </span>
+          {!isClosed(row) && ["demands", "onboardings", "upgrades"].includes(tab) && (
+            <GripVertical
+              aria-label="Arraste o card para outra etapa"
+              className="h-4 w-4 text-muted-foreground"
+            />
+          )}
+        </div>
         <button
           className="w-full text-left"
           onClick={() =>
@@ -180,45 +297,57 @@ export function Operation({ tab, id }: { tab: "clients" | Entity; id?: string | 
           {String(row.priority ?? row.current_step ?? row.new_plan ?? "")}
         </div>
         {tab === "upgrades" && <div className="text-sm">{money(row.new_value)} / mês</div>}
-        {pending(row) && ["demands", "onboardings", "upgrades"].includes(tab) && (
+        {client && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 w-full justify-start px-0 text-xs"
+            onClick={() => setTaskDraft({ client: client.id, kind: tab as Entity, record: row.id })}
+          >
+            <CalendarClock className="mr-1 h-3.5 w-3.5" />
+            Agendar tarefa
+          </Button>
+        )}
+        {!isClosed(row) && ["demands", "onboardings", "upgrades"].includes(tab) && (
           <select
             aria-label={`Mover ${row.code}`}
-            className={`${selectClass} text-xs`}
+            className={`${selectClass} h-8 text-xs`}
             disabled={busy}
-            value={row.stage ?? ""}
-            onChange={(e) => move(row, e.target.value)}
+            value={
+              tab === "onboardings" && production
+                ? (row.current_step ?? ONBOARDING_STEPS[0])
+                : (row.stage ?? "")
+            }
+            onChange={(e) => void move(row, e.target.value)}
           >
             {(tab === "demands"
-              ? DEMAND_STAGES.slice(0, -2)
+              ? DEMAND_STAGES
               : tab === "onboardings"
-                ? ONBOARDING_STATUSES.slice(0, -1)
-                : UPGRADE_STATUSES.slice(0, 4)
-            ).map((s) => (
-              <option key={s}>{s}</option>
+                ? production
+                  ? ONBOARDING_STEPS
+                  : ONBOARDING_STATUSES
+                : UPGRADE_STATUSES
+            ).map((stage) => (
+              <option key={stage}>{stage}</option>
             ))}
-            {!(
-              tab === "demands"
-                ? DEMAND_STAGES.slice(0, -2)
-                : tab === "onboardings"
-                  ? ONBOARDING_STATUSES.slice(0, -1)
-                  : UPGRADE_STATUSES.slice(0, 4)
-            ).includes(row.stage ?? "") && <option>{row.stage}</option>}
           </select>
         )}
-      </div>
+      </article>
     );
   }
   const stages =
     tab === "demands"
       ? DEMAND_STAGES
       : tab === "onboardings"
-        ? ONBOARDING_STATUSES
+        ? production
+          ? ONBOARDING_STEPS
+          : ONBOARDING_STATUSES
         : UPGRADE_STATUSES;
   return (
     <>
       <PageTitle
-        title={tab === "clients" ? "Minha carteira" : ENTITY_LABEL[tab]}
-        subtitle={profile?.role === "admin" ? "Consulta da operação · visão do administrador" : ""}
+        title={AREA_GUIDE[tab].label}
+        subtitle={AREA_GUIDE[tab].description}
         actions={
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => query.refetch()}>
@@ -228,6 +357,39 @@ export function Operation({ tab, id }: { tab: "clients" | Entity; id?: string | 
           </div>
         }
       />
+      <nav
+        aria-label="Áreas da operação"
+        className="mb-5 flex gap-1 overflow-x-auto rounded-lg border bg-card p-1"
+      >
+        {(Object.keys(AREA_GUIDE) as OperationTab[]).map((key) => (
+          <Link
+            key={key}
+            to="/operacao"
+            search={{ tab: key }}
+            className={`shrink-0 rounded-md px-3 py-2 text-sm ${key === tab ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
+          >
+            {AREA_GUIDE[key].label}
+          </Link>
+        ))}
+      </nav>
+      {tab === "onboardings" && (
+        <div className="mb-4 flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant={production ? "secondary" : "ghost"}
+            onClick={() => setProduction(true)}
+          >
+            Funil de implantação
+          </Button>
+          <Button
+            size="sm"
+            variant={!production ? "secondary" : "ghost"}
+            onClick={() => setProduction(false)}
+          >
+            Situação do onboarding
+          </Button>
+        </div>
+      )}
       <Input
         aria-label="Buscar na carteira"
         placeholder="Buscar por nome, cliente ou código"
@@ -235,12 +397,12 @@ export function Operation({ tab, id }: { tab: "clients" | Entity; id?: string | 
         onChange={(e) => setSearch(e.target.value)}
         className="mb-5 max-w-lg"
       />
-      {id && tab !== "clients" && !ds[tab].some((r) => r.id === id) && (
+      {id && tab !== "clients" && tab !== "tasks" && !ds[tab].some((r) => r.id === id) && (
         <p role="alert" className="mb-4 text-sm text-muted-foreground">
           Registro não encontrado na sua carteira.
         </p>
       )}
-      {empty && (
+      {empty && tab !== "tasks" && (
         <Section title="Nenhum registro nesta seleção">
           {!includeTests && ds.clients.some((c) => c.is_test) && (
             <Button variant="outline" onClick={() => setIncludeTests(true)}>
@@ -252,7 +414,9 @@ export function Operation({ tab, id }: { tab: "clients" | Entity; id?: string | 
           </p>
         </Section>
       )}
-      {tab === "clients" ? (
+      {tab === "tasks" ? (
+        <Tasks ds={ds} id={id} search={search} open={setTaskDraft} />
+      ) : tab === "clients" ? (
         <div className="grid gap-4 xl:grid-cols-2">
           {clients.map((c) => {
             const risky = ds.demands
@@ -310,6 +474,14 @@ export function Operation({ tab, id }: { tab: "clients" | Entity; id?: string | 
                               : "+ Changelog"}
                     </Button>
                   ))}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setTaskDraft({ client: c.id })}
+                  >
+                    <CalendarClock className="mr-1 h-4 w-4" />
+                    Agendar tarefa
+                  </Button>
                   <Button size="sm" variant="ghost" onClick={() => setClientEditor(c)}>
                     Perfil
                   </Button>
@@ -321,21 +493,88 @@ export function Operation({ tab, id }: { tab: "clients" | Entity; id?: string | 
       ) : ["interactions", "changelog"].includes(tab) ? (
         <div className="grid gap-3 md:grid-cols-2">{rows.map(card)}</div>
       ) : (
-        !empty && (
-          <div className="flex gap-4 overflow-x-auto pb-5" aria-label="Kanban">
-            {stages.map((stage) => (
-              <section key={stage} className="w-72 shrink-0 rounded-lg border bg-muted/30 p-3">
-                <h2 className="mb-3 flex justify-between font-sans text-sm font-semibold">
-                  {stage}
-                  <span className="text-muted-foreground">
-                    {rows.filter((r) => r.stage === stage).length}
+        <div
+          className="flex gap-3 overflow-x-auto pb-5 snap-x"
+          aria-label={`Kanban ${AREA_GUIDE[tab].label}`}
+        >
+          {stages.map((stage) => {
+            const group = rows.filter(
+              (r) =>
+                (tab === "onboardings" && production
+                  ? isClosed(r)
+                    ? "9. Conclusão"
+                    : (r.current_step ?? ONBOARDING_STEPS[0])
+                  : r.stage) === stage,
+            );
+            const limit = stageLimit[`${tab}-${stage}`] ?? 30;
+            return (
+              <section
+                key={stage}
+                data-stage={stage}
+                onDragOver={(e) => {
+                  if (dragged && !busy) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
+                    setDropStage(stage);
+                  }
+                }}
+                onDragLeave={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropStage(null);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  let data;
+                  try {
+                    data = JSON.parse(e.dataTransfer.getData("application/x-ikaros-card"));
+                  } catch {
+                    return;
+                  }
+                  if (data.kind !== tab) return;
+                  const row = rows.find((r) => r.id === data.id);
+                  if (row) void move(row, stage);
+                  setDropStage(null);
+                }}
+                className={`min-h-64 w-64 shrink-0 snap-start rounded-xl border p-3 transition-colors ${dropStage === stage ? "border-primary bg-primary/10" : "bg-muted/40"}`}
+              >
+                <h2 className="flex items-start justify-between gap-2 font-sans text-sm font-semibold">
+                  <span>{stage}</span>
+                  <span className="rounded-full bg-background px-2 text-xs text-muted-foreground">
+                    {group.length}
                   </span>
                 </h2>
-                <div className="space-y-3">{rows.filter((r) => r.stage === stage).map(card)}</div>
+                <p className="mb-3 mt-2 min-h-10 text-xs leading-relaxed text-muted-foreground">
+                  {STAGE_GUIDE[stage]}
+                </p>
+                <div className="space-y-3">{group.slice(0, limit).map(card)}</div>
+                {!group.length && (
+                  <div className="rounded-lg border border-dashed p-4 text-center text-xs text-muted-foreground">
+                    Arraste um card para esta etapa
+                  </div>
+                )}
+                {group.length > limit && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-3 w-full"
+                    onClick={() =>
+                      setStageLimit((v) => ({ ...v, [`${tab}-${stage}`]: limit + 30 }))
+                    }
+                  >
+                    Mostrar mais {group.length - limit}
+                  </Button>
+                )}
               </section>
-            ))}
-          </div>
-        )
+            );
+          })}
+        </div>
+      )}
+      {taskDraft && (
+        <TaskDialog
+          key={taskDraft.task?.id ?? `${taskDraft.client}-${taskDraft.record ?? ""}`}
+          draft={taskDraft}
+          ds={ds}
+          close={() => setTaskDraft(null)}
+        />
       )}
       {editor && (
         <RecordEditor
@@ -646,9 +885,11 @@ function RecordEditor({
                         disabled={busy || dirty || !pending(current)}
                         onChange={(e) => action("step", e.target.value)}
                       >
-                        {ONBOARDING_STEPS.map((s) => (
-                          <option key={s}>{s}</option>
-                        ))}
+                        {(pending(current) ? ONBOARDING_STEPS.slice(0, -1) : ONBOARDING_STEPS).map(
+                          (s) => (
+                            <option key={s}>{s}</option>
+                          ),
+                        )}
                       </select>
                     </Field>
                   </>
