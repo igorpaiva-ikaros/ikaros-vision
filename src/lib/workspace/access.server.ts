@@ -35,6 +35,11 @@ export function checkResult(result: { error?: any; data?: any }) {
   return result.data;
 }
 export function safeDbMessage(message: string) {
+  if (/inactive_product|product_required|catalog_required/.test(message))
+    return "Selecione um plano ativo do catálogo.";
+  if (/products_unique_name/.test(message)) return "Já existe um produto ou plano com este nome.";
+  if (/invalid_sla_rule/.test(message))
+    return "Confira os prazos: limite de 366 dias, 8.784 horas ou 100.000 minutos.";
   if (/closed/.test(message)) return "Este registro já foi encerrado.";
   if (/invalid_stage|invalid_step/.test(message))
     return "Esta etapa não está disponível para o estado atual do registro. Use as ações de aceite, conclusão ou efetivação no card.";

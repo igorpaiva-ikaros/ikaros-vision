@@ -25,6 +25,7 @@ export interface NativeClient {
   notes: string | null;
   segments: string[];
   plan: string | null;
+  product_id?: string | null;
   status: string | null;
   is_test: boolean;
   version: number;
@@ -81,6 +82,7 @@ export interface RecordRow {
   canceled_at?: string | null;
   cancel_reason?: string | null;
   due_date?: string | null;
+  policy_delivery_due?: string | null;
   started_at?: string | null;
   info_complete_at?: string | null;
   milestone5_due?: string | null;
@@ -115,6 +117,7 @@ export interface SlaRow {
   delivery_state: SlaStatus;
   first_response_due: string | null;
   resolution_due: string | null;
+  delivery_due?: string | null;
 }
 export interface Notification {
   entity_id?: string;
@@ -143,6 +146,7 @@ export interface OperationState {
   }[];
   notifications: Notification[];
   riskMinutes: number;
+  products?: Product[];
 }
 export const ONBOARDING_STEPS = [
   "1. Dados recebidos",
@@ -177,8 +181,8 @@ export const ENTITY_LABEL: Record<Entity, string> = {
   demands: "Demandas",
   onboardings: "Onboarding",
   upgrades: "Upgrades",
-  interactions: "Interações",
-  changelog: "Changelog",
+  interactions: "Conversas e decisões",
+  changelog: "Histórico de entregas",
 };
 export function activeSla(states: (SlaStatus | string | null | undefined)[]): SlaStatus {
   if (states.includes("atrasado")) return "atrasado";
@@ -212,4 +216,27 @@ export interface ScheduledTask {
   version: number;
   created_by: string;
   created_at: string;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  description: string;
+  monthly_value: number;
+  annual_monthly_value: number;
+  active: boolean;
+  version: number;
+}
+export interface SlaPolicy {
+  category: string;
+  version: number;
+  response_value: number;
+  response_unit: "minutes" | "hours" | "days";
+  response_basis: "business" | "calendar";
+  resolution_value: number;
+  resolution_unit: "minutes" | "hours" | "days";
+  resolution_basis: "business" | "calendar";
+  delivery_value: number | null;
+  delivery_unit: "minutes" | "hours" | "days";
+  delivery_basis: "business" | "calendar";
 }

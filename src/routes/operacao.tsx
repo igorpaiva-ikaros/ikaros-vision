@@ -4,13 +4,23 @@ import { Operation } from "@/components/workspace/Operation";
 export const Route = createFileRoute("/operacao")({
   validateSearch: z.object({
     tab: z
-      .enum(["clients", "demands", "onboardings", "upgrades", "interactions", "changelog", "tasks"])
+      .enum([
+        "crm",
+        "clients",
+        "demands",
+        "onboardings",
+        "upgrades",
+        "interactions",
+        "changelog",
+        "tasks",
+      ])
       .catch("clients"),
+    pipeline: z.enum(["demands", "onboardings", "upgrades"]).catch("demands"),
     id: z.string().uuid().optional(),
   }),
   head: () => ({ meta: [{ title: "Operação — Ikaros Vision" }] }),
   component: () => {
-    const { tab, id } = Route.useSearch();
-    return <Operation tab={tab} id={id} />;
+    const { tab, id, pipeline } = Route.useSearch();
+    return <Operation tab={tab === "crm" ? pipeline : tab} id={id} />;
   },
 });

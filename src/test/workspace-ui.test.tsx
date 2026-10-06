@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   includeTests: false,
 }));
 vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => vi.fn(),
   Link: ({ children, to, search, ...props }: any) => (
     <a href={`${to}?tab=${search?.tab}`} {...props}>
       {children}
@@ -227,7 +228,7 @@ describe("Fast operational funnels", () => {
         <Operation tab="onboardings" />
       </QueryClientProvider>,
     );
-    expect(screen.getByRole("heading", { name: "Onboarding" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "CRM" })).toBeVisible();
     expect(view.container.querySelector('[data-stage="7. Treinamento"]')).toBeInTheDocument();
     expect(mocks.get).toHaveBeenCalledTimes(1);
     expect(screen.queryByText("Carregando sua carteira…")).not.toBeInTheDocument();

@@ -1,3 +1,13 @@
+import { Calendar } from "@/components/ui/calendar";
+import { ptBR } from "react-day-picker/locale";
+import {
+  taskDay,
+  addDays,
+  weekDays,
+  calendarDate,
+  taskHour,
+  periodProgress,
+} from "@/lib/workspace/calendar";
 import { useEffect, useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -32,7 +42,13 @@ export function toLocalTime(value: string) {
 export function toUtc(value: string) {
   return new Date(`${value}:00-03:00`).toISOString();
 }
-export type TaskDraft = { client: string; kind?: Entity; record?: string; task?: ScheduledTask };
+export type TaskDraft = {
+  client: string;
+  kind?: Entity;
+  record?: string;
+  task?: ScheduledTask;
+  due?: string;
+};
 export function TaskDialog({
   draft,
   ds,
@@ -49,7 +65,9 @@ export function TaskDialog({
     client: draft.client,
     title: draft.task?.title ?? "",
     type: draft.task?.task_type ?? "Retorno",
-    due: toLocalTime(draft.task?.due_at ?? new Date(Date.now() + 3600000).toISOString()),
+    due: toLocalTime(
+      draft.task?.due_at ?? draft.due ?? new Date(Date.now() + 3600000).toISOString(),
+    ),
     notes: draft.task?.notes ?? "",
   });
   const [busy, setBusy] = useState(false);
@@ -222,7 +240,9 @@ export function Tasks({
 }) {
   const { session, includeTests } = useBi();
   const get = useServerFn(getScheduledTasks);
-  const [filter, setFilter] = useState("pending");
+  const [filter, setFilter] = useState("all");
+  const [day, setDay] = useState(() => taskDay(new Date()));
+  const [view, setView] = useState("week");
   const q = useQuery({
     queryKey: ["scheduled-tasks", session?.user.id],
     queryFn: () => get(),
@@ -243,58 +263,209 @@ export function Tasks({
   const rows =
     q.data?.filter(
       (t) =>
-        t.status === filter &&
+        (filter === "all" || t.status === filter) &&
         (includeTests || !clients.get(t.client_id)?.is_test) &&
         `${t.title} ${t.task_type} ${clients.get(t.client_id)?.name ?? ""}`
           .toLowerCase()
           .includes(search.toLowerCase()),
     ) ?? [];
+  const days = weekDays(day);
+  const today = taskDay(new Date());
+  const all = q.data?.filter((t) => includeTests || !clients.get(t.client_id)?.is_test) ?? [];
+  const todayWeek = weekDays(today);
+  const monthStart = today.slice(0, 7) + "-01";
+  const monthEnd = addDays(
+    new Date(Date.UTC(Number(today.slice(0, 4)), Number(today.slice(5, 7)), 1, 12))
+      .toISOString()
+      .slice(0, 10),
+    -1,
+  );
+  const stats = [
+    ["Hoje", today, today],
+    ["Esta semana", todayWeek[0]!, todayWeek[6]!],
+    ["Este mês", monthStart, monthEnd],
+  ].map(([label, start, end]) => ({ label, ...periodProgress(all, start!, end!) }));
+  const weekly = rows.filter((t) => days.includes(taskDay(t.due_at)));
+  const minHour = Math.min(7, ...weekly.map((t) => taskHour(t.due_at)));
+  const maxHour = Math.max(20, ...weekly.map((t) => taskHour(t.due_at)));
+  const event = (t: ScheduledTask) => (
+    <button
+      key={t.id}
+      onClick={() => open({ client: t.client_id, task: t })}
+      className={`block w-full rounded-md border p-2 text-left text-xs hover:border-primary ${t.status === "completed" ? "border-success/30 bg-success/10" : t.status === "canceled" ? "bg-muted opacity-60" : new Date(t.due_at).getTime() < Date.now() ? "border-destructive/40 bg-destructive/10" : "border-primary/30 bg-primary/10"}`}
+    >
+      <span className="font-semibold">
+        {toLocalTime(t.due_at).slice(11)} · {t.title}
+      </span>
+      <span className="mt-1 block text-muted-foreground">
+        {clients.get(t.client_id)?.name} · {t.task_type}
+        {t.status === "completed" ? " · Concluída" : t.status === "canceled" ? " · Cancelada" : ""}
+      </span>
+    </button>
+  );
   return (
     <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-3">
+        {stats.map((s) => (
+          <div key={s.label} className="rounded-xl border bg-card p-4">
+            <p className="text-sm text-muted-foreground">{s.label}</p>
+            <p className="my-2 text-xl font-semibold">
+              {s.completed} / {s.total} <span className="text-xs font-normal">concluídas</span>
+            </p>
+            <div className="h-1.5 overflow-hidden rounded bg-muted">
+              <div className="h-full bg-primary" style={{ width: `${s.percent}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
       <div className="flex flex-wrap items-center gap-2">
         <Button onClick={() => open({ client: "" })} disabled={!ds.clients.some((c) => c.owner_id)}>
           + Agendar tarefa
         </Button>
-        {[
-          ["pending", "Pendentes"],
-          ["completed", "Concluídas"],
-          ["canceled", "Canceladas"],
-        ].map(([value, label]) => (
-          <Button
-            key={value}
-            variant={filter === value ? "secondary" : "ghost"}
-            onClick={() => setFilter(value!)}
-          >
-            {label}
-          </Button>
-        ))}
+        <Button
+          variant="outline"
+          aria-label="Semana anterior"
+          onClick={() => setDay(addDays(day, -7))}
+        >
+          ←
+        </Button>
+        <Button variant="outline" onClick={() => setDay(today)}>
+          Hoje
+        </Button>
+        <Button
+          variant="outline"
+          aria-label="Próxima semana"
+          onClick={() => setDay(addDays(day, 7))}
+        >
+          →
+        </Button>
+        <span className="text-sm font-medium">
+          {calendarDate(days[0]!).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })} —{" "}
+          {calendarDate(days[6]!).toLocaleDateString("pt-BR", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          })}
+        </span>
+        <select
+          aria-label="Visualização de tarefas"
+          className={selectClass + " max-w-36"}
+          value={view}
+          onChange={(e) => setView(e.target.value)}
+        >
+          <option value="week">Semana</option>
+          <option value="list">Lista</option>
+        </select>
+        <select
+          aria-label="Status das tarefas"
+          className={selectClass + " max-w-40"}
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+        >
+          <option value="all">Todas</option>
+          <option value="pending">Pendentes</option>
+          <option value="completed">Concluídas</option>
+          <option value="canceled">Canceladas</option>
+        </select>
       </div>
       {q.isPending ? (
         <p role="status">Carregando agenda…</p>
       ) : q.isError ? (
         <Button onClick={() => q.refetch()}>Tentar carregar agenda novamente</Button>
-      ) : !rows.length ? (
-        <p className="text-sm text-muted-foreground">Nenhuma tarefa nesta seleção.</p>
       ) : (
-        <div className="grid gap-3 lg:grid-cols-2">
-          {rows.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => open({ client: t.client_id, task: t })}
-              className={`rounded-xl border bg-card p-4 text-left transition-colors hover:border-primary ${t.status === "pending" && new Date(t.due_at).getTime() <= Date.now() ? "border-destructive/60" : ""}`}
-            >
-              <p className="text-xs text-muted-foreground">
-                {clients.get(t.client_id)?.name} · {t.task_type}
-              </p>
-              <p className="mt-1 font-semibold">{t.title}</p>
-              <p className="mt-2 text-sm">
-                {dateLabel(t.due_at)}
-                {t.status === "pending" && new Date(t.due_at).getTime() <= Date.now()
-                  ? " · Pendente de execução"
-                  : ""}
-              </p>
-            </button>
-          ))}
+        <div className="grid items-start gap-4 xl:grid-cols-[260px_minmax(0,1fr)]">
+          <aside className="rounded-xl border bg-card">
+            <Calendar
+              mode="single"
+              required
+              selected={calendarDate(day)}
+              month={calendarDate(day)}
+              onMonthChange={(date) => setDay(taskDay(date))}
+              onSelect={(date) => {
+                if (date) setDay(taskDay(date));
+              }}
+              locale={ptBR}
+              weekStartsOn={1}
+            />
+            <p className="border-t p-3 text-xs text-muted-foreground">
+              Horário de São Paulo. Selecione um horário vazio para agendar; clique em uma tarefa
+              para editar ou concluir.
+            </p>
+          </aside>
+          {view === "list" ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {rows.length ? (
+                rows.map((t) => (
+                  <div key={t.id} className="space-y-1">
+                    <p className="text-xs text-muted-foreground">{dateLabel(t.due_at)}</p>
+                    {event(t)}
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">Nenhuma tarefa nesta seleção.</p>
+              )}
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-xl border bg-card">
+              <div
+                className="min-w-[840px]"
+                role="region"
+                aria-label="Calendário semanal de tarefas"
+              >
+                <div className="grid grid-cols-[48px_repeat(7,minmax(0,1fr))] border-b bg-muted/50">
+                  <span className="p-2 text-xs">Hora</span>
+                  {days.map((d) => (
+                    <button
+                      key={d}
+                      onClick={() => setDay(d)}
+                      className={`border-l p-3 text-center text-xs ${d === today ? "font-bold text-primary" : ""}`}
+                    >
+                      {calendarDate(d).toLocaleDateString("pt-BR", {
+                        weekday: "short",
+                        day: "2-digit",
+                      })}
+                    </button>
+                  ))}
+                </div>
+                {Array.from({ length: maxHour - minHour + 1 }, (_, i) => i + minHour).map(
+                  (hour) => (
+                    <div
+                      key={hour}
+                      className="grid grid-cols-[48px_repeat(7,minmax(0,1fr))] border-b last:border-0"
+                    >
+                      <span className="p-2 text-xs text-muted-foreground">
+                        {String(hour).padStart(2, "0")}:00
+                      </span>
+                      {days.map((d) => {
+                        const events = weekly.filter(
+                          (t) => taskDay(t.due_at) === d && taskHour(t.due_at) === hour,
+                        );
+                        return (
+                          <div key={d} className="min-h-16 space-y-1 border-l p-1">
+                            {events.map(event)}
+                            <button
+                              aria-label={`Agendar ${d} às ${hour}h`}
+                              className="min-h-8 w-full rounded text-xs text-muted-foreground opacity-40 hover:bg-muted hover:opacity-100 focus:opacity-100"
+                              onClick={() =>
+                                open({
+                                  client: "",
+                                  due: new Date(
+                                    `${d}T${String(hour).padStart(2, "0")}:00:00-03:00`,
+                                  ).toISOString(),
+                                })
+                              }
+                            >
+                              +
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ),
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -34,23 +34,22 @@ const ADMIN_NAV = [
   { href: "/demandas", label: "Demandas", icon: ListChecks },
   { href: "/clientes", label: "Clientes", icon: Building2 },
   { href: "/equipe", label: "Equipe", icon: Users },
-  { href: "/operacao?tab=clients", label: "Operação CS", icon: PanelsTopLeft },
+  { href: "/operacao?tab=crm", label: "CRM", icon: PanelsTopLeft },
+  { href: "/operacao?tab=clients", label: "Carteira", icon: Building2 },
+  { href: "/operacao?tab=changelog", label: "Histórico de entregas", icon: History },
+  { href: "/operacao?tab=interactions", label: "Conversas e decisões", icon: MessagesSquare },
   { href: "/administracao", label: "Administração", icon: Settings },
   { href: "/integracao", label: "Migração", icon: PlugZap },
-  { href: "/operacao?tab=tasks", label: "Agenda CS", icon: CalendarClock },
+  { href: "/operacao?tab=tasks", label: "Tarefas", icon: CalendarClock },
   { href: "/notificacoes", label: "Notificações", icon: Bell },
   { href: "/ajuda", label: "Ajuda", icon: BookOpen },
 ];
 const CS_NAV = [
-  { href: "/operacao?tab=clients", label: "Minha carteira", icon: Building2 },
-  { href: "/operacao?tab=demands", label: "Demandas", icon: PanelsTopLeft },
-  { href: "/operacao?tab=onboardings", label: "Onboarding", icon: UserPlus },
-  { href: "/operacao?tab=upgrades", label: "Upgrades", icon: ArrowUpCircle },
-  { href: "/operacao?tab=interactions", label: "Interações", icon: MessagesSquare },
-  { href: "/operacao?tab=changelog", label: "Changelog", icon: History },
-  { href: "/operacao?tab=tasks", label: "Agenda CS", icon: CalendarClock },
-  { href: "/notificacoes", label: "Notificações", icon: Bell },
-  { href: "/ajuda", label: "Ajuda", icon: BookOpen },
+  { href: "/operacao?tab=crm", label: "CRM", icon: PanelsTopLeft },
+  { href: "/operacao?tab=clients", label: "Carteira", icon: Building2 },
+  { href: "/operacao?tab=changelog", label: "Histórico de entregas", icon: History },
+  { href: "/operacao?tab=interactions", label: "Conversas e decisões", icon: MessagesSquare },
+  { href: "/operacao?tab=tasks", label: "Tarefas", icon: CalendarClock },
 ];
 export function AppShell({ children }: { children: ReactNode }) {
   const location = useRouterState({ select: (s) => s.location });
@@ -108,7 +107,11 @@ export function AppShell({ children }: { children: ReactNode }) {
           mobile
             ? "flex items-center gap-2 whitespace-nowrap rounded px-3 py-2 text-sm"
             : "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-colors",
-          current === href || (href === "/" && path === "/")
+          current === href ||
+            (href === "/" && path === "/") ||
+            (href.includes("?tab=") &&
+              path === "/operacao" &&
+              (location.search as any)?.tab === href.split("tab=")[1])
             ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-[inset_3px_0_0_var(--sidebar-primary)]"
             : "hover:bg-sidebar-accent/60",
         )}

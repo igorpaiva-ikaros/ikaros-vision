@@ -22,6 +22,7 @@ beforeAll(async () => {
   await db.exec(
     await readFile("supabase/migrations/20261006113000_operation_productivity.sql", "utf8"),
   );
+  await db.exec(await readFile("supabase/migrations/20261006120000_crm_catalog_sla.sql", "utf8"));
   await db.exec(`insert into profiles(id,full_name,email) values('${other}','Other CS','other@example.test');insert into user_roles(user_id,role) values('${other}','cs');
  insert into clients(id,name,owner_id) values('${ownClient}','Own client','${cs}'),('${otherClient}','Other client','${other}');`);
 }, 30_000);
@@ -366,5 +367,95 @@ describe("Scheduled tasks and member profiles", () => {
         ),
       ),
     ).rejects.toThrow();
+  });
+});
+
+describe("Catalogue and configurable SLA", () => {
+  it("preserves the legacy 4 useful hours and next useful day defaults", async () => {
+    const value = await scalar(
+      `select policy_due('2026-10-09 16:00-03','Bug','response')=sla_add_business_minutes('2026-10-09 16:00-03',240) as response,policy_due('2026-10-09 16:00-03','Bug','resolution')=sla_next_business_day('2026-10-09 16:00-03') as resolution,policy_due(now(),'Bug','delivery') is null as no_auto_delivery`,
+    );
+    expect(value).toEqual({ response: true, resolution: true, no_auto_delivery: true });
+  });
+  it("supports useful and elapsed minutes, hours, days including holidays", async () => {
+    const value = await scalar(
+      `select configured_due('2026-10-09 17:30-03',60,'minutes','business')='2026-10-13 09:30-03'::timestamptz as business,configured_due('2026-10-09 17:30-03',2,'hours','calendar')='2026-10-09 19:30-03'::timestamptz as elapsed,configured_due('2026-10-09 17:30-03',2,'days','calendar')='2026-10-11 17:30-03'::timestamptz as days`,
+    );
+    expect(value).toEqual({ business: true, elapsed: true, days: true });
+  });
+  it("CS can select the catalogue but cannot configure products or rules", async () => {
+    await asUser(cs, async () => {
+      expect((await db.query("select name from products")).rows).toHaveLength(3);
+    });
+    await expect(
+      asUser(cs, () =>
+        db.query(`select save_product(gen_random_uuid(),null,'Forbidden','',10,10,true)`),
+      ),
+    ).rejects.toThrow("forbidden");
+    await expect(
+      asUser(cs, () => db.query(`select save_sla_policy('Bug',1,'{"response_value":2}')`)),
+    ).rejects.toThrow("forbidden");
+    await expect(
+      asUser(cs, () => db.query(`update clients set plan='Unlisted' where id='${ownClient}'`)),
+    ).rejects.toThrow("catalog_required");
+  });
+  it("blocks inactive products and preserves contracted names after catalogue editing", async () => {
+    const product = await scalar(`select id,version from products where name='Wing'`);
+    await asUser(admin, async () => {
+      await db.query(`update clients set product_id='${product.id}' where id='${ownClient}'`);
+      await db.query(
+        `select save_product('${product.id}',${product.version},'Wing atualizado','',1500,1000,false)`,
+      );
+      expect(await scalar(`select plan from clients where id='${ownClient}'`)).toEqual({
+        plan: "Wing",
+      });
+      await db.query(`update clients set contact_name='Teste' where id='${ownClient}'`);
+      expect(await scalar(`select plan from clients where id='${ownClient}'`)).toEqual({
+        plan: "Wing",
+      });
+    });
+    await expect(
+      asUser(admin, async () => {
+        await db.query(
+          `select save_product('${product.id}',${product.version},'Wing','',1500,1000,false)`,
+        );
+        await db.query(`update clients set product_id='${product.id}' where id='${ownClient}'`);
+      }),
+    ).rejects.toThrow("inactive_product");
+  });
+  it("admin changes recalculate open items only, preserve manual delivery and reject stale saves", async () => {
+    const ids = (
+      await db.query<any>(
+        `insert into demands(client_id,owner_id,title,classification,received_at,due_date,completed_at) values('${ownClient}','${cs}','SLA open','Bug','2026-10-06 10:00-03','2026-10-20 12:00-03',null),('${ownClient}','${cs}','SLA closed','Bug','2026-10-06 10:00-03',null,'2026-10-06 11:00-03') returning id,first_response_due,resolution_due`,
+      )
+    ).rows;
+    await asUser(admin, async () => {
+      const policy = await scalar(`select version from sla_policies where category='Bug'`);
+      const noChange = await scalar(
+        `select save_sla_policy('Bug',${policy.version},'{}') as result`,
+      );
+      expect(noChange.result).toEqual({ changed: false, recalculated: 0 });
+      const result = await scalar(
+        `select save_sla_policy('Bug',${policy.version},'{"response_value":30,"response_unit":"minutes","response_basis":"calendar","delivery_value":2,"delivery_unit":"hours","delivery_basis":"calendar"}') as result`,
+      );
+      expect(result.result.changed).toBe(true);
+      const open = await scalar(
+        `select first_response_due='2026-10-06 10:30-03'::timestamptz as response,policy_delivery_due='2026-10-06 12:00-03'::timestamptz as automatic,due_date='2026-10-20 12:00-03'::timestamptz as manual from demands where id='${ids[0].id}'`,
+      );
+      expect(open).toEqual({ response: true, automatic: true, manual: true });
+      const closed = await scalar(
+        `select first_response_due,resolution_due from demands where id='${ids[1].id}'`,
+      );
+      expect(closed).toEqual({
+        first_response_due: ids[1].first_response_due,
+        resolution_due: ids[1].resolution_due,
+      });
+    });
+    await expect(
+      asUser(admin, async () => {
+        await db.query(`select save_sla_policy('Bug',1,'{"response_value":5}')`);
+        await db.query(`select save_sla_policy('Bug',1,'{"response_value":6}')`);
+      }),
+    ).rejects.toThrow("conflict");
   });
 });

@@ -18,20 +18,14 @@ test("desktop drag and cached tab navigation use real UI and router", async ({ p
     return (window as any).qaToken;
   });
   const reads = await page.evaluate(() => (window as any).qaMetrics.reads);
-  await page
-    .getByRole("navigation", { name: "Áreas da operação" })
-    .getByRole("link", { name: "Onboarding", exact: true })
-    .click();
-  await expect(page.getByRole("heading", { name: "Onboarding", exact: true })).toBeVisible();
+  await page.getByLabel("Funil CRM").selectOption("onboardings");
+  await expect(page.getByRole("heading", { name: "CRM", exact: true })).toBeVisible();
   expect(await page.evaluate(() => (window as any).qaToken)).toBe(token);
   expect(await page.evaluate(() => (window as any).qaMetrics.reads)).toBe(reads);
   await expect(page.locator('[data-stage="2. Cadastro"]')).toContainText(
     "Implantar carteira de seguros",
   );
-  await page
-    .getByRole("navigation", { name: "Áreas da operação" })
-    .getByRole("link", { name: "Upgrades", exact: true })
-    .click();
+  await page.getByLabel("Funil CRM").selectOption("upgrades");
   await expect(page.locator('[data-stage="Oportunidade identificada"]')).toContainText(
     "Ampliar equipe comercial",
   );
@@ -49,10 +43,7 @@ test("schedule from card preserves client and appears in agenda", async ({ page 
   await page.getByLabel("Tarefa *").fill("Retornar com correção");
   await page.getByRole("button", { name: "Agendar", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await page
-    .getByRole("navigation", { name: "Áreas da operação" })
-    .getByRole("link", { name: "Agenda", exact: true })
-    .click();
+  await page.getByRole("link", { name: "Tarefas", exact: true }).click();
   await expect(page.getByRole("button", { name: /Retornar com correção/ })).toBeVisible();
 });
 test("mobile has accessible movement and scheduling", async ({ page }) => {
@@ -105,4 +96,61 @@ test("administrator can create accounts with profile photo", async ({ page }) =>
   await form.getByLabel("Senha inicial").fill("fixture-pass-123");
   await form.getByRole("button", { name: "Criar conta" }).click();
   await expect(page.getByText(/Conta criada/)).toBeVisible();
+});
+
+test("CS menu has five areas and calendar slots create and complete tasks", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto("/operacao?tab=tasks");
+  const menu = page.locator("aside").first().getByRole("navigation");
+  await expect(menu.getByRole("link")).toHaveCount(5);
+  await expect(menu.getByRole("link", { name: "CRM", exact: true })).toBeVisible();
+  await expect(
+    menu.getByRole("link", { name: "Histórico de entregas", exact: true }),
+  ).toBeVisible();
+  await expect(menu.getByRole("link", { name: "Conversas e decisões", exact: true })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Calendário semanal de tarefas" })).toBeVisible();
+  await page.getByRole("button", { name: "Próxima semana" }).click();
+  const slot = page.getByRole("button", { name: /Agendar .* às 10h/ }).first();
+  const label = await slot.getAttribute("aria-label");
+  await slot.click();
+  await expect(page.getByLabel("Data e horário *")).toHaveValue(`${label!.split(" ")[1]}T10:00`);
+  await page.getByLabel("Cliente *").selectOption("00000000-0000-4000-8000-000000000011");
+  await page.getByLabel("Tarefa *").fill("Revisar implantação no calendário");
+  await page.getByRole("button", { name: "Agendar", exact: true }).click();
+  const task = page.getByRole("button", { name: /Revisar implantação no calendário/ });
+  await expect(task).toBeVisible();
+  await task.click();
+  await page.getByRole("button", { name: "Concluir tarefa" }).click();
+  await expect(task).toContainText("Concluída");
+  await page.screenshot({
+    path: "/workspace/scratch/b964e3016bde/vision-qa/calendar-desktop.png",
+    fullPage: true,
+    animations: "disabled",
+  });
+});
+
+test("administrator configures catalogue and rules only on explicit save", async ({ page }) => {
+  await page.goto("/administracao");
+  await expect(page.getByRole("heading", { name: "Produtos e planos" })).toBeVisible();
+  await page
+    .getByText("Wing", { exact: false })
+    .filter({ has: page.locator("span") })
+    .first()
+    .click();
+  const plan = page
+    .locator("details")
+    .filter({ has: page.locator("summary").filter({ hasText: "Wing" }) });
+  await plan.getByLabel("Mensalidade · contrato mensal (R$)").fill("1250");
+  await plan.getByRole("button", { name: "Salvar plano" }).click();
+  await expect(plan.locator("summary")).toContainText("1.250");
+  const policy = page
+    .locator("details")
+    .filter({ has: page.locator("summary").filter({ hasText: "Bug" }) });
+  await policy.locator("summary").click();
+  await page.getByLabel("Bug Primeira resposta quantidade").fill("30");
+  await page.getByLabel("Bug Primeira resposta unidade").selectOption("minutes");
+  await page.getByLabel("Bug Primeira resposta contagem").selectOption("calendar");
+  expect(await page.evaluate(() => (window as any).qaPolicySaves ?? 0)).toBe(0);
+  await policy.getByRole("button", { name: "Salvar regras e recalcular abertas" }).click();
+  await expect.poll(() => page.evaluate(() => (window as any).qaPolicySaves)).toBe(1);
 });

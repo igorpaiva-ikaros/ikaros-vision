@@ -6,11 +6,15 @@ export async function nativeClientOptions(context: AuthContext) {
   const db = context.supabase;
   const roles = checkResult(await db.from("user_roles").select("user_id,role")) ?? [];
   const profiles = checkResult(await db.from("profiles").select("id,full_name,active")) ?? [];
+  const products =
+    checkResult(await (db as any).from("products").select("*").eq("active", true).order("name")) ??
+    [];
   return {
+    products,
     owners: profiles
       .filter((p: any) => p.active && roles.some((r: any) => r.user_id === p.id && r.role === "cs"))
       .map((p: any) => ({ id: p.id, name: p.full_name })),
-    plans: ["Feather", "Wing", "Sun"],
+    plans: products.map((p: any) => p.name),
   };
 }
 export async function registerNativeClient(
@@ -39,6 +43,17 @@ export async function registerNativeClient(
       notionUrl: null,
       message: "Cliente já cadastrado no Ikaros Vision.",
     };
+  const product = data.productId
+    ? checkResult(
+        await db
+          .from("products")
+          .select("id,name")
+          .eq("id", data.productId)
+          .eq("active", true)
+          .maybeSingle(),
+      )
+    : null;
+  if (!product) return { ok: false, message: "Selecione um plano ativo do catálogo." };
   const row = {
     id: data.requestId,
     name: data.name,
@@ -49,7 +64,8 @@ export async function registerNativeClient(
     contact_phone: data.phone || null,
     notes: data.notes,
     segments: [data.segment],
-    plan: data.plan || null,
+    plan: product.name,
+    product_id: product.id,
     status: "Ativo",
     is_test: data.isTest,
   };

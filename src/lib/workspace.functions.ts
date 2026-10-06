@@ -36,6 +36,17 @@ export const saveRecord = createServerFn({ method: "POST" })
     if (!client?.owner_id) throw new Error("Cliente não encontrado ou sem responsável.");
     const { data: admin } = await db.rpc("is_admin", { _uid: context.userId });
     if (!admin && client.owner_id !== context.userId) throw new Error("Acesso não autorizado.");
+    if (data.kind === "upgrades") {
+      const plan = (values as any).new_plan;
+      const catalog = checkResult(
+        await db.from("products").select("id").eq("name", plan).eq("active", true).maybeSingle(),
+      );
+      const previous = data.id
+        ? checkResult(await db.from("upgrades").select("new_plan").eq("id", data.id).maybeSingle())
+        : null;
+      if (!catalog && previous?.new_plan !== plan)
+        throw new Error("Selecione um plano ativo do catálogo.");
+    }
     const input: any = { ...values };
     if (!admin) delete input.is_test;
     if (data.id) {
@@ -108,23 +119,26 @@ export const getAdminState = createServerFn({ method: "POST" })
     const { assertAdmin, checkResult } = await import("./workspace/access.server");
     await assertAdmin(context);
     const db = context.supabase as any;
-    const [profiles, roles, issues, runs, jobs, clients, settings] = await Promise.all([
-      db
-        .from("profiles")
-        .select("id,full_name,email,active,commission_eligible,avatar_url")
-        .order("full_name"),
-      db.from("user_roles").select("user_id,role"),
-      db.from("import_issues").select("*").is("resolved_at", null).order("created_at").limit(500),
-      db.from("import_runs").select("*").order("started_at", { ascending: false }).limit(5),
-      db
-        .from("job_runs")
-        .select("*")
-        .eq("job", "sla_tick")
-        .order("ran_at", { ascending: false })
-        .limit(5),
-      db.from("clients").select("id,name,owner_id,version,is_test").order("name"),
-      db.from("app_settings").select("key,value"),
-    ]);
+    const [profiles, roles, issues, runs, jobs, clients, settings, products, policies] =
+      await Promise.all([
+        db
+          .from("profiles")
+          .select("id,full_name,email,active,commission_eligible,avatar_url")
+          .order("full_name"),
+        db.from("user_roles").select("user_id,role"),
+        db.from("import_issues").select("*").is("resolved_at", null).order("created_at").limit(500),
+        db.from("import_runs").select("*").order("started_at", { ascending: false }).limit(5),
+        db
+          .from("job_runs")
+          .select("*")
+          .eq("job", "sla_tick")
+          .order("ran_at", { ascending: false })
+          .limit(5),
+        db.from("clients").select("id,name,owner_id,version,is_test").order("name"),
+        db.from("app_settings").select("key,value"),
+        db.from("products").select("*").order("name"),
+        db.from("sla_policies").select("*").order("category"),
+      ]);
     const pending = checkResult(issues) ?? [];
     const names: Record<string, string> = {};
     await Promise.all(
@@ -145,6 +159,8 @@ export const getAdminState = createServerFn({ method: "POST" })
     const rr = checkResult(roles) ?? [];
     return {
       calendar,
+      products: checkResult(products) ?? [],
+      policies: checkResult(policies) ?? [],
       members: (checkResult(profiles) ?? []).map((p: any) => ({
         ...p,
         role: rr.some((r: any) => r.user_id === p.id && r.role === "admin") ? "admin" : "cs",
@@ -286,7 +302,7 @@ export const updateClientContact = createServerFn({ method: "POST" })
         contact_email: z.union([z.literal(""), z.string().email()]),
         contact_phone: z.string().max(40),
         whatsapp: z.string().max(300),
-        plan: z.string().max(100),
+        product_id: z.string().uuid().nullable().optional(),
         notes: z.string().max(2000),
         status: z.enum(["Ativo", "Atenção", "Em risco", "Encerrado"]),
       })
@@ -317,6 +333,7 @@ export const getNotifications = createServerFn({ method: "POST" })
     return (checkResult(
       await (context.supabase as any)
         .from("notifications")
+        .is("superseded_at", null)
         .select("id,title,link,level,read_at,created_at,entity_id,deadline")
         .order("created_at", { ascending: false })
         .limit(200),
@@ -378,12 +395,12 @@ export const getScheduledTasks = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const { assertOperator, checkResult } = await import("./workspace/access.server");
     await assertOperator(context);
-    const { data, error } = await (context.supabase as any)
-      .from("scheduled_tasks")
-      .select("*")
-      .order("due_at")
-      .limit(2000);
-    return checkResult({ data, error }) as import("./workspace/types").ScheduledTask[];
+    const { allRows } = await import("./workspace/read.server");
+    return (await allRows(
+      context.supabase,
+      "scheduled_tasks",
+      "*",
+    )) as import("./workspace/types").ScheduledTask[];
   });
 export const saveScheduledTask = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -405,4 +422,70 @@ export const saveScheduledTask = createServerFn({ method: "POST" })
         _status: data.status,
       }),
     ) as import("./workspace/types").ScheduledTask;
+  });
+
+export const saveProduct = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        version: z.number().int().positive().nullable(),
+        name: z.string().trim().min(2).max(100),
+        description: z.string().max(2000),
+        monthly: z.number().min(0).max(10000000),
+        annual: z.number().min(0).max(10000000),
+        active: z.boolean(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    const { assertAdmin, checkResult } = await import("./workspace/access.server");
+    await assertAdmin(context);
+    return checkResult(
+      await (context.supabase as any).rpc("save_product", {
+        _id: data.id,
+        _version: data.version,
+        _name: data.name,
+        _description: data.description,
+        _monthly: data.monthly,
+        _annual: data.annual,
+        _active: data.active,
+      }),
+    );
+  });
+const slaRuleSchema = z
+  .object({
+    response_value: z.number().int().min(1).max(100000),
+    response_unit: z.enum(["minutes", "hours", "days"]),
+    response_basis: z.enum(["business", "calendar"]),
+    resolution_value: z.number().int().min(1).max(100000),
+    resolution_unit: z.enum(["minutes", "hours", "days"]),
+    resolution_basis: z.enum(["business", "calendar"]),
+    delivery_value: z.number().int().min(1).max(100000).nullable(),
+    delivery_unit: z.enum(["minutes", "hours", "days"]),
+    delivery_basis: z.enum(["business", "calendar"]),
+  })
+  .strict();
+export const saveSlaPolicy = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        category: z.string().max(100),
+        version: z.number().int().positive(),
+        rules: slaRuleSchema,
+      })
+      .parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    const { assertAdmin, checkResult } = await import("./workspace/access.server");
+    await assertAdmin(context);
+    return checkResult(
+      await (context.supabase as any).rpc("save_sla_policy", {
+        _category: data.category,
+        _version: data.version,
+        _rules: data.rules,
+      }),
+    );
   });

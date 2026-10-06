@@ -8,10 +8,10 @@ const base =
   "id,code,notion_id,client_id,owner_id,is_test,version,created_at,updated_at,source_date_precision";
 export const COLUMNS = {
   clients:
-    "id,code,notion_id,name,empresa,erp_id,erp_slug,contact_name,company_email,company_phone,contact_email,contact_phone,whatsapp,notes,segments,plan,status,owner_id,is_test,version",
+    "id,code,notion_id,name,empresa,erp_id,erp_slug,contact_name,company_email,company_phone,contact_email,contact_phone,whatsapp,notes,segments,plan,product_id,status,owner_id,is_test,version",
   demands:
     base +
-    ",title,description,priority,classification,channel,impact,context,solution,tests_run,test_result,technical_type,complexity,client_informed,client_validated,stage,received_at,first_response_due,resolution_due,first_response_at,forwarded_at,published_at,validated_at,completed_at,canceled_at,cancel_reason,due_date",
+    ",title,description,priority,classification,channel,impact,context,solution,tests_run,test_result,technical_type,complexity,client_informed,client_validated,stage,received_at,first_response_due,resolution_due,first_response_at,forwarded_at,published_at,validated_at,completed_at,canceled_at,cancel_reason,due_date,policy_delivery_due",
   onboardings:
     base +
     ",title,stage,current_step,progress,started_at,info_complete_at,milestone5_due,limit15_due,expected_date,completed_at,notes",
@@ -23,7 +23,7 @@ export const COLUMNS = {
     base +
     ",demand_id,title,description,kind,published_at,occurred_at,approved,result,tests_run,files,tool,release_version,notes",
 };
-async function allRows(db: any, table: string, columns: string) {
+export async function allRows(db: any, table: string, columns: string) {
   const out: any[] = [];
   for (let i = 0; i < 100; i++) {
     const r = await db
@@ -45,21 +45,24 @@ export async function operationState(context: AuthContext): Promise<OperationSta
       await allRows(context.supabase, table, cols),
     ]),
   );
-  const [sla, commissions, notifications, settings, people] = await Promise.all([
+  const [sla, commissions, notifications, settings, people, products] = await Promise.all([
     allRows(context.supabase, "demand_sla", "*"),
     allRows(context.supabase, "upgrade_commission", "*"),
     context.supabase
       .from("notifications")
+      .is("superseded_at", null)
       .select("id,title,link,level,read_at,created_at")
       .order("created_at", { ascending: false })
       .limit(200),
     context.supabase.from("app_settings").select("value").eq("key", "sla_risk_minutes").single(),
     context.supabase.from("profiles").select("id,full_name"),
+    (context.supabase as any).from("products").select("*").order("name"),
   ]);
   const entries = await entriesPromise;
   return {
     ...Object.fromEntries(entries),
     sla,
+    products: checkResult(products) ?? [],
     commissions,
     people: checkResult(people) ?? [],
     notifications: checkResult(notifications) ?? [],
@@ -144,7 +147,7 @@ export async function nativeDataset(context: AuthContext): Promise<Dataset> {
         createdAt: (d.received_at ?? d.created_at) as string,
         completedAt: fact("completed_at"),
         publishedAt: fact("published_at"),
-        dueDate: fact("due_date"),
+        dueDate: fact("due_date") ?? d.policy_delivery_due ?? null,
         priority: d.priority as string | null,
         classification: d.classification as string | null,
         channel: d.channel as string | null,
@@ -162,7 +165,7 @@ export async function nativeDataset(context: AuthContext): Promise<Dataset> {
         status: d.stage ?? null,
         sla: {
           statusUtil: state ?? null,
-          prazoFinalEfetivo: d.due_date as string | null,
+          prazoFinalEfetivo: d.due_date ?? d.policy_delivery_due ?? null,
           prazoPrimeiraResposta: sla?.first_response_due ?? null,
           prazoSolucao: sla?.resolution_due ?? null,
           statusSla: null,

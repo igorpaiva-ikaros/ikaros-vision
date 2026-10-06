@@ -1,6 +1,42 @@
 const client = "00000000-0000-4000-8000-000000000011";
 const owner = "00000000-0000-4000-8000-000000000001";
+const products = [
+  {
+    id: "00000000-0000-4000-8000-000000000090",
+    name: "Feather",
+    description: "",
+    monthly_value: 697,
+    annual_monthly_value: 397,
+    active: true,
+    version: 1,
+  },
+  {
+    id: "00000000-0000-4000-8000-000000000091",
+    name: "Wing",
+    description: "",
+    monthly_value: 1197,
+    annual_monthly_value: 897,
+    active: true,
+    version: 1,
+  },
+];
+const policies = [
+  {
+    category: "Bug",
+    version: 1,
+    response_value: 4,
+    response_unit: "hours",
+    response_basis: "business",
+    resolution_value: 1,
+    resolution_unit: "days",
+    resolution_basis: "business",
+    delivery_value: null,
+    delivery_unit: "days",
+    delivery_basis: "business",
+  },
+];
 export const ds: any = {
+  products,
   clients: [
     {
       id: client,
@@ -114,6 +150,8 @@ export async function saveScheduledTask({ data }: any) {
 }
 export async function getAdminState() {
   return {
+    products,
+    policies,
     members: [
       {
         id: owner,
@@ -146,4 +184,26 @@ export async function resolveImportIssue() {
 }
 export async function setRiskWindow() {
   return { ok: true };
+}
+
+export async function saveProduct({ data }: any) {
+  const old = products.find((p) => p.id === data.id);
+  const product = {
+    id: data.id,
+    name: data.name,
+    description: data.description,
+    monthly_value: data.monthly,
+    annual_monthly_value: data.annual,
+    active: data.active,
+    version: (old?.version ?? 0) + 1,
+  };
+  if (old) Object.assign(old, product);
+  else products.push(product);
+  return product;
+}
+export async function saveSlaPolicy({ data }: any) {
+  (window as any).qaPolicySaves = ((window as any).qaPolicySaves ?? 0) + 1;
+  const p = policies.find((p) => p.category === data.category)!;
+  Object.assign(p, data.rules, { version: p.version + 1 });
+  return { changed: true, recalculated: 1 };
 }

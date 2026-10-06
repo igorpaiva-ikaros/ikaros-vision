@@ -26,10 +26,14 @@ const root = createRootRoute({
 const operation = createRoute({
   getParentRoute: () => root,
   path: "/operacao",
-  validateSearch: (s: any) => ({ tab: s.tab ?? "clients", id: s.id }),
+  validateSearch: (s: any) => ({
+    tab: s.tab ?? "clients",
+    id: s.id,
+    pipeline: s.pipeline ?? "demands",
+  }),
   component: () => {
-    const { tab, id } = operation.useSearch();
-    return <Operation tab={tab as any} id={id} />;
+    const { tab, id, pipeline } = operation.useSearch();
+    return <Operation tab={(tab === "crm" ? pipeline : tab) as any} id={id} />;
   },
 });
 const admin = createRoute({ getParentRoute: () => root, path: "/administracao", component: Admin });

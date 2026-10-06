@@ -1,7 +1,7 @@
 import { RecordHistory } from "./RecordHistory";
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { useNavigate, Link } from "@tanstack/react-router";
 import { GripVertical, CalendarClock } from "lucide-react";
 import { AREA_GUIDE, STAGE_GUIDE, stageAction, isClosed } from "@/lib/workspace/guidance";
 import { Tasks, TaskDialog, type TaskDraft } from "./Tasks";
@@ -102,6 +102,7 @@ export function SlaBadge({ row, ds }: { row: RecordRow; ds: OperationState }) {
   );
 }
 export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefined }) {
+  const navigate = useNavigate();
   const { session, profile, includeTests, setIncludeTests, reload } = useBi();
   const qc = useQueryClient();
   const queryKey = ["operation-state", session?.user.id];
@@ -346,7 +347,7 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
   return (
     <>
       <PageTitle
-        title={AREA_GUIDE[tab].label}
+        title={["demands", "onboardings", "upgrades"].includes(tab) ? "CRM" : AREA_GUIDE[tab].label}
         subtitle={AREA_GUIDE[tab].description}
         actions={
           <div className="flex gap-2">
@@ -357,21 +358,28 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
           </div>
         }
       />
-      <nav
-        aria-label="Áreas da operação"
-        className="mb-5 flex gap-1 overflow-x-auto rounded-lg border bg-card p-1"
-      >
-        {(Object.keys(AREA_GUIDE) as OperationTab[]).map((key) => (
-          <Link
-            key={key}
-            to="/operacao"
-            search={{ tab: key }}
-            className={`shrink-0 rounded-md px-3 py-2 text-sm ${key === tab ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
+      {["demands", "onboardings", "upgrades"].includes(tab) && (
+        <div className="mb-5 flex flex-wrap items-center gap-3">
+          <span className="text-sm font-medium">Funil</span>
+          <select
+            aria-label="Funil CRM"
+            className={selectClass + " max-w-xs"}
+            value={tab}
+            onChange={(e) =>
+              void navigate({
+                to: "/operacao",
+                search: { tab: "crm", pipeline: e.target.value as "demands" },
+              })
+            }
           >
-            {AREA_GUIDE[key].label}
-          </Link>
-        ))}
-      </nav>
+            {(["demands", "onboardings", "upgrades"] as const).map((kind) => (
+              <option key={kind} value={kind}>
+                {AREA_GUIDE[kind].label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       {tab === "onboardings" && (
         <div className="mb-4 flex flex-wrap gap-2">
           <Button
@@ -470,8 +478,8 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
                           : kind === "upgrades"
                             ? "+ Upgrade"
                             : kind === "interactions"
-                              ? "+ Interação"
-                              : "+ Changelog"}
+                              ? "+ Conversa"
+                              : "+ Entrega"}
                     </Button>
                   ))}
                   <Button
@@ -584,7 +592,13 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
           close={() => setEditor(null)}
         />
       )}
-      {clientEditor && <ClientEditor client={clientEditor} close={() => setClientEditor(null)} />}
+      {clientEditor && (
+        <ClientEditor
+          products={ds.products ?? []}
+          client={clientEditor}
+          close={() => setClientEditor(null)}
+        />
+      )}
     </>
   );
 }
@@ -632,9 +646,9 @@ function RecordEditor({
             client_id: client,
             title: row?.title ?? "",
             current_plan: row?.current_plan ?? ds.clients.find((c) => c.id === client)?.plan ?? "",
-            new_plan: row?.new_plan ?? "Wing",
+            new_plan: row?.new_plan ?? "",
             current_value: row?.current_value ?? 0,
-            new_value: row?.new_value ?? 1197,
+            new_value: row?.new_value ?? 0,
             need: row?.need ?? "",
             notes: row?.notes ?? "",
           }
@@ -907,7 +921,28 @@ function RecordEditor({
               <>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {text("current_plan", "Plano atual")}
-                  {select("new_plan", "Novo plano", ["Feather", "Wing", "Sun"])}
+                  <Field label="Novo plano *">
+                    <select
+                      required
+                      className={selectClass}
+                      value={values["new_plan"]}
+                      onChange={(e) => {
+                        update("new_plan", e.target.value);
+                        const p = ds.products?.find((p) => p.name === e.target.value);
+                        if (p) update("new_value", Number(p.monthly_value));
+                      }}
+                    >
+                      <option value="">Selecione o plano</option>
+                      {Array.from(
+                        new Set([
+                          ...(ds.products ?? []).filter((p) => p.active).map((p) => p.name),
+                          ...(row?.new_plan ? [row.new_plan] : []),
+                        ]),
+                      ).map((name) => (
+                        <option key={name}>{name}</option>
+                      ))}
+                    </select>
+                  </Field>
                   <Field label="Mensalidade atual (R$)">
                     <Input
                       type="number"
@@ -1079,7 +1114,15 @@ function RecordEditor({
     </Dialog>
   );
 }
-function ClientEditor({ client, close }: { client: NativeClient; close: () => void }) {
+function ClientEditor({
+  client,
+  close,
+  products,
+}: {
+  client: NativeClient;
+  close: () => void;
+  products: import("@/lib/workspace/types").Product[];
+}) {
   const { reload } = useBi();
   const update = useServerFn(updateClientContact);
   const [values, setValues] = useState({
@@ -1090,7 +1133,7 @@ function ClientEditor({ client, close }: { client: NativeClient; close: () => vo
     contact_email: client.contact_email ?? "",
     contact_phone: client.contact_phone ?? "",
     whatsapp: client.whatsapp ?? "",
-    plan: client.plan ?? "",
+    product_id: client.product_id ?? null,
     notes: client.notes ?? "",
     status: (client.status ?? "Ativo") as "Ativo" | "Atenção" | "Em risco" | "Encerrado",
   });
@@ -1126,28 +1169,44 @@ function ClientEditor({ client, close }: { client: NativeClient; close: () => vo
           }}
         >
           <fieldset disabled={busy} className="space-y-3">
-            {(
-              [
-                "name",
-                "contact_name",
-                "contact_email",
-                "contact_phone",
-                "whatsapp",
-                "plan",
-              ] as const
-            ).map((key, i) => (
-              <Field
-                key={key}
-                label={["Nome", "Contato", "E-mail", "Telefone", "WhatsApp", "Plano"][i] ?? key}
+            {(["name", "contact_name", "contact_email", "contact_phone", "whatsapp"] as const).map(
+              (key, i) => (
+                <Field
+                  key={key}
+                  label={["Nome", "Contato", "E-mail", "Telefone", "WhatsApp", "Plano"][i] ?? key}
+                >
+                  <Input
+                    type={key === "contact_email" ? "email" : "text"}
+                    value={values[key]}
+                    required={key === "name"}
+                    onChange={(e) => setValues((v) => ({ ...v, [key]: e.target.value }))}
+                  />
+                </Field>
+              ),
+            )}
+            <Field label="Plano contratado">
+              <select
+                className={selectClass}
+                value={values.product_id ?? ""}
+                onChange={(e) => setValues((v) => ({ ...v, product_id: e.target.value || null }))}
               >
-                <Input
-                  type={key === "contact_email" ? "email" : "text"}
-                  value={values[key]}
-                  required={key === "name"}
-                  onChange={(e) => setValues((v) => ({ ...v, [key]: e.target.value }))}
-                />
-              </Field>
-            ))}
+                <option value="" disabled>
+                  {client.plan ? `${client.plan} · cadastro anterior` : "Selecione o plano"}
+                </option>
+                {products
+                  .filter((p) => p.active || p.id === client.product_id)
+                  .map((p) => (
+                    <option
+                      key={p.id}
+                      value={p.id}
+                      disabled={!p.active && p.id !== client.product_id}
+                    >
+                      {p.name}
+                      {!p.active ? " · inativo" : ""}
+                    </option>
+                  ))}
+              </select>
+            </Field>
             <Field label="Status cadastral">
               <select
                 className={selectClass}

@@ -1,3 +1,4 @@
+import { Configuration } from "./Configuration";
 import { AvatarPicker } from "./AvatarPicker";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -146,8 +147,8 @@ export function Admin() {
             Última execução: {dateLabel(job?.ran_at)} · a cada 5 minutos
           </p>
           <p className="mt-3 text-sm">
-            Segunda a sexta, 9h às 18h (São Paulo), sem feriados nacionais. Primeira resposta em 4
-            horas úteis; solução ou encaminhamento em 1 dia útil.
+            As regras por categoria estão abaixo. A janela de risco avisa antes do vencimento,
+            respeitando a contagem útil ou corrida escolhida para cada obrigação.
           </p>
           <form
             className="mt-4 space-y-3"
@@ -283,6 +284,14 @@ export function Admin() {
           )}
         </Section>
       </div>
+      <Configuration
+        products={ds.products ?? []}
+        policies={ds.policies ?? []}
+        reload={() => {
+          reload();
+          void query.refetch();
+        }}
+      />
     </>
   );
 }

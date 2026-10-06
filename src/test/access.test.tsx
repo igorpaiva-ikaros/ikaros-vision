@@ -67,6 +67,6 @@ describe("Entrada interna", () => {
   });
   it("CS recebe somente carteira, produção e notificações",()=>{
     mocks.path="/operacao";mocks.bi["session"]={user:{id:"cs"}};mocks.bi["profile"]={role:"cs",full_name:"Colaborador"};mocks.bi["state"]={status:"operator"};
-    render(<AppShell><div>Minha produção</div></AppShell>);expect(screen.getByText("Minha produção")).toBeVisible();expect(screen.getAllByRole("link",{name:"Minha carteira"})).not.toHaveLength(0);expect(screen.queryByRole("link",{name:"Administração"})).not.toBeInTheDocument();expect(screen.queryByRole("link",{name:"Visão geral"})).not.toBeInTheDocument();
+    render(<AppShell><div>Minha produção</div></AppShell>);expect(screen.getByText("Minha produção")).toBeVisible();expect(screen.getAllByRole("link",{name:"Carteira"})).not.toHaveLength(0);expect(screen.queryByRole("link",{name:"Administração"})).not.toBeInTheDocument();expect(screen.queryByRole("link",{name:"Visão geral"})).not.toBeInTheDocument();
   });
 });

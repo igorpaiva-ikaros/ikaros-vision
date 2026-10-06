@@ -1,26 +1,43 @@
 import { z } from "zod";
 
 const text = z.string().trim().max(2000);
-const email = z.union([z.string().trim().email("Informe um e-mail válido.").max(254), z.literal("")]);
-const phone = z.string().trim().max(30).refine(v => !v || /^\+?[\d\s().-]+$/.test(v) && v.replace(/\D/g, "").length >= 8, "Informe um telefone válido.");
+const email = z.union([
+  z.string().trim().email("Informe um e-mail válido.").max(254),
+  z.literal(""),
+]);
+const phone = z
+  .string()
+  .trim()
+  .max(30)
+  .refine(
+    (v) => !v || (/^\+?[\d\s().-]+$/.test(v) && v.replace(/\D/g, "").length >= 8),
+    "Informe um telefone válido.",
+  );
 
-export const clientRegistrationSchema = z.object({
-  requestId: z.string().uuid(),
-  name: text.min(2, "Informe o nome da empresa.").max(200),
-  ownerId: z.string().uuid("Selecione um responsável de CS."),
-  contactName: text.min(2, "Informe o contato principal.").max(200),
-  email: email.default(""),
-  phone: phone.default(""),
-  plan: text.max(100).default(""),
-  segment: z.enum(["Consórcio", "Seguros", "Consórcio e seguros"]),
-  notes: text.default(""),
-  isTest: z.boolean().default(false),
-}).refine(v => !!v.email || !!v.phone, { path: ["email"], message: "Informe e-mail ou telefone para contato." });
+export const clientRegistrationSchema = z
+  .object({
+    requestId: z.string().uuid(),
+    name: text.min(2, "Informe o nome da empresa.").max(200),
+    ownerId: z.string().uuid("Selecione um responsável de CS."),
+    contactName: text.min(2, "Informe o contato principal.").max(200),
+    email: email.default(""),
+    phone: phone.default(""),
+    plan: text.max(100).default(""),
+    productId: z.string().uuid("Selecione um plano do catálogo.").optional(),
+    segment: z.enum(["Consórcio", "Seguros", "Consórcio e seguros"]),
+    notes: text.default(""),
+    isTest: z.boolean().default(false),
+  })
+  .refine((v) => !!v.email || !!v.phone, {
+    path: ["email"],
+    message: "Informe e-mail ou telefone para contato.",
+  });
 
 export type ClientRegistration = z.infer<typeof clientRegistrationSchema>;
 export interface ClientRegistrationOptions {
   owners: { id: string; name: string }[];
   plans: string[];
+  products?: import("../workspace/types").Product[];
 }
 export type RegistrationResult =
   | { ok: true; pageId: string; code: string | null; notionUrl: string | null; message: string }

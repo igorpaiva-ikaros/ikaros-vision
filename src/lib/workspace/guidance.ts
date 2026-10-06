@@ -1,7 +1,7 @@
 import type { OperationTab, Entity, RecordRow } from "./types";
 export const AREA_GUIDE: Record<OperationTab, { label: string; description: string }> = {
   clients: {
-    label: "Minha carteira",
+    label: "Carteira",
     description:
       "Encontre seu cliente, confira o contato e crie o atendimento a partir dele. O responsável acompanha a carteira.",
   },
@@ -21,17 +21,17 @@ export const AREA_GUIDE: Record<OperationTab, { label: string; description: stri
       "Acompanhe a necessidade de mudar de plano, apresente a proposta e registre o aceite e a efetivação para conferir a comissão.",
   },
   interactions: {
-    label: "Interações",
+    label: "Conversas e decisões",
     description:
       "Registre decisões e próximos passos de conversas relevantes. Use a agenda para lembrar o retorno; não é necessário copiar todo o atendimento.",
   },
   changelog: {
-    label: "Changelog",
+    label: "Histórico de entregas",
     description:
       "Registre o que foi entregue ou corrigido, a versão e o resultado dos testes. Vincule à demanda para manter o histórico da entrega.",
   },
   tasks: {
-    label: "Agenda",
+    label: "Tarefas",
     description:
       "Agende retornos, ligações, reuniões, treinamentos e validações. Horários de São Paulo; lembretes internos chegam ao responsável da carteira.",
   },
