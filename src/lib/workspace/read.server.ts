@@ -48,12 +48,7 @@ export async function operationState(context: AuthContext): Promise<OperationSta
   const [sla, commissions, notifications, settings, people, products] = await Promise.all([
     allRows(context.supabase, "demand_sla", "*"),
     allRows(context.supabase, "upgrade_commission", "*"),
-    context.supabase
-      .from("notifications")
-      .is("superseded_at", null)
-      .select("id,title,link,level,read_at,created_at")
-      .order("created_at", { ascending: false })
-      .limit(200),
+    readNotifications(context.supabase),
     context.supabase.from("app_settings").select("value").eq("key", "sla_risk_minutes").single(),
     context.supabase.from("profiles").select("id,full_name"),
     (context.supabase as any).from("products").select("*").order("name"),
@@ -65,7 +60,7 @@ export async function operationState(context: AuthContext): Promise<OperationSta
     products: checkResult(products) ?? [],
     commissions,
     people: checkResult(people) ?? [],
-    notifications: checkResult(notifications) ?? [],
+    notifications,
     riskMinutes: Number(checkResult(settings)?.value ?? 60),
   } as OperationState;
 }
@@ -174,4 +169,15 @@ export async function nativeDataset(context: AuthContext): Promise<Dataset> {
       };
     }),
   };
+}
+
+export async function readNotifications(db: any) {
+  return (checkResult(
+    await db
+      .from("notifications")
+      .select("id,title,link,level,read_at,created_at,entity_id,deadline")
+      .is("superseded_at", null)
+      .order("created_at", { ascending: false })
+      .limit(200),
+  ) ?? []) as import("./types").Notification[];
 }

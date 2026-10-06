@@ -330,14 +330,8 @@ export const getNotifications = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const { assertOperator, checkResult } = await import("./workspace/access.server");
     await assertOperator(context);
-    return (checkResult(
-      await (context.supabase as any)
-        .from("notifications")
-        .is("superseded_at", null)
-        .select("id,title,link,level,read_at,created_at,entity_id,deadline")
-        .order("created_at", { ascending: false })
-        .limit(200),
-    ) ?? []) as import("./workspace/types").Notification[];
+    const { readNotifications } = await import("./workspace/read.server");
+    return readNotifications(context.supabase);
   });
 export const getRecordHistory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
