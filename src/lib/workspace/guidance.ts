@@ -46,7 +46,8 @@ export const STAGE_GUIDE: Record<string, string> = {
   "Em triagem": "Entenda o problema, classifique e defina o próximo passo.",
   "Aguardando informação": "Solicite os dados que faltam e agende um retorno.",
   "Em execução": "Execute o atendimento ou acompanhe a correção.",
-  "Aguardando validação": "Confira os testes e peça a validação da entrega.",
+  "Aguardando validação":
+    "Enviada ao administrador. Aguarde a validação e confirmação de publicação; etapa bloqueada até a decisão.",
   "Encaminhada para desenvolvimento": "Acompanhe a equipe técnica e combine o prazo de entrega.",
   Publicada: "A entrega está disponível. Informe e valide com o cliente.",
   "Aguardando cliente": "Aguarde o retorno e mantenha uma tarefa de acompanhamento.",

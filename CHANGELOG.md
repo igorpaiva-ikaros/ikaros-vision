@@ -1,3 +1,10 @@
+## 2026-10-07 — Validação pelo pipeline
+
+- Barra de etapas clicáveis no card, com percurso registrado e etapas visitadas.
+- Clique ou arraste para Aguardando validação envia contexto salvo ao administrador e bloqueia a demanda até decisão.
+- Administrador valida e confirma publicação com referência do deploy realizado; o card avança para Publicada. Solicitar ajustes devolve para execução.
+- Publicação não executa deploy nem conclui automaticamente o atendimento: o CS ainda deve informar o cliente.
+- Sem alterações dos prazos de SLA ou da carteira. Verificação: 109 testes de unidade/banco e 13 testes de navegador.
 
 ## Coordenação CS, técnica e aprovação — 2026-10-07
 

@@ -20,6 +20,7 @@ vi.mock("@tanstack/react-router", () => ({
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: any) => fn }));
 vi.mock("@/lib/workspace.functions", () => ({
   claimRecord: vi.fn(),
+  getDemandStageTrace: async () => [],
   getCaseWorkspace: async () => ({ request: null, messages: [], files: [] }),
   runDeliveryAction: vi.fn(),
   postCaseMessage: vi.fn(),

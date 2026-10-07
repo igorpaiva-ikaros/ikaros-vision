@@ -1,3 +1,4 @@
+import { PipelineProgress } from "./PipelineProgress";
 import { CaseWorkspace } from "./CaseWorkspace";
 import { WhatsAppGroup } from "./WhatsAppGroup";
 import { RecordHistory } from "./RecordHistory";
@@ -49,8 +50,8 @@ export const DEMAND_STAGES = [
   "Em triagem",
   "Aguardando informação",
   "Em execução",
-  "Aguardando validação",
   "Encaminhada para desenvolvimento",
+  "Aguardando validação",
   "Publicada",
   "Aguardando cliente",
   "Bloqueada",
@@ -76,6 +77,11 @@ function money(value: unknown) {
 }
 function title(row: RecordRow) {
   return row.title ?? row.summary ?? row.code;
+}
+export function reviewLocked(row: RecordRow, ds: OperationState) {
+  return (ds.deliveries ?? []).some(
+    (r) => r.demand_id === row.id && ["aguardando", "aprovada"].includes(r.approval_state),
+  );
 }
 function pending(row: RecordRow) {
   return !["Concluída", "Cancelada", "Concluído", "Efetivado", "Perdido"].includes(row.stage ?? "");
@@ -199,7 +205,8 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
       (profile?.role !== "admin" && row.owner_id !== session?.user.id) ||
       !["demands", "onboardings", "upgrades"].includes(tab) ||
       moving.current ||
-      isClosed(row)
+      isClosed(row) ||
+      reviewLocked(row, ds)
     )
       return;
     const kind = tab as "demands" | "onboardings" | "upgrades";
@@ -211,6 +218,7 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
         "Aguardando aprovação",
         "Aprovada para publicação",
         "Publicada / avisar cliente",
+        "Publicada",
       ].includes(stage)
     ) {
       if (row.client_id) setEditor({ kind, client: row.client_id, row });
@@ -292,6 +300,7 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
         data-card-id={row.id}
         draggable={
           !busy &&
+          !reviewLocked(row, ds) &&
           (profile?.role === "admin" || row.owner_id === session?.user.id) &&
           !isClosed(row) &&
           ["demands", "onboardings", "upgrades"].includes(tab)
@@ -343,6 +352,7 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
           Responsável: {ds.people?.find((p) => p.id === row.owner_id)?.full_name ?? "A assumir"}
         </div>
         {["demands", "onboardings", "upgrades"].includes(tab) &&
+          !reviewLocked(row, ds) &&
           (!row.owner_id || row.owner_id === session?.user.id) &&
           !isClosed(row) && (
             <Button
@@ -390,7 +400,11 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
           <select
             aria-label={`Mover ${row.code}`}
             className={`${selectClass} h-8 text-xs`}
-            disabled={busy || (profile?.role !== "admin" && row.owner_id !== session?.user.id)}
+            disabled={
+              busy ||
+              reviewLocked(row, ds) ||
+              (profile?.role !== "admin" && row.owner_id !== session?.user.id)
+            }
             value={
               tab === "onboardings" && production
                 ? (row.current_step ?? ONBOARDING_STEPS[0])
@@ -871,6 +885,7 @@ function RecordEditor({
           context: row?.context ?? "",
           tests_run: row?.tests_run ?? "",
           test_result: row?.test_result ?? "",
+          approval_repository_url: row?.approval_repository_url ?? null,
           due_date: row?.due_date ?? null,
         }
       : kind === "upgrades"
@@ -923,7 +938,9 @@ function RecordEditor({
     setError("");
   };
   const current = row ? (ds[kind].find((r) => r.id === row.id) ?? row) : undefined;
-  const readOnly = !!current && profile?.role !== "admin" && current.owner_id !== profile?.id;
+  const readOnly =
+    !!current &&
+    (reviewLocked(current, ds) || (profile?.role !== "admin" && current.owner_id !== profile?.id));
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (busy || readOnly) return;
@@ -956,8 +973,12 @@ function RecordEditor({
         },
       });
       reload();
-      close();
-      toast.success("Ação registrada.");
+      if (action !== "move") close();
+      toast.success(
+        stage === "Aguardando validação"
+          ? "Enviada ao administrador para validação."
+          : "Ação registrada.",
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Não foi possível registrar.");
     } finally {
@@ -1012,7 +1033,9 @@ function RecordEditor({
         if (!v && !busy) close();
       }}
     >
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent
+        className={`max-h-[90dvh] overflow-y-auto ${kind === "demands" ? "sm:max-w-5xl" : "sm:max-w-2xl"}`}
+      >
         <DialogHeader>
           <DialogTitle>
             {row ? `${row.code} · ${title(row)}` : `Novo registro · ${ENTITY_LABEL[kind]}`}
@@ -1024,6 +1047,39 @@ function RecordEditor({
             {current?.stage ? ` · ${current.stage}` : ""}
           </DialogDescription>
         </DialogHeader>
+        {current && kind === "demands" && (
+          <PipelineProgress
+            row={current}
+            disabled={busy || dirty || readOnly || isClosed(current)}
+            onSelect={(stage) => {
+              if (stage === "Encaminhada para desenvolvimento" || stage === "Publicada") {
+                setError(
+                  "Use as ações de equipe técnica ou a confirmação de publicação do administrador no card.",
+                );
+                return;
+              }
+              if (
+                stage === "Concluída" &&
+                (!current.solution?.trim() || !current.client_informed)
+              ) {
+                setError("Informe a solução e confirme o aviso ao cliente antes de concluir.");
+                return;
+              }
+              void action(stageAction("demands", stage), stage);
+            }}
+          />
+        )}
+        {current && kind === "demands" && reviewLocked(current, ds) && (
+          <p role="status" className="rounded border border-primary/30 p-3 text-sm">
+            Aguardando validação do administrador. A etapa e os dados enviados estão bloqueados até
+            a decisão. Observações e anexos continuam disponíveis.
+          </p>
+        )}
+        {dirty && current && kind === "demands" && (
+          <p className="text-xs text-muted-foreground">
+            Salve as alterações antes de mudar de etapa.
+          </p>
+        )}
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="outline" size="sm" onClick={openClient}>
             Ver cliente
@@ -1044,7 +1100,10 @@ function RecordEditor({
         {current && kind === "demands" && (
           <CaseWorkspace
             demand={current.id}
-            canManage={profile?.role === "admin" || current.owner_id === profile?.id}
+            canManage={
+              !reviewLocked(current, ds) &&
+              (profile?.role === "admin" || current.owner_id === profile?.id)
+            }
           />
         )}
         {current && (
@@ -1057,8 +1116,9 @@ function RecordEditor({
         )}
         {readOnly && (
           <p className="text-xs text-muted-foreground">
-            Assuma este atendimento no CRM para editar. Observações e anexos continuam disponíveis à
-            equipe.
+            {reviewLocked(current!, ds)
+              ? "A edição será liberada quando o administrador decidir."
+              : "Assuma este atendimento no CRM para editar. Observações e anexos continuam disponíveis à equipe."}
           </p>
         )}
         <form className="space-y-4" onSubmit={submit}>
@@ -1110,6 +1170,14 @@ function RecordEditor({
                     {text("context", "Contexto", false, true)}
                     {text("tests_run", "Testes realizados", false, true)}
                     {text("test_result", "Resultado dos testes", false, true)}
+                    <Field label="Link do PR ou commit no GitHub">
+                      <Input
+                        type="url"
+                        value={values["approval_repository_url"] ?? ""}
+                        onChange={(e) => update("approval_repository_url", e.target.value || null)}
+                        placeholder="Opcional, quando existir uma mudança no código"
+                      />
+                    </Field>
                     <Field label="Prazo de entrega combinado (São Paulo)">
                       <Input
                         type="datetime-local"

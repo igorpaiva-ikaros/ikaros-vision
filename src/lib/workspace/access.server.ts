@@ -41,6 +41,8 @@ export function checkResult(result: { error?: any; data?: any }) {
   return result.data;
 }
 export function safeDbMessage(message: string) {
+  if (/validation_locked/.test(message))
+    return "Aguarde a validação do administrador. A etapa e os dados enviados estão bloqueados.";
   if (/already_assigned/.test(message)) return "Outra pessoa já assumiu este atendimento.";
   if (/handoff_required/.test(message))
     return "Encaminhe pelo card, informando contexto e próximo retorno.";

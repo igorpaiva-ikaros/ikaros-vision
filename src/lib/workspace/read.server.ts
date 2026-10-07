@@ -11,7 +11,7 @@ export const COLUMNS = {
     "id,code,notion_id,name,empresa,erp_id,erp_slug,contact_name,company_email,company_phone,contact_email,contact_phone,whatsapp,whatsapp_group_url,notes,segments,plan,product_id,status,owner_id,is_test,version",
   demands:
     base +
-    ",title,description,priority,classification,channel,impact,context,solution,tests_run,test_result,technical_type,complexity,client_informed,client_validated,stage,received_at,first_response_due,resolution_due,first_response_at,forwarded_at,published_at,validated_at,completed_at,canceled_at,cancel_reason,due_date,policy_delivery_due",
+    ",title,description,priority,classification,channel,impact,context,solution,tests_run,test_result,approval_repository_url,technical_type,complexity,client_informed,client_validated,stage,received_at,first_response_due,resolution_due,first_response_at,forwarded_at,published_at,validated_at,completed_at,canceled_at,cancel_reason,due_date,policy_delivery_due",
   onboardings:
     base +
     ",title,stage,current_step,progress,started_at,info_complete_at,milestone5_due,limit15_due,expected_date,completed_at,notes",

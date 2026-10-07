@@ -6,6 +6,10 @@ import { dateLabel } from "./Operation";
 import type { Entity } from "@/lib/workspace/types";
 const LABEL: Record<string, string> = {
   created: "Criado",
+  stage_entered: "Etapa inicial",
+  submit_validation: "Enviada ao administrador",
+  review_validate_publish: "Validada e publicada",
+  review_reject: "Ajustes solicitados pelo administrador",
   edited: "Dados alterados",
   first_response: "Primeira resposta",
   forward: "Encaminhado para desenvolvimento",
