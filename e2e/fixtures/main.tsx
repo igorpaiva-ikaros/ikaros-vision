@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 import { Toaster } from "sonner";
 import { Operation } from "@/components/workspace/Operation";
+import { DeliveryQueue } from "@/components/workspace/DeliveryQueue";
 import { Admin } from "@/components/workspace/Admin";
 import { AppShell } from "@/components/bi/AppShell";
 import "@/styles.css";
@@ -37,5 +38,15 @@ const operation = createRoute({
   },
 });
 const admin = createRoute({ getParentRoute: () => root, path: "/administracao", component: Admin });
-const router = createRouter({ routeTree: root.addChildren([operation, admin]) });
+const tech = createRoute({
+  getParentRoute: () => root,
+  path: "/tecnico",
+  component: () => <DeliveryQueue />,
+});
+const approvals = createRoute({
+  getParentRoute: () => root,
+  path: "/aprovacoes",
+  component: () => <DeliveryQueue approvals />,
+});
+const router = createRouter({ routeTree: root.addChildren([operation, admin, tech, approvals]) });
 createRoot(document.getElementById("root")!).render(<RouterProvider router={router} />);

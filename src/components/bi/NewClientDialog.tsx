@@ -62,7 +62,6 @@ export function NewClientDialog() {
   };
   const ready =
     !!options.data &&
-    options.data.owners.some((o) => o.id === data.ownerId) &&
     (!data.productId || !!options.data.products?.some((p) => p.active && p.id === data.productId));
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -114,8 +113,8 @@ export function NewClientDialog() {
           <DialogHeader>
             <DialogTitle>Novo cliente</DialogTitle>
             <DialogDescription>
-              Escolha o responsável pela carteira antes de enviar. O cliente será cadastrado na
-              carteira do CS dentro do Ikaros Vision.
+              O cliente será cadastrado na carteira compartilhada do CS dentro do Ikaros Vision. O
+              responsável é definido em cada atendimento.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={submit} className="space-y-4">
@@ -129,24 +128,6 @@ export function NewClientDialog() {
                   required
                   maxLength={200}
                 />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="client-owner">Responsável de CS *</Label>
-                <select
-                  id="client-owner"
-                  className={selectClass}
-                  value={data.ownerId}
-                  onChange={(e) => update("ownerId", e.target.value)}
-                  required
-                  disabled={!options.data}
-                >
-                  <option value="">Selecione um colaborador</option>
-                  {options.data?.owners.map((o) => (
-                    <option key={o.id} value={o.id}>
-                      {o.name}
-                    </option>
-                  ))}
-                </select>
               </div>
               <div className="space-y-1">
                 <Label htmlFor="client-contact">Contato principal</Label>

@@ -1,4 +1,4 @@
-export type Role = "admin" | "cs";
+export type Role = "admin" | "cs" | "technical";
 export type Entity = "demands" | "onboardings" | "upgrades" | "interactions" | "changelog";
 export interface Profile {
   id: string;
@@ -131,6 +131,7 @@ export interface Notification {
   level: "risk" | "overdue" | "reminder";
 }
 export interface OperationState {
+  deliveries?: DeliveryRequest[];
   people?: { id: string; full_name: string }[];
   clients: NativeClient[];
   demands: RecordRow[];
@@ -150,15 +151,16 @@ export interface OperationState {
   products?: Product[];
 }
 export const ONBOARDING_STEPS = [
-  "1. Dados recebidos",
-  "2. Cadastro",
-  "3. Configuração",
-  "4. Migração",
-  "5. Conexão WhatsApp",
-  "6. Configuração da IA",
-  "7. Treinamento",
-  "8. Validação",
-  "9. Conclusão",
+  "1. Recepção e apresentação",
+  "2. Dados recebidos",
+  "3. Cadastro",
+  "4. Configuração",
+  "5. Migração",
+  "6. Conexão WhatsApp",
+  "7. Configuração da IA",
+  "8. Treinamento",
+  "9. Validação",
+  "10. Conclusão",
 ];
 export const ONBOARDING_STATUSES = [
   "Não iniciado",
@@ -240,4 +242,45 @@ export interface SlaPolicy {
   delivery_value: number | null;
   delivery_unit: "minutes" | "hours" | "days";
   delivery_basis: "business" | "calendar";
+}
+
+export interface DeliveryRequest {
+  id: string;
+  demand_id: string;
+  technical: boolean;
+  technical_stage: string;
+  technician_id: string | null;
+  context: string;
+  next_update_at: string | null;
+  delivery_eta: string | null;
+  forecast_reason: string | null;
+  technical_result: string | null;
+  tests_result: string | null;
+  approval_state: string;
+  change_summary: string | null;
+  repository_url: string | null;
+  deployment_ref: string | null;
+  rejection_reason: string | null;
+  published_at: string | null;
+  version: number;
+}
+export interface DeliveryCase {
+  request: DeliveryRequest;
+  demand: RecordRow & { cs_name?: string | null };
+  client_name: string;
+  client_code: string;
+}
+export interface CaseMessage {
+  id: string;
+  author_name: string;
+  body: string;
+  created_at: string;
+}
+export interface CaseAttachment {
+  id: string;
+  path: string;
+  filename: string;
+  mime_type: string;
+  size_bytes: number;
+  created_at: string;
 }

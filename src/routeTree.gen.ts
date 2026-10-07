@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdministracaoRouteImport } from './routes/administracao'
 import { Route as AjudaRouteImport } from './routes/ajuda'
+import { Route as AprovacoesRouteImport } from './routes/aprovacoes'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as DemandasRouteImport } from './routes/demandas'
@@ -19,6 +20,8 @@ import { Route as EquipeRouteImport } from './routes/equipe'
 import { Route as IntegracaoRouteImport } from './routes/integracao'
 import { Route as NotificacoesRouteImport } from './routes/notificacoes'
 import { Route as OperacaoRouteImport } from './routes/operacao'
+import { Route as TecnicoRouteImport } from './routes/tecnico'
+import { Route as ApiSalesRouteImport } from './routes/api.sales'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -33,6 +36,11 @@ const AdministracaoRoute = AdministracaoRouteImport.update({
 const AjudaRoute = AjudaRouteImport.update({
   id: '/ajuda',
   path: '/ajuda',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AprovacoesRoute = AprovacoesRouteImport.update({
+  id: '/aprovacoes',
+  path: '/aprovacoes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -70,11 +78,22 @@ const OperacaoRoute = OperacaoRouteImport.update({
   path: '/operacao',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TecnicoRoute = TecnicoRouteImport.update({
+  id: '/tecnico',
+  path: '/tecnico',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSalesRoute = ApiSalesRouteImport.update({
+  id: '/api/sales',
+  path: '/api/sales',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/administracao': typeof AdministracaoRoute
   '/ajuda': typeof AjudaRoute
+  '/aprovacoes': typeof AprovacoesRoute
   '/auth': typeof AuthRoute
   '/clientes': typeof ClientesRoute
   '/demandas': typeof DemandasRoute
@@ -82,11 +101,14 @@ export interface FileRoutesByFullPath {
   '/integracao': typeof IntegracaoRoute
   '/notificacoes': typeof NotificacoesRoute
   '/operacao': typeof OperacaoRoute
+  '/tecnico': typeof TecnicoRoute
+  '/api/sales': typeof ApiSalesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/administracao': typeof AdministracaoRoute
   '/ajuda': typeof AjudaRoute
+  '/aprovacoes': typeof AprovacoesRoute
   '/auth': typeof AuthRoute
   '/clientes': typeof ClientesRoute
   '/demandas': typeof DemandasRoute
@@ -94,12 +116,15 @@ export interface FileRoutesByTo {
   '/integracao': typeof IntegracaoRoute
   '/notificacoes': typeof NotificacoesRoute
   '/operacao': typeof OperacaoRoute
+  '/tecnico': typeof TecnicoRoute
+  '/api/sales': typeof ApiSalesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/administracao': typeof AdministracaoRoute
   '/ajuda': typeof AjudaRoute
+  '/aprovacoes': typeof AprovacoesRoute
   '/auth': typeof AuthRoute
   '/clientes': typeof ClientesRoute
   '/demandas': typeof DemandasRoute
@@ -107,6 +132,8 @@ export interface FileRoutesById {
   '/integracao': typeof IntegracaoRoute
   '/notificacoes': typeof NotificacoesRoute
   '/operacao': typeof OperacaoRoute
+  '/tecnico': typeof TecnicoRoute
+  '/api/sales': typeof ApiSalesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -114,6 +141,7 @@ export interface FileRouteTypes {
     | '/'
     | '/administracao'
     | '/ajuda'
+    | '/aprovacoes'
     | '/auth'
     | '/clientes'
     | '/demandas'
@@ -121,11 +149,14 @@ export interface FileRouteTypes {
     | '/integracao'
     | '/notificacoes'
     | '/operacao'
+    | '/tecnico'
+    | '/api/sales'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/administracao'
     | '/ajuda'
+    | '/aprovacoes'
     | '/auth'
     | '/clientes'
     | '/demandas'
@@ -133,11 +164,14 @@ export interface FileRouteTypes {
     | '/integracao'
     | '/notificacoes'
     | '/operacao'
+    | '/tecnico'
+    | '/api/sales'
   id:
     | '__root__'
     | '/'
     | '/administracao'
     | '/ajuda'
+    | '/aprovacoes'
     | '/auth'
     | '/clientes'
     | '/demandas'
@@ -145,12 +179,15 @@ export interface FileRouteTypes {
     | '/integracao'
     | '/notificacoes'
     | '/operacao'
+    | '/tecnico'
+    | '/api/sales'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdministracaoRoute: typeof AdministracaoRoute
   AjudaRoute: typeof AjudaRoute
+  AprovacoesRoute: typeof AprovacoesRoute
   AuthRoute: typeof AuthRoute
   ClientesRoute: typeof ClientesRoute
   DemandasRoute: typeof DemandasRoute
@@ -158,6 +195,8 @@ export interface RootRouteChildren {
   IntegracaoRoute: typeof IntegracaoRoute
   NotificacoesRoute: typeof NotificacoesRoute
   OperacaoRoute: typeof OperacaoRoute
+  TecnicoRoute: typeof TecnicoRoute
+  ApiSalesRoute: typeof ApiSalesRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -181,6 +220,13 @@ declare module '@tanstack/react-router' {
       path: '/ajuda'
       fullPath: '/ajuda'
       preLoaderRoute: typeof AjudaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/aprovacoes': {
+      id: '/aprovacoes'
+      path: '/aprovacoes'
+      fullPath: '/aprovacoes'
+      preLoaderRoute: typeof AprovacoesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -232,6 +278,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OperacaoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tecnico': {
+      id: '/tecnico'
+      path: '/tecnico'
+      fullPath: '/tecnico'
+      preLoaderRoute: typeof TecnicoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/sales': {
+      id: '/api/sales'
+      path: '/api/sales'
+      fullPath: '/api/sales'
+      preLoaderRoute: typeof ApiSalesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -239,6 +299,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdministracaoRoute: AdministracaoRoute,
   AjudaRoute: AjudaRoute,
+  AprovacoesRoute: AprovacoesRoute,
   AuthRoute: AuthRoute,
   ClientesRoute: ClientesRoute,
   DemandasRoute: DemandasRoute,
@@ -246,6 +307,8 @@ const rootRouteChildren: RootRouteChildren = {
   IntegracaoRoute: IntegracaoRoute,
   NotificacoesRoute: NotificacoesRoute,
   OperacaoRoute: OperacaoRoute,
+  TecnicoRoute: TecnicoRoute,
+  ApiSalesRoute: ApiSalesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

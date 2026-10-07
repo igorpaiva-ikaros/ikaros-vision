@@ -3,7 +3,7 @@ export const AREA_GUIDE: Record<OperationTab, { label: string; description: stri
   clients: {
     label: "Carteira",
     description:
-      "Encontre seu cliente, confira o contato e crie o atendimento a partir dele. O responsável acompanha a carteira.",
+      "Encontre seu cliente, confira o contato e crie o atendimento a partir dele. A carteira é compartilhada; cada atendimento tem seu próprio responsável.",
   },
   demands: {
     label: "Demandas",
@@ -33,10 +33,15 @@ export const AREA_GUIDE: Record<OperationTab, { label: string; description: stri
   tasks: {
     label: "Tarefas",
     description:
-      "Agende retornos, ligações, reuniões, treinamentos e validações. Horários de São Paulo; lembretes internos chegam ao responsável da carteira.",
+      "Agende retornos, ligações, reuniões, treinamentos e validações. Horários de São Paulo; lembretes internos chegam ao responsável pela tarefa.",
   },
 };
 export const STAGE_GUIDE: Record<string, string> = {
+  "1. Recepção e apresentação":
+    "Recepcione o cliente, apresente a plataforma e crie o grupo de suporte.",
+  "Aguardando aprovação": "Gestão revisa mudança, contexto e testes.",
+  "Aprovada para publicação": "Aguarde a publicação do lote aprovado.",
+  "Publicada / avisar cliente": "Valide a entrega e avise o cliente antes de concluir.",
   Nova: "Demanda recebida. Confira o relato e responda ao cliente.",
   "Em triagem": "Entenda o problema, classifique e defina o próximo passo.",
   "Aguardando informação": "Solicite os dados que faltam e agende um retorno.",
@@ -59,15 +64,15 @@ export const STAGE_GUIDE: Record<string, string> = {
   Aceito: "Aceite registrado. Acompanhe a ativação do novo plano.",
   Efetivado: "Novo plano ativado; confira a comissão prevista e devida.",
   Perdido: "O cliente não avançou com a proposta. Registre o contexto.",
-  "1. Dados recebidos": "Confira se todas as informações para implantar estão completas.",
-  "2. Cadastro": "Cadastre empresa, equipe e informações iniciais do cliente.",
-  "3. Configuração": "Configure acessos, regras e funis necessários à operação.",
-  "4. Migração": "Importe e confira os dados de clientes e vendas.",
-  "5. Conexão WhatsApp": "Conecte e teste o canal de atendimento contratado.",
-  "6. Configuração da IA": "Configure a IA quando contratada e valide as respostas.",
-  "7. Treinamento": "Treine os usuários no fluxo que irão executar.",
-  "8. Validação": "Confira a operação com o cliente e ajuste as pendências.",
-  "9. Conclusão": "Confirme a entrega completa e encerre o onboarding.",
+  "2. Dados recebidos": "Confira se todas as informações para implantar estão completas.",
+  "3. Cadastro": "Cadastre empresa, equipe e informações iniciais do cliente.",
+  "4. Configuração": "Configure acessos, regras e funis necessários à operação.",
+  "5. Migração": "Importe e confira os dados de clientes e vendas.",
+  "6. Conexão WhatsApp": "Conecte e teste o canal de atendimento contratado.",
+  "7. Configuração da IA": "Configure a IA quando contratada e valide as respostas.",
+  "8. Treinamento": "Treine os usuários no fluxo que irão executar.",
+  "9. Validação": "Confira a operação com o cliente e ajuste as pendências.",
+  "10. Conclusão": "Confirme a entrega completa e encerre o onboarding.",
 };
 export function isClosed(row: RecordRow) {
   return (
@@ -88,7 +93,7 @@ export function stageAction(kind: Entity, stage: string, production = false): st
       )[stage] ?? "move"
     );
   if (kind === "onboardings")
-    return stage === "Concluído" || stage === "9. Conclusão"
+    return stage === "Concluído" || stage === "10. Conclusão"
       ? "complete"
       : production
         ? "step"

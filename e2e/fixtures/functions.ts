@@ -75,7 +75,7 @@ export const ds: any = {
       owner_id: owner,
       title: "Implantar carteira de seguros",
       stage: "Em andamento",
-      current_step: "2. Cadastro",
+      current_step: "3. Cadastro",
       version: 1,
       is_test: false,
     },
@@ -220,3 +220,67 @@ export async function saveSlaPolicy({ data }: any) {
   Object.assign(p, data.rules, { version: p.version + 1 });
   return { changed: true, recalculated: 1 };
 }
+
+export async function claimRecord() {
+  return { ok: true };
+}
+export async function getDeliveryQueue() {
+  return deliveries.map((r) => ({
+    request: r,
+    demand: ds.demands.find((d: any) => d.id === r.demand_id),
+    client_name: ds.clients[0].name,
+    client_code: ds.clients[0].code,
+  }));
+}
+export async function getCaseWorkspace({ data }: any) {
+  return { request: deliveries.find((r) => r.demand_id === data.demand) ?? null, messages, files };
+}
+export async function runDeliveryAction({ data }: any) {
+  let r = deliveries.find((x) => x.demand_id === data.demand);
+  if (!r) {
+    r = {
+      id: crypto.randomUUID(),
+      demand_id: data.demand,
+      version: 0,
+      approval_state: "não solicitado",
+      technical: false,
+    };
+    deliveries.push(r);
+  }
+  Object.assign(r, data.values, { version: r.version + 1 });
+  if (data.action === "forward") {
+    r.technical = true;
+    r.technical_stage = "Recebida";
+  }
+  if (data.action === "technical_update") {
+    r.technical_stage = data.values.stage;
+    r.technical_result = data.values.result;
+    r.tests_result = data.values.tests;
+  }
+  if (data.action === "request_approval") r.approval_state = "aguardando";
+  if (data.action === "approve") r.approval_state = "aprovada";
+  if (data.action === "published") r.approval_state = "publicada";
+  return r;
+}
+export async function postCaseMessage({ data }: any) {
+  messages.push({
+    id: crypto.randomUUID(),
+    author_name: "CS Exemplo",
+    body: data.body,
+    created_at: new Date().toISOString(),
+  });
+  return { ok: true };
+}
+export async function registerCaseFile({ data }: any) {
+  files.push({
+    id: crypto.randomUUID(),
+    path: data.path,
+    filename: data.filename,
+    size_bytes: data.size,
+  });
+  return { ok: true };
+}
+
+const deliveries: any[] = [];
+const messages: any[] = [];
+const files: any[] = [];

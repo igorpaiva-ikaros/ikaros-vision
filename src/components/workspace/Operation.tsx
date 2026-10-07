@@ -1,3 +1,4 @@
+import { CaseWorkspace } from "./CaseWorkspace";
 import { WhatsAppGroup } from "./WhatsAppGroup";
 import { RecordHistory } from "./RecordHistory";
 import { useEffect, useState, useRef, useMemo } from "react";
@@ -12,6 +13,7 @@ import { useBi } from "@/lib/bi-context";
 import {
   getOperationState,
   getScheduledTasks,
+  claimRecord,
   saveRecord,
   transitionRecord,
   updateClientContact,
@@ -80,6 +82,20 @@ function pending(row: RecordRow) {
 }
 export function riskFor(row: RecordRow, ds: OperationState) {
   if (row.stage === "Cancelada") return "sem_registro" as const;
+  const technical = (ds.deliveries ?? []).find(
+    (r) =>
+      r.demand_id === row.id &&
+      r.technical &&
+      r.technical_stage !== "Pronta para validação" &&
+      r.approval_state !== "publicada",
+  );
+  if (pending(row) && technical) {
+    const dates = [technical.next_update_at, technical.delivery_eta]
+      .filter(Boolean)
+      .map((d) => Date.parse(d!) - Date.now());
+    if (dates.some((ms) => ms < 0)) return "atrasado" as const;
+    if (dates.some((ms) => ms <= ds.riskMinutes * 60000)) return "em_risco" as const;
+  }
   const sla = ds.sla.find((x) => x.id === row.id);
   if (sla) return activeSla([sla.first_response_state, sla.resolution_state, sla.delivery_state]);
   if (!pending(row))
@@ -111,6 +127,7 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
   const queryKey = ["operation-state", session?.user.id];
   const get = useServerFn(getOperationState);
   const transition = useServerFn(transitionRecord);
+  const claim = useServerFn(claimRecord);
   const query = useQuery({
     queryKey,
     queryFn: () => get(),
@@ -178,10 +195,28 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
   const rows = tab === "clients" || tab === "tasks" ? [] : ds[tab].filter(visible);
   const empty = tab === "clients" ? clients.length === 0 : rows.length === 0;
   async function move(row: RecordRow, stage: string) {
-    if (!["demands", "onboardings", "upgrades"].includes(tab) || moving.current || isClosed(row))
+    if (
+      (profile?.role !== "admin" && row.owner_id !== session?.user.id) ||
+      !["demands", "onboardings", "upgrades"].includes(tab) ||
+      moving.current ||
+      isClosed(row)
+    )
       return;
     const kind = tab as "demands" | "onboardings" | "upgrades";
     const action = stageAction(kind, stage, kind === "onboardings" && production);
+    if (
+      kind === "demands" &&
+      [
+        "Encaminhada para desenvolvimento",
+        "Aguardando aprovação",
+        "Aprovada para publicação",
+        "Publicada / avisar cliente",
+      ].includes(stage)
+    ) {
+      if (row.client_id) setEditor({ kind, client: row.client_id, row });
+      toast.info("Use as ações no card para registrar contexto, previsão e aprovação.");
+      return;
+    }
     if (stage === (kind === "onboardings" && production ? row.current_step : row.stage)) return;
     if (
       action === "cancel" ||
@@ -255,7 +290,12 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
       <article
         key={row.id}
         data-card-id={row.id}
-        draggable={!busy && !isClosed(row) && ["demands", "onboardings", "upgrades"].includes(tab)}
+        draggable={
+          !busy &&
+          (profile?.role === "admin" || row.owner_id === session?.user.id) &&
+          !isClosed(row) &&
+          ["demands", "onboardings", "upgrades"].includes(tab)
+        }
         onDragStart={(e) => {
           e.dataTransfer.setData(
             "application/x-ikaros-card",
@@ -300,6 +340,38 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
         </button>
         {(tab === "demands" || tab === "onboardings") && <SlaBadge row={row} ds={ds} />}
         <div className="text-xs text-muted-foreground">
+          Responsável: {ds.people?.find((p) => p.id === row.owner_id)?.full_name ?? "A assumir"}
+        </div>
+        {["demands", "onboardings", "upgrades"].includes(tab) &&
+          (!row.owner_id || row.owner_id === session?.user.id) &&
+          !isClosed(row) && (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                try {
+                  await claim({
+                    data: {
+                      kind: tab as "demands",
+                      id: row.id,
+                      version: row.version,
+                      release: !!row.owner_id,
+                    },
+                  });
+                  reload();
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Não foi possível assumir.");
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              {row.owner_id ? "Liberar para equipe" : "Assumir atendimento"}
+            </Button>
+          )}
+        <div className="text-xs text-muted-foreground">
           {String(row.priority ?? row.current_step ?? row.new_plan ?? "")}
         </div>
         {tab === "upgrades" && <div className="text-sm">{money(row.new_value)} / mês</div>}
@@ -318,7 +390,7 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
           <select
             aria-label={`Mover ${row.code}`}
             className={`${selectClass} h-8 text-xs`}
-            disabled={busy}
+            disabled={busy || (profile?.role !== "admin" && row.owner_id !== session?.user.id)}
             value={
               tab === "onboardings" && production
                 ? (row.current_step ?? ONBOARDING_STEPS[0])
@@ -390,6 +462,12 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
                 {AREA_GUIDE[kind].label}
               </TabsTrigger>
             ))}
+            <Link
+              to="/tecnico"
+              className="shrink-0 px-5 py-3 text-sm font-medium text-muted-foreground hover:text-primary"
+            >
+              Equipe técnica
+            </Link>
           </TabsList>
         </Tabs>
       )}
@@ -845,9 +923,10 @@ function RecordEditor({
     setError("");
   };
   const current = row ? (ds[kind].find((r) => r.id === row.id) ?? row) : undefined;
+  const readOnly = !!current && profile?.role !== "admin" && current.owner_id !== profile?.id;
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (busy) return;
+    if (busy || readOnly) return;
     setBusy(true);
     setError("");
     try {
@@ -862,7 +941,7 @@ function RecordEditor({
     }
   }
   async function action(action: string, stage?: string) {
-    if (!current || busy || dirty) return;
+    if (!current || busy || dirty || readOnly) return;
     setBusy(true);
     setError("");
     try {
@@ -920,7 +999,7 @@ function RecordEditor({
       type="button"
       size="sm"
       variant="outline"
-      disabled={busy || dirty || disabled}
+      disabled={busy || dirty || disabled || readOnly}
       onClick={() => action(name)}
     >
       {label}
@@ -940,10 +1019,8 @@ function RecordEditor({
           </DialogTitle>
           <DialogDescription>
             {ds.clients.find((c) => c.id === client)?.name} ·{" "}
-            {ds.people?.find(
-              (p) =>
-                p.id === (current?.owner_id ?? ds.clients.find((c) => c.id === client)?.owner_id),
-            )?.full_name ?? profile?.full_name}
+            {ds.people?.find((p) => p.id === current?.owner_id)?.full_name ??
+              (current ? "A assumir" : profile?.full_name)}
             {current?.stage ? ` · ${current.stage}` : ""}
           </DialogDescription>
         </DialogHeader>
@@ -964,6 +1041,12 @@ function RecordEditor({
             </Button>
           )}
         </div>
+        {current && kind === "demands" && (
+          <CaseWorkspace
+            demand={current.id}
+            canManage={profile?.role === "admin" || current.owner_id === profile?.id}
+          />
+        )}
         {current && (
           <LinkedRecordTasks client={client} kind={kind} record={current.id} open={openTask} />
         )}
@@ -972,8 +1055,14 @@ function RecordEditor({
             Salve a demanda para agendar tarefas vinculadas a ela.
           </p>
         )}
+        {readOnly && (
+          <p className="text-xs text-muted-foreground">
+            Assuma este atendimento no CRM para editar. Observações e anexos continuam disponíveis à
+            equipe.
+          </p>
+        )}
         <form className="space-y-4" onSubmit={submit}>
-          <fieldset disabled={busy} className="space-y-4">
+          <fieldset disabled={busy || readOnly} className="space-y-4">
             {text(
               kind === "interactions" ? "summary" : "title",
               kind === "interactions" ? "Resumo *" : "Nome *",
@@ -1221,7 +1310,7 @@ function RecordEditor({
             <Button type="button" variant="ghost" disabled={busy} onClick={close}>
               Fechar
             </Button>
-            <Button disabled={busy}>
+            <Button disabled={busy || readOnly}>
               {busy ? "Salvando…" : current ? "Salvar alterações" : "Criar registro"}
             </Button>
           </div>
@@ -1240,8 +1329,7 @@ function RecordEditor({
                       "first_response",
                       !!current.first_response_at,
                     )}
-                    {eventButton("Encaminhar para dev", "forward", !!current.forwarded_at)}
-                    {eventButton("Registrar publicação", "publish", !!current.published_at)}
+
                     {eventButton("Cliente validou", "validate", !!current.validated_at)}
                     {eventButton("Concluir demanda", "complete")}
                   </>

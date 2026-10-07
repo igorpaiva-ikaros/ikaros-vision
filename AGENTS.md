@@ -14,6 +14,8 @@
 
 Responda em português. Preserve acesso interno e RLS: nenhuma leitura real sem sessão e papel autorizado. Não coloque credenciais em VITE_, bundles públicos, código, testes ou GitHub. Não use o banco do ERP.
 
-O Ikaros Vision é a fonte operacional, por determinação do usuário. O Notion é histórico e origem de importação incremental, sem sobrescrever edições nativas. Administradores acessam o BI global e administram contas e carteiras; CS acessa apenas clientes e registros da carteira atual, com RLS. Atribuição exige CS ativo. Eventos e encerramentos devem usar RPC auditada, com controle de versão. Não misture testes com métricas reais.
+O Ikaros Vision é a fonte operacional, por determinação do usuário. O Notion é histórico e origem de importação incremental, sem sobrescrever edições nativas. Administradores acessam o BI global e administram contas e carteiras; CS acessa a carteira compartilhada, com RLS, e assume demandas individualmente. Edição do registro exige CS responsável ou administrador; assunção/liberação usa RPC auditada. Equipe técnica só acessa casos encaminhados, sem BI, finanças ou carteira. Eventos e encerramentos devem usar RPC auditada, com controle de versão. Não misture testes com métricas reais.
 
 Antes de enviar alterações execute `npm run check` e os testes de navegador quando afetar navegação, dados ou acesso. Use o package-lock e npm. Preserve commits publicados e a branch sincronizada do Lovable.
+
+Publicação em lote depende de aprovação do administrador. Registrar aprovação ou deploy no Vision não executa publicação nem merge. Não marcar demanda concluída antes de confirmar entrega e cliente informado.

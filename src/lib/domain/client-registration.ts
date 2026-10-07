@@ -18,7 +18,7 @@ const phone = z
 export const clientRegistrationSchema = z.object({
   requestId: z.string().uuid(),
   name: text.min(2, "Informe o nome da empresa.").max(200),
-  ownerId: z.string().uuid("Selecione um responsável de CS."),
+  ownerId: z.union([z.string().uuid(), z.literal("")]).default(""),
   contactName: text.max(200).default(""),
   whatsappGroupUrl: whatsappGroupSchema,
   email: email.default(""),

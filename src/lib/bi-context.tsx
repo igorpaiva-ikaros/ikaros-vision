@@ -82,6 +82,35 @@ export function BiProvider({ children }: { children: ReactNode }) {
     retry: false,
   });
   const profile = access.data ?? null;
+  useEffect(() => {
+    if (!userId || !profile) return;
+    const channel = supabase.channel(`vision-workspace-${userId}`);
+    const refresh = () => {
+      for (const key of [
+        "operation-state",
+        "delivery-queue",
+        "case-workspace",
+        "bi-state",
+        "notifications",
+      ])
+        void qc.invalidateQueries({ queryKey: [key] });
+    };
+    for (const table of [
+      "clients",
+      "demands",
+      "onboardings",
+      "upgrades",
+      "delivery_requests",
+      "case_messages",
+      "case_attachments",
+    ]) {
+      channel.on("postgres_changes", { event: "*", schema: "public", table }, refresh);
+    }
+    channel.subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [userId, profile?.role, qc]);
   const q = useQuery({
     queryKey: ["bi-state", userId],
     queryFn: () => fetchState(),
@@ -101,7 +130,7 @@ export function BiProvider({ children }: { children: ReactNode }) {
     state = { status: "error", message: "Não foi possível verificar sua autorização." };
   else if (access.isPending) state = null;
   else if (!profile) state = { status: "forbidden" };
-  else if (profile.role === "cs") state = { status: "operator" };
+  else if (profile.role !== "admin") state = { status: "operator" };
   else if (q.isError)
     state = {
       status: "error",
@@ -117,7 +146,7 @@ export function BiProvider({ children }: { children: ReactNode }) {
   return (
     <Ctx.Provider
       value={{
-        mode: profile?.role === "cs" ? "real" : mode,
+        mode: profile?.role !== "admin" ? "real" : mode,
         setMode,
         includeTests,
         setIncludeTests,
@@ -141,6 +170,8 @@ export function BiProvider({ children }: { children: ReactNode }) {
           void qc.invalidateQueries({ queryKey: ["notifications"] });
           void qc.invalidateQueries({ queryKey: ["record-history"] });
           void qc.invalidateQueries({ queryKey: ["scheduled-tasks"] });
+          void qc.invalidateQueries({ queryKey: ["delivery-queue"] });
+          void qc.invalidateQueries({ queryKey: ["case-workspace"] });
         },
       }}
     >

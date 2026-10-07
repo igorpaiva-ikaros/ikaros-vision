@@ -1,0 +1,95 @@
+IKAROS VISION — PLAYBOOK DE REPASSE DOS AGENTES CODEX
+Versão 1 — 07/10/2026
+
+COPIE ESTA INSTRUÇÃO PARA CADA AGENTE QUE ATENDEU DEMANDAS
+
+Relate apenas trabalhos que você realmente realizou ou acompanhou e fatos comprovados por conversa, issue, PR, commit, teste, log ou deploy. Não crie exemplos nem complete lacunas por dedução. Use null para informação desconhecida e liste o que falta confirmar. Não invente empresa, contato, responsável, classificação, valor, prazo, data, aprovação, publicação ou comunicação ao cliente. Não inclua senhas, tokens, cookies, credenciais ou dados pessoais desnecessários.
+
+Uma demanda por problema/objetivo independente, mesmo quando vários commits ou PRs a resolvem. Não contar cada commit como uma demanda. Se um PR atende mais de uma empresa, mantenha cada atendimento ligado ao mesmo PR com sua própria evidência; não afirmar que outras empresas solicitaram sem prova. Use identificador estável (repo + issue/PR + cliente comprovado) para deduplicar. Se não houver identidade suficiente, declare e mande para conferência, sem inventar ID do Vision.
+
+Entregue um resumo legível por Pedro e um JSON no formato abaixo. O resumo de cada caso deve explicar: quem pediu, problema/impacto, comportamento antes/depois, o que foi alterado, verificação real e resultado, situação atual, próxima ação, bloqueio e responsável comprovado. Diferencie trabalho local, PR, aprovação, merge, deploy, validação do cliente e cliente avisado.
+
+Datas: ISO-8601 com fuso (ex.: 2026-10-06T15:30:00-03:00), somente quando documentadas. Não transformar "ontem" em hora arbitrária. Se apenas o dia for conhecido, use data_conhecida e deixe o timestamp null. A data do relatório não é a data da demanda. Não recalcular/afirmar SLA histórico com início desconhecido. Prazo prometido precisa fonte; previsão de entrega e próxima atualização são campos distintos.
+
+Estados de repasse:
+- em_atendimento: trabalho pendente, diagnóstico/desenvolvimento/validação em curso.
+- aguardando_equipe_tecnica: encaminhamento real comprovado, não hipótese.
+- aguardando_aprovacao: PR/mudança pronta para decisão, sem aprovação comprovada.
+- aprovada_aguardando_publicacao: aprovação comprovada, deploy ainda não comprovado.
+- publicada_avisar_cliente: deploy comprovado, validação/comunicação ainda pendente.
+- concluida: resolução/entrega, validação e aviso ao cliente comprovados.
+- cancelada: decisão explícita e motivo comprovados.
+- a_confirmar: evidência insuficiente para determinar estado.
+
+Escrever "concluído" num relatório de código não comprova deploy nem aviso ao cliente. Se a entrega não exige deploy (ex.: orientação), documentar entrega real e comunicação com fonte; use "nao_se_aplica" no estado de publicação e explique. Nunca marcar concluída automaticamente só porque os testes passaram.
+
+MODELO JSON (estrutura, não demanda fictícia)
+{
+  "versao": "ikaros-vision-report-v1",
+  "agente": null,
+  "gerado_em": null,
+  "periodo_documentado": {"inicio": null, "fim": null, "fuso": null},
+  "demandas": [
+    {
+      "id_externo_estavel": null,
+      "cliente": {"vision_id": null, "vision_codigo": null, "erp_company_id": null, "empresa_nome_exato": null, "fonte_identificacao": null},
+      "tipo_registro": null,
+      "titulo": null,
+      "pedido_original": null,
+      "impacto_observado": null,
+      "classificacao_confirmada": null,
+      "prioridade_confirmada": null,
+      "solicitante_documentado": null,
+      "responsavel_cs": {"nome": null, "email": null, "fonte": null},
+      "responsavel_tecnico_documentado": null,
+      "estado_repasse": "a_confirmar",
+      "etapa_documentada": null,
+      "cronologia": {
+        "solicitada_em": null,
+        "data_conhecida": null,
+        "primeira_resposta_em": null,
+        "encaminhada_em": null,
+        "aprovada_em": null,
+        "publicada_em": null,
+        "validada_em": null,
+        "cliente_avisado_em": null,
+        "concluida_em": null
+      },
+      "diagnostico_confirmado": null,
+      "comportamento_anterior": null,
+      "comportamento_esperado": null,
+      "solucao_implementada": null,
+      "repositorios": [],
+      "issues_urls": [],
+      "pull_requests_urls": [],
+      "commits": [],
+      "arquivos_alterados": [],
+      "testes": [{"comando_ou_cenario": null, "ambiente": null, "executado_em": null, "resultado": null, "fonte": null}],
+      "aprovacao": {"estado": "a_confirmar", "aprovador": null, "fonte": null},
+      "publicacao": {"estado": "a_confirmar", "ambiente": null, "referencia_deploy": null, "fonte": null},
+      "entrega_validada": {"confirmada": null, "por_quem": null, "fonte": null},
+      "comunicacao_cliente": {"enviada": null, "canal": null, "resumo": null, "fonte": null},
+      "previsao_entrega": {"data": null, "confirmada_por": null, "fonte": null},
+      "proxima_atualizacao": {"data": null, "responsavel": null, "fonte": null},
+      "proxima_acao": null,
+      "bloqueios": [],
+      "observacoes": null,
+      "anexos": [{"nome": null, "tipo": null, "local_ou_link_privado": null, "descricao": null}],
+      "evidencias": [{"fato": null, "fonte_tipo": null, "referencia": null}],
+      "informacoes_a_confirmar": []
+    }
+  ]
+}
+
+Remova entradas vazias de listas (testes/anexos/evidências) quando não houver fatos. Enumerações de tipo_registro: demanda, onboarding, upgrade; null quando desconhecido. IDs do Vision só quando consultados/comprovados. Não inserir IDs de contatos CRM no campo erp_company_id. Não gerar URLs inexistentes. Referências devem permitir localizar a fonte; anexos podem ser enviados junto ao relatório, nunca virar link público por conveniência.
+
+REVISÃO ANTES DE IMPORTAR NO VISION
+1. Conferir cliente e correspondência exata com carteira. Sem confirmação, aguardar revisão; não criar empresa fictícia.
+2. Deduplicar por id_externo_estavel, issue/PR e cliente; atualizações do mesmo atendimento não criam cópias.
+3. Conferir evidência de cada data e estado. Registrar desconhecido como desconhecido; não substituir por horário atual.
+4. Concluídas somente com entrega/validação/aviso comprovados; publicar sem aviso mantém "Publicada / avisar cliente". Aprovação pendente vai à fila apropriada. Restantes entram no fluxo com próximo passo documentado.
+5. Preservar prazos/comissões e histórico; dados faltantes não podem gerar pagamento previsto ou SLA retroativo inventado.
+6. Guardar origem do relatório para auditoria. Estes relatórios serão conferidos antes de importação; não foram recebidos/importados nesta entrega.
+
+COMO ENVIAR
+Envie o resumo + JSON + evidências/anexos disponíveis. Se houver várias sessões/agentes, mantenha um relatório por agente, identificando sobreposições. A revisão consolidará as mesmas demandas sem perder fontes divergentes. Você pode encaminhar os relatórios mesmo com campos null: a lista de pendências orientará o que confirmar antes de gravar.

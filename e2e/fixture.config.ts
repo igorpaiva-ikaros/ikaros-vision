@@ -8,6 +8,10 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: [
+      {
+        find: "@/integrations/supabase/client",
+        replacement: path.resolve("e2e/fixtures/storage.ts"),
+      },
       { find: "@/lib/bi-context", replacement: path.resolve("e2e/fixtures/context.tsx") },
       { find: "@/lib/workspace.functions", replacement: path.resolve("e2e/fixtures/functions.ts") },
       {

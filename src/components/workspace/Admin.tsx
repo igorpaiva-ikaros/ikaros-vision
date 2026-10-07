@@ -8,7 +8,6 @@ import {
   getAdminState,
   createMember,
   updateMember,
-  assignClient,
   resolveImportIssue,
   setRiskWindow,
 } from "@/lib/workspace.functions";
@@ -21,7 +20,6 @@ export function Admin() {
   const { profile, reload, session } = useBi();
   const get = useServerFn(getAdminState);
   const create = useServerFn(createMember);
-  const assign = useServerFn(assignClient);
   const resolve = useServerFn(resolveImportIssue);
   const risk = useServerFn(setRiskWindow);
   const query = useQuery({
@@ -35,7 +33,7 @@ export function Admin() {
     name: "",
     email: "",
     password: "",
-    role: "cs" as "cs" | "admin",
+    role: "cs" as "cs" | "admin" | "technical",
     avatar: null as string | null,
   });
   const [busy, setBusy] = useState(false);
@@ -63,12 +61,14 @@ export function Admin() {
       </Section>
     );
   const ds = query.data;
-  const owners = ds.members.filter((m: any) => m.active && m.role === "cs");
   const job = ds.jobs[0];
   const healthy = job?.ok && Date.now() - new Date(job.ran_at).getTime() < 12 * 60000;
   return (
     <>
-      <PageTitle title="Administração" subtitle="Contas, carteiras e regras da operação" />
+      <PageTitle
+        title="Administração"
+        subtitle="Contas, carteira compartilhada e regras da operação"
+      />
       {error && (
         <p role="alert" className="mb-4 text-destructive">
           {error}
@@ -123,11 +123,15 @@ export function Admin() {
                   className={selectClass}
                   value={newUser.role}
                   onChange={(e) =>
-                    setNewUser((v) => ({ ...v, role: e.target.value as "cs" | "admin" }))
+                    setNewUser((v) => ({
+                      ...v,
+                      role: e.target.value as "cs" | "admin" | "technical",
+                    }))
                   }
                 >
                   <option value="cs">CS · carteira e produção</option>
                   <option value="admin">Administrador · gestão e contas</option>
+                  <option value="technical">Equipe técnica · somente demandas encaminhadas</option>
                 </select>
               </Field>
             </fieldset>
@@ -196,49 +200,6 @@ export function Admin() {
             ))}
           </div>
         </Section>
-        <Section title="Distribuir a carteira" className="xl:col-span-2">
-          <div className="space-y-3">
-            {ds.clients.map((c: any) => (
-              <div
-                key={c.id}
-                className="grid items-center gap-2 border-b pb-3 sm:grid-cols-[1fr_260px]"
-              >
-                <span className="text-sm font-medium">
-                  {c.name}
-                  {c.is_test ? " · TESTE" : ""}
-                </span>
-                <select
-                  aria-label={`Responsável de ${c.name}`}
-                  className={selectClass}
-                  disabled={busy}
-                  value={c.owner_id ?? ""}
-                  onChange={(e) => {
-                    const owner = e.target.value;
-                    if (owner)
-                      void perform(
-                        () => assign({ data: { id: c.id, owner, version: c.version } }),
-                        "Carteira e registros vinculados transferidos.",
-                      );
-                  }}
-                >
-                  <option value="">Selecione o responsável</option>
-                  {owners.map((m: any) => (
-                    <option key={m.id} value={m.id}>
-                      {m.full_name}
-                    </option>
-                  ))}
-                  {c.owner_id && !owners.some((m: any) => m.id === c.owner_id) && (
-                    <option value={c.owner_id}>
-                      {ds.members.find((m: any) => m.id === c.owner_id)?.full_name ??
-                        "Responsável anterior"}{" "}
-                      · redistribuir
-                    </option>
-                  )}
-                </select>
-              </div>
-            ))}
-          </div>
-        </Section>
         <Section
           title={`Vínculos pendentes da migração · ${ds.issues.length}`}
           className="xl:col-span-2"
@@ -295,7 +256,7 @@ function MemberRow({ member }: { member: any }) {
   const update = useServerFn(updateMember);
   const [values, setValues] = useState({
     id: member.id,
-    role: member.role as "admin" | "cs",
+    role: member.role as "admin" | "cs" | "technical",
     active: member.active as boolean,
     commission: member.commission_eligible as boolean,
     name: member.full_name as string,
@@ -344,10 +305,13 @@ function MemberRow({ member }: { member: any }) {
         aria-label={`Acesso de ${member.full_name}`}
         value={values.role}
         disabled={busy}
-        onChange={(e) => setValues((v) => ({ ...v, role: e.target.value as "admin" | "cs" }))}
+        onChange={(e) =>
+          setValues((v) => ({ ...v, role: e.target.value as "admin" | "cs" | "technical" }))
+        }
       >
         <option value="cs">Colaborador CS</option>
         <option value="admin">Administrador</option>
+        <option value="technical">Equipe técnica</option>
       </select>
       <label className="flex gap-2 text-sm">
         <input

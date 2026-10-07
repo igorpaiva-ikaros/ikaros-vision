@@ -34,9 +34,8 @@ export const saveRecord = createServerFn({ method: "POST" })
     const client = checkResult(
       await db.from("clients").select("owner_id,is_test").eq("id", values.client_id).maybeSingle(),
     );
-    if (!client?.owner_id) throw new Error("Cliente não encontrado ou sem responsável.");
+    if (!client) throw new Error("Cliente não encontrado.");
     const { data: admin } = await db.rpc("is_admin", { _uid: context.userId });
-    if (!admin && client.owner_id !== context.userId) throw new Error("Acesso não autorizado.");
     if (data.kind === "upgrades") {
       const plan = (values as any).new_plan;
       const catalog = checkResult(
@@ -65,7 +64,7 @@ export const saveRecord = createServerFn({ method: "POST" })
       if (!r) throw new Error("Outra pessoa alterou este registro. Recarregue e tente novamente.");
       return r;
     }
-    input.owner_id = client.owner_id;
+    input.owner_id = admin ? null : context.userId;
     input.is_test = client.is_test || !!values.is_test;
     if (data.kind === "demands") {
       input.stage = "Nova";
@@ -73,7 +72,7 @@ export const saveRecord = createServerFn({ method: "POST" })
     }
     if (data.kind === "onboardings") {
       input.stage = "Não iniciado";
-      input.current_step = "1. Dados recebidos";
+      input.current_step = "1. Recepção e apresentação";
     }
     if (data.kind === "upgrades") input.stage = "Oportunidade identificada";
     if (data.kind === "interactions" || data.kind === "changelog")
@@ -103,8 +102,8 @@ export const markNotificationRead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ context, data }) => {
-    const { assertOperator, checkResult } = await import("./workspace/access.server");
-    await assertOperator(context);
+    const { assertWorkspace, checkResult } = await import("./workspace/access.server");
+    await assertWorkspace(context);
     checkResult(
       await (context.supabase as any)
         .from("notifications")
@@ -164,7 +163,11 @@ export const getAdminState = createServerFn({ method: "POST" })
       policies: checkResult(policies) ?? [],
       members: (checkResult(profiles) ?? []).map((p: any) => ({
         ...p,
-        role: rr.some((r: any) => r.user_id === p.id && r.role === "admin") ? "admin" : "cs",
+        role: rr.some((r: any) => r.user_id === p.id && r.role === "admin")
+          ? "admin"
+          : rr.some((r: any) => r.user_id === p.id && r.role === "technical")
+            ? "technical"
+            : "cs",
       })),
       issues: pending.map((i: any) => ({ ...i, title: names[i.notion_id] ?? i.notion_id })),
       runs: checkResult(runs) ?? [],
@@ -330,8 +333,8 @@ export const updateClientContact = createServerFn({ method: "POST" })
 export const getNotifications = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { assertOperator, checkResult } = await import("./workspace/access.server");
-    await assertOperator(context);
+    const { assertWorkspace, checkResult } = await import("./workspace/access.server");
+    await assertWorkspace(context);
     const { readNotifications } = await import("./workspace/read.server");
     return readNotifications(context.supabase);
   });
@@ -482,6 +485,151 @@ export const saveSlaPolicy = createServerFn({ method: "POST" })
         _category: data.category,
         _version: data.version,
         _rules: data.rules,
+      }),
+    );
+  });
+
+export const claimRecord = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        kind: z.enum(["demands", "onboardings", "upgrades"]),
+        id: z.string().uuid(),
+        version: z.number().int().positive(),
+        release: z.boolean().default(false),
+      })
+      .strict()
+      .parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    const { assertOperator, checkResult } = await import("./workspace/access.server");
+    await assertOperator(context);
+    return checkResult(
+      await (context.supabase as any).rpc("claim_record", {
+        _kind: data.kind,
+        _id: data.id,
+        _version: data.version,
+        _release: data.release,
+      }),
+    );
+  });
+export const getDeliveryQueue = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<import("./workspace/types").DeliveryCase[]> => {
+    const { assertWorkspace, checkResult } = await import("./workspace/access.server");
+    await assertWorkspace(context);
+    return checkResult(await (context.supabase as any).rpc("technical_queue")) ?? [];
+  });
+export const runDeliveryAction = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        demand: z.string().uuid(),
+        action: z.enum([
+          "forward",
+          "technical_update",
+          "request_approval",
+          "approve",
+          "reject",
+          "published",
+        ]),
+        version: z.number().int().min(0),
+        values: z.record(z.union([z.string().max(10000), z.boolean(), z.null()])),
+      })
+      .strict()
+      .parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    const { assertWorkspace, checkResult } = await import("./workspace/access.server");
+    await assertWorkspace(context);
+    return checkResult(
+      await (context.supabase as any).rpc("delivery_action", {
+        _demand: data.demand,
+        _action: data.action,
+        _version: data.version,
+        _data: data.values,
+      }),
+    );
+  });
+export const getCaseWorkspace = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ demand: z.string().uuid() }).strict().parse(d))
+  .handler(
+    async ({
+      context,
+      data,
+    }): Promise<{
+      request: import("./workspace/types").DeliveryRequest | null;
+      messages: import("./workspace/types").CaseMessage[];
+      files: import("./workspace/types").CaseAttachment[];
+    }> => {
+      const { assertWorkspace, checkResult } = await import("./workspace/access.server");
+      await assertWorkspace(context);
+      const db = context.supabase as any;
+      const [r, m, f] = await Promise.all([
+        db.from("delivery_requests").select("*").eq("demand_id", data.demand).maybeSingle(),
+        db
+          .from("case_messages")
+          .select("id,author_name,body,created_at")
+          .eq("demand_id", data.demand)
+          .order("created_at"),
+        db
+          .from("case_attachments")
+          .select("id,path,filename,mime_type,size_bytes,created_at")
+          .eq("demand_id", data.demand)
+          .order("created_at"),
+      ]);
+      return {
+        request: checkResult(r),
+        messages: checkResult(m) ?? [],
+        files: checkResult(f) ?? [],
+      };
+    },
+  );
+export const postCaseMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({ demand: z.string().uuid(), body: z.string().trim().min(2).max(10000) })
+      .strict()
+      .parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    const { assertWorkspace, checkResult } = await import("./workspace/access.server");
+    await assertWorkspace(context);
+    return checkResult(
+      await (context.supabase as any).rpc("post_case_message", {
+        _demand: data.demand,
+        _body: data.body,
+      }),
+    );
+  });
+export const registerCaseFile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        demand: z.string().uuid(),
+        path: z.string().max(600),
+        filename: z.string().min(1).max(250),
+        mime: z.string().max(200),
+        size: z.number().int().positive().max(52428800),
+      })
+      .strict()
+      .parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    const { assertWorkspace, checkResult } = await import("./workspace/access.server");
+    await assertWorkspace(context);
+    return checkResult(
+      await (context.supabase as any).rpc("register_case_file", {
+        _demand: data.demand,
+        _path: data.path,
+        _filename: data.filename,
+        _mime: data.mime,
+        _size: data.size,
       }),
     );
   });

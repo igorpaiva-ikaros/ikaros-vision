@@ -38,11 +38,17 @@ const ADMIN_NAV = [
   { href: "/operacao?tab=clients", label: "Carteira", icon: Building2 },
   { href: "/operacao?tab=changelog", label: "Histórico de entregas", icon: History },
   { href: "/operacao?tab=interactions", label: "Conversas e decisões", icon: MessagesSquare },
+  { href: "/aprovacoes", label: "Aprovações e publicações", icon: ListChecks },
+  { href: "/tecnico", label: "Equipe técnica", icon: PanelsTopLeft },
   { href: "/administracao", label: "Administração", icon: Settings },
   { href: "/integracao", label: "Migração", icon: PlugZap },
   { href: "/operacao?tab=tasks", label: "Tarefas", icon: CalendarClock },
   { href: "/notificacoes", label: "Notificações", icon: Bell },
   { href: "/ajuda", label: "Ajuda", icon: BookOpen },
+];
+const TECH_NAV = [
+  { href: "/tecnico", label: "Equipe técnica", icon: PanelsTopLeft },
+  { href: "/notificacoes", label: "Notificações", icon: Bell },
 ];
 const CS_NAV = [
   { href: "/operacao?tab=crm", label: "CRM", icon: PanelsTopLeft },
@@ -58,12 +64,15 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { mode, setMode, includeTests, setIncludeTests, session, authReady, state, profile } =
     useBi();
   const isCs = profile?.role === "cs";
-  const permitted = !isCs || ["/operacao", "/notificacoes", "/ajuda"].includes(path);
+  const isTech = profile?.role === "technical";
+  const permitted = isTech
+    ? ["/tecnico", "/notificacoes"].includes(path)
+    : !isCs || ["/operacao", "/notificacoes", "/ajuda", "/tecnico"].includes(path);
   useEffect(() => {
     if (authReady && !session && path !== "/auth") void nav({ to: "/auth", replace: true });
-    else if (session && isCs && !permitted && path !== "/auth")
-      void nav({ to: "/operacao", replace: true });
-  }, [authReady, session, isCs, permitted, path, nav]);
+    else if (session && !permitted && path !== "/auth")
+      void nav({ to: isTech ? "/tecnico" : "/operacao", replace: true });
+  }, [authReady, session, isCs, isTech, permitted, path, nav]);
   if (path === "/auth") return <>{children}</>;
   if (!authReady)
     return (
@@ -95,7 +104,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         Abrindo sua operação…
       </div>
     );
-  const items = isCs ? CS_NAV : ADMIN_NAV;
+  const items = isTech ? TECH_NAV : isCs ? CS_NAV : ADMIN_NAV;
   const current = location.href;
   const links = (mobile = false) =>
     items.map(({ href, label, icon: Icon }) => (
