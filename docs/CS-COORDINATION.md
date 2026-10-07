@@ -49,7 +49,7 @@ Aprovar e registrar publicação são eventos do Vision; não executam merge nem
 
 ## Implantação coordenada
 
-Esta alteração deve ser revisada em branch/PR e só publicada após aprovação do Pedro. Não aplicar migrations de produção isoladamente com frontend antigo: alteração de carteira e etapas é compatível com a nova UI, não com as suposições da UI anterior.
+Para mudanças do ERP, manter a aprovação do Pedro e publicação em lote. Para alterações do próprio Ikaros Vision, Igor autorizou publicação direta em 07/10/2026; o PR de coordenação foi integrado e publicado com essa autorização. Não aplicar migrations de produção isoladamente com frontend antigo: alteração de carteira e etapas é compatível com a nova UI, não com as suposições da UI anterior.
 
 1. Backup e homologação com contas admin, dois CS e technical; nenhum cliente real em fixtures.
 2. Aplicar migrations em ordem 20261007080000 a 20261007080500; a adição do enum technical deve ser commitada antes do arquivo seguinte. Não juntar todas em uma transação única.
@@ -58,3 +58,7 @@ Esta alteração deve ser revisada em branch/PR e só publicada após aprovaçã
 5. Ativar integração comercial somente depois de produtor, origem autorizada, segredo server-only, retentativas e teste real acordados.
 
 Relatórios históricos ainda não recebidos. Importação histórica precisa validar cliente/identidade/proveniência e tratar timestamps desconhecidos explicitamente; não usar criação comum para inventar data original de recebimento ou retrospectivamente cumprir SLA. O playbook separado define esses dados.
+
+### Publicação autorizada — 07/10/2026
+
+PR #1 integrado após autorização explícita de Igor. Migrations aplicadas no Vision, backup privado de vínculos/configurações mantido; 25 clientes preservados, responsáveis e deadlines existentes e hash das políticas SLA sem alteração. Bucket case-evidence privado (50 MB), sete tabelas Realtime e job vision-delivery-deadlines ativo a cada 5 minutos. Integração de aquisição comercial segue desativada até configuração de origem/produtor/segredo.

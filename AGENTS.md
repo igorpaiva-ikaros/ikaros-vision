@@ -18,4 +18,4 @@ O Ikaros Vision é a fonte operacional, por determinação do usuário. O Notion
 
 Antes de enviar alterações execute `npm run check` e os testes de navegador quando afetar navegação, dados ou acesso. Use o package-lock e npm. Preserve commits publicados e a branch sincronizada do Lovable.
 
-Publicação em lote depende de aprovação do administrador. Registrar aprovação ou deploy no Vision não executa publicação nem merge. Não marcar demanda concluída antes de confirmar entrega e cliente informado.
+Para mudanças do ERP atendidas pelo CS, publicação em lote depende de aprovação do administrador. Mudanças do próprio Ikaros Vision podem ser publicadas mediante autorização explícita do Igor; não exigir aprovação adicional do Pedro nesses casos. Registrar aprovação ou deploy no Vision não executa publicação nem merge. Não marcar demanda concluída antes de confirmar entrega e cliente informado.
