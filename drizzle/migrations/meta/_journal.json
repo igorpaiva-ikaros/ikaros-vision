@@ -15,6 +15,13 @@
       "when": 1791235641050,
       "tag": "0001_add_cs_role",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791355186464,
+      "tag": "0002_clickable_validation_pipeline",
+      "breakpoints": true
     }
   ]
 }
