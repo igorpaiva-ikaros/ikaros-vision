@@ -54,6 +54,7 @@ export interface RecordRow {
   context?: string | null;
   impact?: string | null;
   solution?: string | null;
+  approval_repository_url?: string | null;
   tests_run?: string | null;
   test_result?: string | null;
   technical_type?: string | null;

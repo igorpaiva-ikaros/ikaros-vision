@@ -112,8 +112,30 @@ export async function transitionRecord({ data }: any) {
   metrics.moves++;
   await new Promise((r) => setTimeout(r, 250));
   const row = ds[data.kind].find((r: any) => r.id === data.id);
+  if (row.stage === "Aguardando validação" && data.stage !== row.stage)
+    throw new Error("validation_locked");
   row.stage = data.stage;
+  traces.push({
+    id: row.id,
+    stage: row.stage,
+    first_at: new Date().toISOString(),
+    last_at: new Date().toISOString(),
+  });
+  if (data.kind === "demands" && data.stage === "Aguardando validação") {
+    let r = deliveries.find((r) => r.demand_id === row.id);
+    if (!r) {
+      r = { id: crypto.randomUUID(), demand_id: row.id, version: 1, technical: false };
+      deliveries.push(r);
+    }
+    Object.assign(r, {
+      approval_state: "aguardando",
+      change_summary: row.description,
+      technical_stage: "Recebida",
+    });
+    (window as any).qaValidationSent = ((window as any).qaValidationSent ?? 0) + 1;
+  }
   row.version++;
+  persistReview();
   return structuredClone(row);
 }
 export async function saveRecord({ data }: any) {
@@ -259,7 +281,19 @@ export async function runDeliveryAction({ data }: any) {
   }
   if (data.action === "request_approval") r.approval_state = "aguardando";
   if (data.action === "approve") r.approval_state = "aprovada";
-  if (data.action === "published") r.approval_state = "publicada";
+  if (data.action === "published" || data.action === "validate_publish") {
+    r.approval_state = "publicada";
+    const d = ds.demands.find((x: any) => x.id === data.demand);
+    d.stage = "Publicada";
+    d.version++;
+    traces.push({
+      id: d.id,
+      stage: "Publicada",
+      first_at: new Date().toISOString(),
+      last_at: new Date().toISOString(),
+    });
+  }
+  persistReview();
   return r;
 }
 export async function postCaseMessage({ data }: any) {
@@ -284,3 +318,23 @@ export async function registerCaseFile({ data }: any) {
 const deliveries: any[] = [];
 const messages: any[] = [];
 const files: any[] = [];
+
+const traces: any[] = [];
+ds.deliveries = deliveries;
+export async function getDemandStageTrace({ data }: any) {
+  return traces.filter((r) => r.id === data.id);
+}
+
+function persistReview() {
+  sessionStorage.setItem(
+    "qa-review-state",
+    JSON.stringify({ demand: ds.demands[0], deliveries, traces }),
+  );
+}
+const savedReview = sessionStorage.getItem("qa-review-state");
+if (savedReview) {
+  const saved = JSON.parse(savedReview);
+  ds.demands[0] = saved.demand;
+  deliveries.push(...saved.deliveries);
+  traces.push(...saved.traces);
+}

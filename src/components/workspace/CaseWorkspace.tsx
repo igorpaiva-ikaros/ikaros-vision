@@ -218,7 +218,7 @@ export function DeliveryControls({
       const data: Record<string, string | boolean | null> = { ...values };
       if (values["next_update_at"]) data["next_update_at"] = toUtc(values["next_update_at"]);
       if (values["delivery_eta"]) data["delivery_eta"] = toUtc(values["delivery_eta"]);
-      if (action === "published") data["confirmed"] = true;
+      if (action === "published" || action === "validate_publish") data["confirmed"] = true;
       await run({
         data: { demand, action: action as "forward", version: request?.version ?? 0, values: data },
       });
@@ -277,6 +277,13 @@ export function DeliveryControls({
               ? dateLabel(request.delivery_eta)
               : "A confirmar pela equipe técnica"}
           </p>
+          {request.change_summary && (
+            <p className="whitespace-pre-wrap sm:col-span-2">Mudança: {request.change_summary}</p>
+          )}
+          <p className="whitespace-pre-wrap sm:col-span-2">
+            Testes: {request.tests_result || "Não informados"}
+          </p>
+          {!request.repository_url && <p>GitHub: não informado</p>}
           {request.repository_url && (
             <a
               href={request.repository_url}
@@ -327,8 +334,13 @@ export function DeliveryControls({
           )}
         {profile?.role === "admin" && request?.approval_state === "aguardando" && (
           <>
-            <Button type="button" size="sm" disabled={busy} onClick={() => void act("approve")}>
-              Aprovar para publicação
+            <Button
+              type="button"
+              size="sm"
+              disabled={busy}
+              onClick={() => setMode("validate_publish")}
+            >
+              Validar e confirmar publicação
             </Button>
             <Button type="button" size="sm" variant="outline" onClick={() => setMode("reject")}>
               Solicitar ajustes
@@ -389,7 +401,7 @@ export function DeliveryControls({
               </>
             )}
             {mode === "reject" && area("reason", "Ajustes necessários")}
-            {mode === "published" && (
+            {(mode === "published" || mode === "validate_publish") && (
               <>
                 {input("deployment_ref", "Referência do deploy realizado")}
                 <p className="text-xs">
@@ -401,7 +413,9 @@ export function DeliveryControls({
           </fieldset>
           <div className="flex gap-2">
             <Button type="button" disabled={busy} onClick={() => void act(mode)}>
-              {mode === "published" ? "Confirmar que foi publicada" : "Enviar"}
+              {mode === "published" || mode === "validate_publish"
+                ? "Confirmar publicação e liberar para o CS"
+                : "Enviar"}
             </Button>
             <Button type="button" variant="ghost" disabled={busy} onClick={() => setMode("")}>
               Cancelar

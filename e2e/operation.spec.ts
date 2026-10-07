@@ -254,13 +254,11 @@ test("CS encaminha a mesma demanda, anexa evidência e comunica sem concluir", a
   await dialog.getByLabel("Nova observação").fill("Cliente aguarda retorno no horário combinado.");
   await dialog.getByRole("button", { name: "Enviar observação", exact: true }).click();
   await expect(dialog).toContainText("Cliente aguarda retorno no horário combinado.");
-  await dialog
-    .getByLabel("Anexar documento, imagem, vídeo ou áudio")
-    .setInputFiles({
-      name: "evidencia.txt",
-      mimeType: "text/plain",
-      buffer: Buffer.from("Evidência local de teste"),
-    });
+  await dialog.getByLabel("Anexar documento, imagem, vídeo ou áudio").setInputFiles({
+    name: "evidencia.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.from("Evidência local de teste"),
+  });
   await expect(dialog.getByRole("button", { name: /evidencia.txt/ })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Aprovar para publicação" })).toHaveCount(0);
   await dialog.getByRole("button", { name: "Close", exact: true }).click();
@@ -275,4 +273,58 @@ test("interface técnica oferece apenas fila encaminhada e notificações", asyn
   await expect(page.getByRole("link", { name: "Carteira", exact: true })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Administração", exact: true })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "CRM", exact: true })).toHaveCount(0);
+});
+
+test("barra clicável envia para Pedro, trava o card e publicação confirmada libera o CS", async ({
+  page,
+}) => {
+  await page.goto("/operacao?tab=demands");
+  await page.getByText("Proposta de consórcio não carrega", { exact: true }).click();
+  let dialog = page.getByRole("dialog");
+  await dialog.getByRole("button", { name: "Ir para Em execução", exact: true }).click();
+  await expect(
+    dialog.getByRole("button", { name: "Ir para Em execução", exact: true }),
+  ).toHaveAttribute("aria-current", "step");
+  await dialog.getByRole("button", { name: "Ir para Aguardando validação", exact: true }).click();
+  await expect(dialog).toContainText("Aguardando validação do administrador");
+  await expect(dialog.getByLabel("Nome *", { exact: true })).toBeDisabled();
+  await expect(
+    dialog.getByRole("button", { name: "Ir para Em execução", exact: true }),
+  ).toBeDisabled();
+  await expect.poll(() => page.evaluate(() => (window as any).qaValidationSent)).toBe(1);
+  await dialog.getByRole("button", { name: "Close", exact: true }).click();
+  const card = page.locator('[data-card-id="00000000-0000-4000-8000-000000000021"]');
+  await expect(card).toHaveAttribute("draggable", "false");
+  await expect(page.getByLabel("Mover DEM-00001")).toBeDisabled();
+  await page.goto("/aprovacoes");
+  await page.getByRole("button").filter({ hasText: "Proposta de consórcio não carrega" }).click();
+  dialog = page.getByRole("dialog");
+  await dialog.getByRole("button", { name: "Validar e confirmar publicação", exact: true }).click();
+  await dialog.getByLabel("Referência do deploy realizado").fill("deploy-confirmado-42");
+  await dialog
+    .getByRole("button", { name: "Confirmar publicação e liberar para o CS", exact: true })
+    .click();
+  await expect(dialog).toContainText("Publicação registrada");
+  await page.goto("/operacao?tab=demands");
+  await expect(page.locator('[data-stage="Publicada"]')).toContainText(
+    "Proposta de consórcio não carrega",
+  );
+  await expect(page.getByLabel("Mover DEM-00001")).toBeEnabled();
+  await page.getByText("Proposta de consórcio não carrega", { exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Ir para Publicada", exact: true }),
+  ).toHaveAttribute("aria-current", "step");
+  await expect(page.getByLabel("Nome *", { exact: true })).toBeEnabled();
+});
+
+test("arrastar para Aguardando validação faz o mesmo envio automático", async ({ page }) => {
+  await page.setViewportSize({ width: 2200, height: 1000 });
+  await page.goto("/operacao?tab=demands");
+  const card = page.locator('[data-card-id="00000000-0000-4000-8000-000000000021"]');
+  await card.dragTo(page.locator('[data-stage="Aguardando validação"]'));
+  await expect(page.locator('[data-stage="Aguardando validação"]')).toContainText(
+    "Proposta de consórcio não carrega",
+  );
+  await expect.poll(() => page.evaluate(() => (window as any).qaValidationSent)).toBe(1);
+  await expect(card).toHaveAttribute("draggable", "false");
 });

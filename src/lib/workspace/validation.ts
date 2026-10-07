@@ -30,6 +30,13 @@ export const entityForms = {
       context: nullable,
       impact: nullable,
       solution: nullable,
+      approval_repository_url: z
+        .string()
+        .regex(
+          /^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/(pull\/[0-9]+|commit\/[a-fA-F0-9]{7,40})\/?$/,
+        )
+        .nullable()
+        .optional(),
       tests_run: nullable,
       test_result: nullable,
       client_informed: z.boolean().optional(),

@@ -534,6 +534,7 @@ export const runDeliveryAction = createServerFn({ method: "POST" })
           "approve",
           "reject",
           "published",
+          "validate_publish",
         ]),
         version: z.number().int().min(0),
         values: z.record(z.union([z.string().max(10000), z.boolean(), z.null()])),
@@ -633,3 +634,18 @@ export const registerCaseFile = createServerFn({ method: "POST" })
       }),
     );
   });
+
+export const getDemandStageTrace = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).strict().parse(d))
+  .handler(
+    async ({ context, data }): Promise<{ stage: string; first_at: string; last_at: string }[]> => {
+      const { assertOperator, checkResult } = await import("./workspace/access.server");
+      await assertOperator(context);
+      return (
+        checkResult(
+          await (context.supabase as any).rpc("demand_stage_trace", { _demand: data.id }),
+        ) ?? []
+      );
+    },
+  );

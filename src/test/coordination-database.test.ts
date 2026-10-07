@@ -42,6 +42,7 @@ beforeAll(async () => {
     "20261007080300_private_case_files",
     "20261007080400_sales_intake",
     "20261007080500_delivery_jobs_and_realtime",
+    "20261007093000_clickable_validation_pipeline",
   ])
     await db.exec(await readFile(`supabase/migrations/${file}.sql`, "utf8"));
   await db.exec(
@@ -133,9 +134,7 @@ describe("Shared CS, technical delivery and approvals", () => {
           `select to_jsonb(delivery_action('${d.id}','published',${r.version},'{"deployment_ref":"deployment-example-42","confirmed":true}')) as r`,
         )
       ).r;
-      expect((await one(`select stage from demands where id='${d.id}'`)).stage).toBe(
-        "Publicada / avisar cliente",
-      );
+      expect((await one(`select stage from demands where id='${d.id}'`)).stage).toBe("Publicada");
       await db.exec(`select set_config('request.jwt.claim.sub','${cs}',true)`);
       await db.query(
         `update demands set solution='Entrega validada',client_informed=true where id='${d.id}'`,
@@ -294,5 +293,93 @@ describe("Forecast alerts", () => {
     expect(
       (await one(`select first_response_due from demands where id='${d.id}'`)).first_response_due,
     ).toEqual(d.first_response_due);
+  });
+});
+
+describe("Click / drag validation workflow", () => {
+  it("moving to validation automatically sends saved context and locks the case without inventing tests", async () => {
+    const d = await one(
+      `insert into demands(client_id,owner_id,title,description) values('${client}','${cs}','Pedido real','Contexto documentado do cliente') returning id,version`,
+    );
+    await user(cs, async () => {
+      await db.query(
+        `select transition_demand('${d.id}','move',${d.version},'Aguardando validação')`,
+      );
+      const r = await one(
+        `select approval_state,change_summary,tests_result,repository_url from delivery_requests where demand_id='${d.id}'`,
+      );
+      expect(r.approval_state).toBe("aguardando");
+      expect(r.change_summary).toContain("Contexto documentado");
+      expect(r.tests_result).toBeNull();
+      expect(r.repository_url).toBeNull();
+      const trace = (await one(`select demand_stage_trace('${d.id}') as rows`)).rows;
+      expect(trace.map((v: any) => v.stage)).toContain("Aguardando validação");
+      expect((await one(`select stage from demands where id='${d.id}'`)).stage).toBe(
+        "Aguardando validação",
+      );
+    });
+  });
+  it("blocks CS changes, forwarding, completion and the original core RPC while Pedro is reviewing", async () => {
+    const d = await one(
+      `insert into demands(client_id,owner_id,title,description,stage) values('${client}','${cs}','Waiting','Saved context','Aguardando validação') returning id,version`,
+    );
+    await db.exec(
+      `insert into delivery_requests(demand_id,approval_state) values('${d.id}','aguardando')`,
+    );
+    for (const sql of [
+      `select transition_demand('${d.id}','move',${d.version},'Em execução')`,
+      `update demands set description='Changed' where id='${d.id}'`,
+      `select delivery_action('${d.id}','forward',1,'{"context":"Bypass attempt","next_update_at":"2099-01-01T12:00:00Z"}')`,
+      `select transition_demand_core('${d.id}','move',${d.version},'Em execução')`,
+      `select delivery_action_core('${d.id}','approve',1,'{}')`,
+    ])
+      await user(cs, async () => {
+        await expect(db.query(sql)).rejects.toThrow();
+      });
+  });
+  it("only administrator can validate and publish atomically with a real deployment confirmation", async () => {
+    const d = await one(
+      `insert into demands(client_id,owner_id,title,description,stage) values('${client}','${cs}','Validate publication','Saved context','Aguardando validação') returning id,first_response_due`,
+    );
+    await db.exec(
+      `insert into delivery_requests(demand_id,approval_state) values('${d.id}','aguardando')`,
+    );
+    const valid = `select delivery_action('${d.id}','validate_publish',1,'{"confirmed":true,"deployment_ref":"deployment-confirmed-42"}')`;
+    await user(cs, async () => {
+      await expect(db.query(valid)).rejects.toThrow();
+    });
+    await user(admin, async () => {
+      await expect(
+        db.query(`select delivery_action('${d.id}','validate_publish',1,'{}')`),
+      ).rejects.toThrow();
+    });
+    await user(admin, async () => {
+      await db.query(valid);
+      const after = await one(
+        `select stage,completed_at,client_informed,first_response_due from demands where id='${d.id}'`,
+      );
+      expect(after.stage).toBe("Publicada");
+      expect(after.completed_at).toBeNull();
+      expect(after.client_informed).toBe(false);
+      expect(after.first_response_due).toEqual(d.first_response_due);
+    });
+  });
+  it("rejecting validation releases the case back to CS execution with an explicit reason", async () => {
+    const d = await one(
+      `insert into demands(client_id,owner_id,title,description,stage) values('${client}','${cs}','Review adjustments','Saved context','Aguardando validação') returning id`,
+    );
+    await db.exec(
+      `insert into delivery_requests(demand_id,approval_state) values('${d.id}','aguardando')`,
+    );
+    await user(admin, async () => {
+      await db.query(
+        `select delivery_action('${d.id}','reject',1,'{"reason":"Ajustar comportamento e testar novamente"}')`,
+      );
+      expect((await one(`select stage from demands where id='${d.id}'`)).stage).toBe("Em execução");
+      expect(
+        (await one(`select approval_state from delivery_requests where demand_id='${d.id}'`))
+          .approval_state,
+      ).toBe("rejeitada");
+    });
   });
 });
