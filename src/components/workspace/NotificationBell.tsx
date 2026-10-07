@@ -25,7 +25,7 @@ export function NotificationBell() {
   const agenda = useQuery({
     queryKey: ["scheduled-tasks", session?.user.id],
     queryFn: () => tasks(),
-    enabled: !!profile,
+    enabled: !!profile && profile.role !== "technical",
     refetchInterval: 30000,
     staleTime: 30000,
     retry: false,

@@ -7,6 +7,10 @@ export async function assertOperator(context: AuthContext) {
   const { data, error } = await context.supabase.rpc("is_operator", { _uid: context.userId });
   if (error || data !== true) throw new Error("Acesso não autorizado.");
 }
+export async function assertWorkspace(context: AuthContext) {
+  const { data, error } = await context.supabase.rpc("is_workspace_user", { _uid: context.userId });
+  if (error || data !== true) throw new Error("Acesso não autorizado.");
+}
 export async function assertAdmin(context: AuthContext) {
   const { data, error } = await context.supabase.rpc("is_admin", { _uid: context.userId });
   if (error || data !== true) throw new Error("Acesso não autorizado.");
@@ -27,7 +31,9 @@ export async function readProfile(context: AuthContext): Promise<Profile | null>
     ? "admin"
     : roles?.some((r: any) => r.role === "cs")
       ? "cs"
-      : null;
+      : roles?.some((r: any) => r.role === "technical")
+        ? "technical"
+        : null;
   return role ? { ...p, role } : null;
 }
 export function checkResult(result: { error?: any; data?: any }) {
@@ -35,6 +41,14 @@ export function checkResult(result: { error?: any; data?: any }) {
   return result.data;
 }
 export function safeDbMessage(message: string) {
+  if (/already_assigned/.test(message)) return "Outra pessoa já assumiu este atendimento.";
+  if (/handoff_required/.test(message))
+    return "Encaminhe pelo card, informando contexto e próximo retorno.";
+  if (/approval_required/.test(message))
+    return "Esta mudança precisa seguir a fila de aprovação e publicação.";
+  if (/shared_portfolio/.test(message))
+    return "A carteira é compartilhada. Assuma a demanda para atendê-la.";
+  if (/invalid_file/.test(message)) return "Não foi possível confirmar o arquivo enviado.";
   if (/inactive_product|product_required|catalog_required/.test(message))
     return "Selecione um plano ativo do catálogo.";
   if (/products_unique_name/.test(message)) return "Já existe um produto ou plano com este nome.";

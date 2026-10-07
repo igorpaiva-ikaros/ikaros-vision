@@ -8,7 +8,12 @@ export function useBi() {
     profile: {
       id: "00000000-0000-4000-8000-000000000001",
       full_name: "CS Exemplo",
-      role: window.location.pathname === "/administracao" ? "admin" : "cs",
+      role:
+        window.location.pathname === "/tecnico"
+          ? "technical"
+          : ["/administracao", "/aprovacoes"].includes(window.location.pathname)
+            ? "admin"
+            : "cs",
       avatar_url: null,
     },
     includeTests: false,

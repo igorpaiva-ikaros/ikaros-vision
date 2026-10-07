@@ -47,7 +47,7 @@ function renderDialog() {
 }
 async function fill() {
   fireEvent.click(screen.getByRole("button", { name: "Novo cliente" }));
-  await screen.findByRole("option", { name: "Pedro" }, { timeout: 4000 });
+  await screen.findByRole("option", { name: "Growth" }, { timeout: 4000 });
   fireEvent.change(screen.getByLabelText("Plano contratado"), {
     target: { value: "00000000-0000-4000-8000-000000000090" },
   });
@@ -62,33 +62,26 @@ async function fill() {
   });
 }
 describe("Formulário de cliente", () => {
-  it("não permite enviar até escolher um responsável e confirma o cadastro", async () => {
+  it("cadastra na carteira compartilhada sem distribuição de clientes", async () => {
     renderDialog();
     await fill();
-    expect(screen.getByRole("button", { name: "Cadastrar cliente" })).toBeDisabled();
-    expect(mocks.create).not.toHaveBeenCalled();
-    fireEvent.change(screen.getByLabelText("Responsável de CS *"), {
-      target: { value: "76a3f1dc-d043-49ef-b9b3-bbfc8a29ef22" },
-    });
+    expect(screen.queryByLabelText("Responsável de CS *")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Cadastrar cliente" }));
     await waitFor(() => expect(mocks.reload).toHaveBeenCalledOnce());
     expect(mocks.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
-        ownerId: "76a3f1dc-d043-49ef-b9b3-bbfc8a29ef22",
+        ownerId: "",
         name: "Corretora Exemplo",
       }),
     });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
-  it("cadastra somente nome e responsável e salva o grupo opcional", async () => {
+  it("cadastra somente nome e salva o grupo opcional", async () => {
     renderDialog();
     fireEvent.click(screen.getByRole("button", { name: "Novo cliente" }));
-    await screen.findByRole("option", { name: "Pedro" });
+    await screen.findByRole("option", { name: "Growth" });
     fireEvent.change(screen.getByLabelText("Nome da empresa *"), {
       target: { value: "Empresa mínima" },
-    });
-    fireEvent.change(screen.getByLabelText("Responsável de CS *"), {
-      target: { value: "76a3f1dc-d043-49ef-b9b3-bbfc8a29ef22" },
     });
     fireEvent.change(screen.getByLabelText("Link do grupo (WhatsApp)"), {
       target: { value: "https://chat.whatsapp.com/TestGroupInvite12345" },
@@ -113,9 +106,6 @@ describe("Formulário de cliente", () => {
     });
     renderDialog();
     await fill();
-    fireEvent.change(screen.getByLabelText("Responsável de CS *"), {
-      target: { value: "76a3f1dc-d043-49ef-b9b3-bbfc8a29ef22" },
-    });
     fireEvent.click(screen.getByRole("button", { name: "Cadastrar cliente" }));
     fireEvent.click(await screen.findByRole("button", { name: "Confirmar envio" }));
     await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(2));

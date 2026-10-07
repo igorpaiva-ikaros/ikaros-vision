@@ -76,6 +76,7 @@ function success(page: NotionPage): RegistrationResult {
 
 export async function registerClient(creds: Creds, input: unknown, userId: string, store: RegistrationStore): Promise<RegistrationResult> {
   const parsed = clientRegistrationSchema.safeParse(input);
+  if (parsed.success && !parsed.data.ownerId) return { ok: false, message: "Selecione um colaborador ativo da equipe de CS." };
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Confira o cadastro." };
   const data = parsed.data;
   const hash = createHash("sha256").update(JSON.stringify(data)).digest("hex");

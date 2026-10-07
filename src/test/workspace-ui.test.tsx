@@ -19,6 +19,11 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: any) => fn }));
 vi.mock("@/lib/workspace.functions", () => ({
+  claimRecord: vi.fn(),
+  getCaseWorkspace: async () => ({ request: null, messages: [], files: [] }),
+  runDeliveryAction: vi.fn(),
+  postCaseMessage: vi.fn(),
+  registerCaseFile: vi.fn(),
   getRecordHistory: async () => [],
   getOperationState: mocks.get,
   saveRecord: mocks.save,
@@ -30,7 +35,7 @@ vi.mock("@/lib/workspace.functions", () => ({
 vi.mock("@/lib/bi-context", () => ({
   useBi: () => ({
     session: { user: { id: "00000000-0000-4000-8000-000000000001" } },
-    profile: { role: "cs", full_name: "CS Example" },
+    profile: { id: "00000000-0000-4000-8000-000000000001", role: "cs", full_name: "CS Example" },
     includeTests: mocks.includeTests,
     setIncludeTests: vi.fn(),
     reload: mocks.reload,
@@ -59,6 +64,7 @@ const ds = () => ({
       client_id: client,
       title: "Cotação com erro",
       description: "Proposta de consórcio não carrega",
+      owner_id: "00000000-0000-4000-8000-000000000001",
       stage: "Nova",
       priority: "Alta",
       classification: "Bug",
@@ -229,7 +235,7 @@ describe("Fast operational funnels", () => {
       </QueryClientProvider>,
     );
     expect(screen.getByRole("heading", { name: "CRM" })).toBeVisible();
-    expect(view.container.querySelector('[data-stage="7. Treinamento"]')).toBeInTheDocument();
+    expect(view.container.querySelector('[data-stage="8. Treinamento"]')).toBeInTheDocument();
     expect(mocks.get).toHaveBeenCalledTimes(1);
     expect(screen.queryByText("Carregando sua carteira…")).not.toBeInTheDocument();
   });

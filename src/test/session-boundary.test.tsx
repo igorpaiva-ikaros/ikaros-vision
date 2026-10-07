@@ -10,26 +10,44 @@ const mocks = vi.hoisted(() => ({
   getAccess: vi.fn(),
 }));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: any) => fn }));
-vi.mock("@/lib/workspace.functions", () => ({getAccess:mocks.getAccess}));
+vi.mock("@/lib/workspace.functions", () => ({ getAccess: mocks.getAccess }));
 vi.mock("@/lib/bi.functions", () => ({ getBiState: mocks.getState }));
 vi.mock("@/integrations/supabase/client", () => ({
   backendConfigured: true,
-  supabase: { auth: {
-    getSession: async () => ({ data: { session: mocks.session } }),
-    onAuthStateChange: (callback: any) => {
-      mocks.authEvent = callback;
-      return { data: { subscription: { unsubscribe: vi.fn() } } };
+  supabase: {
+    channel: () => {
+      const channel = { on: vi.fn(() => channel), subscribe: vi.fn(() => channel) };
+      return channel;
     },
-  } },
+    removeChannel: vi.fn(),
+    auth: {
+      getSession: async () => ({ data: { session: mocks.session } }),
+      onAuthStateChange: (callback: any) => {
+        mocks.authEvent = callback;
+        return { data: { subscription: { unsubscribe: vi.fn() } } };
+      },
+    },
+  },
 }));
 
 function Probe() {
   const bi = useBi();
-  return <><span data-testid="status">{bi.state?.status ?? "pending"}</span><span data-testid="data">{bi.dataset ? "has-data" : "no-data"}</span></>;
+  return (
+    <>
+      <span data-testid="status">{bi.state?.status ?? "pending"}</span>
+      <span data-testid="data">{bi.dataset ? "has-data" : "no-data"}</span>
+    </>
+  );
 }
 function mount() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  render(<QueryClientProvider client={client}><BiProvider><Probe /></BiProvider></QueryClientProvider>);
+  render(
+    <QueryClientProvider client={client}>
+      <BiProvider>
+        <Probe />
+      </BiProvider>
+    </QueryClientProvider>,
+  );
   return client;
 }
 beforeEach(() => {
@@ -62,7 +80,7 @@ it("modo demo não ignora a autorização do servidor", async () => {
 it("sair remove os dados e a demonstração antes de permitir outra sessão", async () => {
   sessionStorage.setItem("ikaros-bi-mode", "demo");
   mocks.session = { user: { id: "approved" } };
-  mocks.getAccess.mockResolvedValue({id:"approved",role:"admin",active:true});
+  mocks.getAccess.mockResolvedValue({ id: "approved", role: "admin", active: true });
   mocks.getState.mockResolvedValue({ status: "not_configured", missing: [] });
   const client = mount();
   await waitFor(() => expect(screen.getByTestId("status")).toHaveTextContent("demo"));

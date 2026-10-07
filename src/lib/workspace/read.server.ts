@@ -45,17 +45,20 @@ export async function operationState(context: AuthContext): Promise<OperationSta
       await allRows(context.supabase, table, cols),
     ]),
   );
-  const [sla, commissions, notifications, settings, people, products] = await Promise.all([
-    allRows(context.supabase, "demand_sla", "*"),
-    allRows(context.supabase, "upgrade_commission", "*"),
-    readNotifications(context.supabase),
-    context.supabase.from("app_settings").select("value").eq("key", "sla_risk_minutes").single(),
-    context.supabase.from("profiles").select("id,full_name"),
-    (context.supabase as any).from("products").select("*").order("name"),
-  ]);
+  const [sla, commissions, notifications, settings, people, products, deliveries] =
+    await Promise.all([
+      allRows(context.supabase, "demand_sla", "*"),
+      allRows(context.supabase, "upgrade_commission", "*"),
+      readNotifications(context.supabase),
+      context.supabase.from("app_settings").select("value").eq("key", "sla_risk_minutes").single(),
+      context.supabase.from("profiles").select("id,full_name"),
+      (context.supabase as any).from("products").select("*").order("name"),
+      allRows(context.supabase, "delivery_requests", "*"),
+    ]);
   const entries = await entriesPromise;
   return {
     ...Object.fromEntries(entries),
+    deliveries,
     sla,
     products: checkResult(products) ?? [],
     commissions,
@@ -81,6 +84,20 @@ export async function nativeDataset(context: AuthContext): Promise<Dataset> {
       })
       .map((d) => d.client_id),
   );
+  for (const r of ds.deliveries ?? []) {
+    const d = ds.demands.find((d) => d.id === r.demand_id);
+    if (
+      d &&
+      !d.completed_at &&
+      !d.canceled_at &&
+      r.technical &&
+      r.technical_stage !== "Pronta para validação" &&
+      [r.next_update_at, r.delivery_eta].some(
+        (date) => date && Date.parse(date) - Date.now() <= ds.riskMinutes * 60000,
+      )
+    )
+      riskyClients.add(d.client_id);
+  }
   ds.onboardings
     .filter(
       (o) =>

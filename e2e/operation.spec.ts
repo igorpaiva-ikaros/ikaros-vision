@@ -22,7 +22,7 @@ test("desktop drag and cached tab navigation use real UI and router", async ({ p
   await expect(page.getByRole("heading", { name: "CRM", exact: true })).toBeVisible();
   expect(await page.evaluate(() => (window as any).qaToken)).toBe(token);
   expect(await page.evaluate(() => (window as any).qaMetrics.reads)).toBe(reads);
-  await expect(page.locator('[data-stage="2. Cadastro"]')).toContainText(
+  await expect(page.locator('[data-stage="3. Cadastro"]')).toContainText(
     "Implantar carteira de seguros",
   );
   await page.getByRole("tab", { name: "Upgrades", exact: true }).click();
@@ -238,4 +238,41 @@ test("demanda abre perfil sem perder edição e agenda tarefa vinculada", async 
   await demand.getByRole("button", { name: "Close", exact: true }).click();
   await page.getByRole("link", { name: "Tarefas", exact: true }).click();
   await expect(page.getByRole("button", { name: /Retorno vinculado à demanda/ })).toBeVisible();
+});
+
+test("CS encaminha a mesma demanda, anexa evidência e comunica sem concluir", async ({ page }) => {
+  await page.goto("/operacao?tab=demands");
+  await page.getByText("Proposta de consórcio não carrega", { exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("button", { name: "Encaminhar à equipe técnica", exact: true }).click();
+  await dialog
+    .getByLabel("Contexto e impacto para a equipe técnica")
+    .fill("Erro reproduzido com impacto na proposta.");
+  await dialog.getByLabel("Retorno para confirmar a previsão (São Paulo)").fill("2099-01-01T12:00");
+  await dialog.getByRole("button", { name: "Enviar", exact: true }).click();
+  await expect(dialog).toContainText("Recebida");
+  await dialog.getByLabel("Nova observação").fill("Cliente aguarda retorno no horário combinado.");
+  await dialog.getByRole("button", { name: "Enviar observação", exact: true }).click();
+  await expect(dialog).toContainText("Cliente aguarda retorno no horário combinado.");
+  await dialog
+    .getByLabel("Anexar documento, imagem, vídeo ou áudio")
+    .setInputFiles({
+      name: "evidencia.txt",
+      mimeType: "text/plain",
+      buffer: Buffer.from("Evidência local de teste"),
+    });
+  await expect(dialog.getByRole("button", { name: /evidencia.txt/ })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Aprovar para publicação" })).toHaveCount(0);
+  await dialog.getByRole("button", { name: "Close", exact: true }).click();
+  await page.getByRole("link", { name: "Equipe técnica", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Equipe técnica", exact: true })).toBeVisible();
+  await expect(page.getByText("Proposta de consórcio não carrega", { exact: true })).toBeVisible();
+});
+
+test("interface técnica oferece apenas fila encaminhada e notificações", async ({ page }) => {
+  await page.goto("/tecnico");
+  await expect(page.getByRole("heading", { name: "Equipe técnica", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Carteira", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Administração", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "CRM", exact: true })).toHaveCount(0);
 });

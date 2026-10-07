@@ -27,11 +27,6 @@ export async function registerNativeClient(
     return { ok: false, message: "Acesso não autorizado." };
   }
   const db = context.supabase as any;
-  const { data: admin } = await db.rpc("is_admin", { _uid: context.userId });
-  if (!admin && data.ownerId !== context.userId)
-    return { ok: false, message: "Acesso não autorizado." };
-  const { data: cs } = await db.rpc("is_cs", { _uid: data.ownerId });
-  if (!cs) return { ok: false, message: "Selecione um responsável de CS ativo." };
   const existing = checkResult(
     await db.from("clients").select("id,code").eq("id", data.requestId).maybeSingle(),
   );
@@ -59,7 +54,7 @@ export async function registerNativeClient(
     id: data.requestId,
     name: data.name,
     empresa: data.name,
-    owner_id: data.ownerId,
+    owner_id: null,
     contact_name: data.contactName || null,
     whatsapp_group_url: data.whatsappGroupUrl || null,
     contact_email: data.email || null,
