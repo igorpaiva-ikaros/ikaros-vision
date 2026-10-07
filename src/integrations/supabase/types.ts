@@ -494,6 +494,7 @@ export type Database = {
       }
       demands: {
         Row: {
+          approval_repository_url: string | null
           cancel_reason: string | null
           canceled_at: string | null
           channel: string | null
@@ -536,6 +537,7 @@ export type Database = {
           version: number
         }
         Insert: {
+          approval_repository_url?: string | null
           cancel_reason?: string | null
           canceled_at?: string | null
           channel?: string | null
@@ -578,6 +580,7 @@ export type Database = {
           version?: number
         }
         Update: {
+          approval_repository_url?: string | null
           cancel_reason?: string | null
           canceled_at?: string | null
           channel?: string | null
@@ -1553,7 +1556,47 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      delivery_action_core: {
+        Args: {
+          _action: string
+          _data?: Json
+          _demand: string
+          _version: number
+        }
+        Returns: {
+          approval_state: string
+          approved_at: string | null
+          approved_by: string | null
+          change_summary: string | null
+          context: string
+          created_at: string
+          delivery_eta: string | null
+          demand_id: string
+          deployment_ref: string | null
+          forecast_reason: string | null
+          id: string
+          next_update_at: string | null
+          published_at: string | null
+          rejection_reason: string | null
+          repository_url: string | null
+          requested_by: string | null
+          technical: boolean
+          technical_result: string | null
+          technical_stage: string
+          technician_id: string | null
+          tests_result: string | null
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "delivery_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       delivery_deadline_tick: { Args: never; Returns: number }
+      demand_stage_trace: { Args: { _demand: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1761,6 +1804,58 @@ export type Database = {
         Returns: string
       }
       sla_tick: { Args: never; Returns: number }
+      submit_demand_validation: {
+        Args: { _id: string; _version: number }
+        Returns: {
+          approval_repository_url: string | null
+          cancel_reason: string | null
+          canceled_at: string | null
+          channel: string | null
+          classification: string | null
+          client_id: string | null
+          client_informed: boolean
+          client_validated: boolean
+          code: string
+          completed_at: string | null
+          complexity: string | null
+          context: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          first_response_at: string | null
+          first_response_due: string | null
+          forwarded_at: string | null
+          id: string
+          impact: string | null
+          is_test: boolean
+          notion_code: string | null
+          notion_id: string | null
+          notion_raw: Json | null
+          owner_id: string | null
+          policy_delivery_due: string | null
+          priority: string
+          published_at: string | null
+          received_at: string | null
+          resolution_due: string | null
+          sla_start_at: string | null
+          solution: string | null
+          source_date_precision: Json
+          stage: string
+          technical_type: string | null
+          test_result: string | null
+          tests_run: string | null
+          title: string
+          updated_at: string
+          validated_at: string | null
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "demands"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       task_reminder_tick: { Args: never; Returns: number }
       technical_queue: { Args: never; Returns: Json }
       transition_demand: {
@@ -1772,6 +1867,65 @@ export type Database = {
           _version: number
         }
         Returns: {
+          approval_repository_url: string | null
+          cancel_reason: string | null
+          canceled_at: string | null
+          channel: string | null
+          classification: string | null
+          client_id: string | null
+          client_informed: boolean
+          client_validated: boolean
+          code: string
+          completed_at: string | null
+          complexity: string | null
+          context: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          first_response_at: string | null
+          first_response_due: string | null
+          forwarded_at: string | null
+          id: string
+          impact: string | null
+          is_test: boolean
+          notion_code: string | null
+          notion_id: string | null
+          notion_raw: Json | null
+          owner_id: string | null
+          policy_delivery_due: string | null
+          priority: string
+          published_at: string | null
+          received_at: string | null
+          resolution_due: string | null
+          sla_start_at: string | null
+          solution: string | null
+          source_date_precision: Json
+          stage: string
+          technical_type: string | null
+          test_result: string | null
+          tests_run: string | null
+          title: string
+          updated_at: string
+          validated_at: string | null
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "demands"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      transition_demand_core: {
+        Args: {
+          _action: string
+          _id: string
+          _reason?: string
+          _stage?: string
+          _version: number
+        }
+        Returns: {
+          approval_repository_url: string | null
           cancel_reason: string | null
           canceled_at: string | null
           channel: string | null
