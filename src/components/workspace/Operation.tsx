@@ -521,13 +521,32 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
           </Button>
         </div>
       )}
-      <Input
-        aria-label="Buscar na carteira"
-        placeholder="Buscar por nome, cliente ou código"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="mb-5 max-w-lg"
-      />
+      <div className="mb-5 flex flex-wrap items-center gap-3">
+        <Input
+          aria-label="Buscar na carteira"
+          placeholder="Buscar por nome, cliente ou código"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="max-w-lg"
+        />
+        {["demands", "onboardings", "upgrades"].includes(tab) && (
+          <Select value={ownerFilter} onValueChange={setOwnerFilter}>
+            <SelectTrigger aria-label="Filtrar por responsável" className="w-56">
+              <SelectValue placeholder="Responsável" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="mine">Minhas demandas</SelectItem>
+              <SelectItem value="all">Toda a equipe</SelectItem>
+              <SelectItem value="unassigned">A assumir</SelectItem>
+              {(ds.people ?? []).map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.full_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
       {id && tab !== "clients" && tab !== "tasks" && !ds[tab].some((r) => r.id === id) && (
         <p role="alert" className="mb-4 text-sm text-muted-foreground">
           Registro não encontrado na sua carteira.
