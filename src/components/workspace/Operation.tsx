@@ -167,6 +167,7 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
   const [stageLimit, setStageLimit] = useState<Record<string, number>>({});
   useEffect(() => {
     setSearch("");
+    setOwnerFilter("mine");
     setChoosingClient(false);
     setEditor(null);
     setClientEditor(null);
@@ -201,8 +202,17 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
       (includeTests || !c.is_test) &&
       `${c.name} ${c.code}`.toLowerCase().includes(search.toLowerCase()),
   );
+  const matchesOwner = (row: RecordRow) =>
+    ownerFilter === "all"
+      ? true
+      : ownerFilter === "unassigned"
+        ? !row.owner_id
+        : ownerFilter === "mine"
+          ? row.owner_id === session?.user.id
+          : row.owner_id === ownerFilter;
   const visible = (row: RecordRow) =>
     (includeTests || (!row.is_test && !clientById.get(row.client_id ?? "")?.is_test)) &&
+    matchesOwner(row) &&
     `${title(row)} ${row.code} ${clientById.get(row.client_id ?? "")?.name ?? ""}`
       .toLowerCase()
       .includes(search.toLowerCase());
