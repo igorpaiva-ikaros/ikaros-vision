@@ -37,6 +37,13 @@ import { NewClientDialog } from "@/components/bi/NewClientDialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -144,6 +151,7 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
     retry: false,
   });
   const [search, setSearch] = useState("");
+  const [ownerFilter, setOwnerFilter] = useState<string>("mine");
   const [editor, setEditor] = useState<{ kind: Entity; client: string; row?: RecordRow } | null>(
     null,
   );
@@ -159,6 +167,7 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
   const [stageLimit, setStageLimit] = useState<Record<string, number>>({});
   useEffect(() => {
     setSearch("");
+    setOwnerFilter("mine");
     setChoosingClient(false);
     setEditor(null);
     setClientEditor(null);
@@ -193,8 +202,17 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
       (includeTests || !c.is_test) &&
       `${c.name} ${c.code}`.toLowerCase().includes(search.toLowerCase()),
   );
+  const matchesOwner = (row: RecordRow) =>
+    ownerFilter === "all"
+      ? true
+      : ownerFilter === "unassigned"
+        ? !row.owner_id
+        : ownerFilter === "mine"
+          ? row.owner_id === session?.user.id
+          : row.owner_id === ownerFilter;
   const visible = (row: RecordRow) =>
     (includeTests || (!row.is_test && !clientById.get(row.client_id ?? "")?.is_test)) &&
+    matchesOwner(row) &&
     `${title(row)} ${row.code} ${clientById.get(row.client_id ?? "")?.name ?? ""}`
       .toLowerCase()
       .includes(search.toLowerCase());
@@ -503,13 +521,32 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
           </Button>
         </div>
       )}
-      <Input
-        aria-label="Buscar na carteira"
-        placeholder="Buscar por nome, cliente ou código"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="mb-5 max-w-lg"
-      />
+      <div className="mb-5 flex flex-wrap items-center gap-3">
+        <Input
+          aria-label="Buscar na carteira"
+          placeholder="Buscar por nome, cliente ou código"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="max-w-lg"
+        />
+        {["demands", "onboardings", "upgrades"].includes(tab) && (
+          <Select value={ownerFilter} onValueChange={setOwnerFilter}>
+            <SelectTrigger aria-label="Filtrar por responsável" className="w-56">
+              <SelectValue placeholder="Responsável" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="mine">Minhas demandas</SelectItem>
+              <SelectItem value="all">Toda a equipe</SelectItem>
+              <SelectItem value="unassigned">A assumir</SelectItem>
+              {(ds.people ?? []).map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.full_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
       {id && tab !== "clients" && tab !== "tasks" && !ds[tab].some((r) => r.id === id) && (
         <p role="alert" className="mb-4 text-sm text-muted-foreground">
           Registro não encontrado na sua carteira.

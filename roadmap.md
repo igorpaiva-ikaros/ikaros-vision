@@ -15,3 +15,6 @@
 - [ ] Provisionar/autorizar contas internas e testar sincronização real
 - [ ] Publicar versão validada
 - [ ] Importação autorizada da carteira do ERP
+
+- [x] Filtro por responsável na aba CRM
+- [x] Conta CS criada: eduardo.gomes@ikaros.com.br (Eduardo Gomes)
