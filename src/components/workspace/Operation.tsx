@@ -37,6 +37,13 @@ import { NewClientDialog } from "@/components/bi/NewClientDialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -144,6 +151,7 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
     retry: false,
   });
   const [search, setSearch] = useState("");
+  const [ownerFilter, setOwnerFilter] = useState<string>("mine");
   const [editor, setEditor] = useState<{ kind: Entity; client: string; row?: RecordRow } | null>(
     null,
   );
