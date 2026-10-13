@@ -16,5 +16,5 @@
 - [ ] Publicar versão validada
 - [ ] Importação autorizada da carteira do ERP
 
-- [ ] Filtro por responsável na aba CRM (em andamento)
-- [ ] Criar conta CS: eduardo.gomes@ikaros.com.br (Eduardo)
+- [x] Filtro por responsável na aba CRM
+- [x] Conta CS criada: eduardo.gomes@ikaros.com.br (Eduardo Gomes)
