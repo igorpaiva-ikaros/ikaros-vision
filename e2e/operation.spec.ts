@@ -39,7 +39,7 @@ test("desktop drag and cached tab navigation use real UI and router", async ({ p
 test("schedule from card preserves client and appears in agenda", async ({ page }) => {
   await page.goto("/operacao?tab=demands");
   await page.getByRole("button", { name: "Agendar tarefa", exact: true }).click();
-  await expect(page.getByLabel("Cliente *", { exact: true })).toBeDisabled();
+  await expect(page.getByRole("combobox", { name: "Cliente *", exact: true })).toBeDisabled();
   await page.getByLabel("Tarefa *", { exact: true }).fill("Retornar com correção");
   await page.getByRole("button", { name: "Agendar", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
@@ -116,7 +116,7 @@ test("CS menu includes Concierge and calendar slots create and complete tasks", 
   const label = await slot.getAttribute("aria-label");
   await slot.click();
   await expect(page.getByLabel("Data e horário *", { exact: true })).toHaveValue(`${label!.split(" ")[1]}T10:00`);
-  await page.getByLabel("Cliente *", { exact: true }).selectOption("00000000-0000-4000-8000-000000000011");
+  await page.getByRole("combobox", { name: "Cliente *", exact: true }).selectOption("00000000-0000-4000-8000-000000000011");
   await page.getByLabel("Tarefa *", { exact: true }).fill("Revisar implantação no calendário");
   await page.getByRole("button", { name: "Agendar", exact: true }).click();
   const task = page.getByRole("button", { name: /Revisar implantação no calendário/ });
@@ -224,7 +224,7 @@ test("demanda abre perfil sem perder edição e agenda tarefa vinculada", async 
   await expect(demand.getByLabel("Nome *", { exact: true })).toHaveValue("Título preservado");
   await demand.getByRole("button", { name: "Agendar tarefa", exact: true }).click();
   const task = page.getByRole("dialog").filter({ has: page.getByLabel("Tarefa *", { exact: true }) });
-  await expect(task.getByLabel("Cliente *", { exact: true })).toBeDisabled();
+  await expect(task.getByRole("combobox", { name: "Cliente *", exact: true })).toBeDisabled();
   await task.getByLabel("Tarefa *", { exact: true }).fill("Retorno vinculado à demanda");
   await task.getByRole("button", { name: "Agendar", exact: true }).click();
   await expect(
