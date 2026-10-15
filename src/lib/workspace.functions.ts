@@ -157,12 +157,14 @@ export const getAdminState = createServerFn({ method: "POST" })
     );
     const calendar = checkResult(await db.rpc("contract_calendar"));
     const rr = checkResult(roles) ?? [];
+    const accesses = checkResult(await db.from("member_access").select("*")) ?? [];
     return {
       calendar,
       products: checkResult(products) ?? [],
       policies: checkResult(policies) ?? [],
       members: (checkResult(profiles) ?? []).map((p: any) => ({
         ...p,
+        access: accesses.find((a: any) => a.user_id === p.id),
         role: rr.some((r: any) => r.user_id === p.id && r.role === "admin")
           ? "admin"
           : rr.some((r: any) => r.user_id === p.id && r.role === "technical")
@@ -180,8 +182,11 @@ export const createMember = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => createUserInput.parse(d))
   .handler(async ({ context, data }) => {
-    const { assertAdmin, checkResult } = await import("./workspace/access.server");
-    await assertAdmin(context);
+    const { readProfile, checkResult } = await import("./workspace/access.server");
+    const { can } = await import("./workspace/customization");
+    const actor = await readProfile(context);
+    if (!can(actor, "manage_cs") || (actor?.role !== "admin" && data.role !== "cs"))
+      throw new Error("Acesso não autorizado.");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const db = supabaseAdmin as any;
     const { data: result, error } = await db.auth.admin.createUser({
@@ -649,3 +654,87 @@ export const getDemandStageTrace = createServerFn({ method: "POST" })
       );
     },
   );
+
+export const getPresentation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { assertWorkspace, checkResult } = await import("./workspace/access.server");
+    await assertWorkspace(context);
+    return checkResult(await (context.supabase as any).rpc("get_workspace_presentation")) as {
+      version: number;
+      published: import("./workspace/customization").Presentation;
+      draft?: import("./workspace/customization").Presentation;
+      published_at: string | null;
+    };
+  });
+export const savePresentation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(async (d: unknown) => {
+    const { presentationSchema } = await import("./workspace/customization");
+    return z
+      .object({
+        version: z.number().int().positive(),
+        config: presentationSchema,
+        publish: z.boolean(),
+      })
+      .strict()
+      .parse(d);
+  })
+  .handler(async ({ context, data }) => {
+    const { assertAdmin, checkResult } = await import("./workspace/access.server");
+    await assertAdmin(context);
+    return checkResult(
+      await (context.supabase as any).rpc("save_workspace_presentation", {
+        _version: data.version,
+        _config: data.config,
+        _publish: data.publish,
+      }),
+    );
+  });
+export const saveMemberAccess = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(async (d: unknown) => {
+    const { accessSchema } = await import("./workspace/customization");
+    return z.object({ id: z.string().uuid(), access: accessSchema }).strict().parse(d);
+  })
+  .handler(async ({ context, data }) => {
+    const { assertAdmin, checkResult } = await import("./workspace/access.server");
+    await assertAdmin(context);
+    return checkResult(
+      await (context.supabase as any).rpc("save_member_access", {
+        _id: data.id,
+        _access: data.access,
+      }),
+    );
+  });
+export const setCsLeader = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid(), leader: z.boolean() }).strict().parse(d))
+  .handler(async ({ context, data }) => {
+    const { checkResult } = await import("./workspace/access.server");
+    return checkResult(
+      await (context.supabase as any).rpc("set_cs_leader", { _id: data.id, _leader: data.leader }),
+    );
+  });
+export const getLeadershipState = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { readProfile, checkResult } = await import("./workspace/access.server");
+    const { can } = await import("./workspace/customization");
+    const p = await readProfile(context);
+    if (!can(p, "view_team") && !can(p, "manage_cs") && !can(p, "promote_cs"))
+      throw new Error("Acesso não autorizado.");
+    const db = context.supabase as any;
+    const members =
+      checkResult(await db.from("profiles").select("id,full_name,email,active,avatar_url")) ?? [];
+    const access = checkResult(await db.from("member_access").select("*")) ?? [];
+    const roles = checkResult(await db.rpc("cs_team_members")) ?? [];
+    let stats: any[] = [];
+    if (can(p, "view_team")) stats = checkResult(await db.rpc("cs_team_stats")) ?? [];
+    return {
+      members: members
+        .filter((m: any) => roles.includes(m.id))
+        .map((m: any) => ({ ...m, access: access.find((a: any) => a.user_id === m.id) })),
+      stats,
+    };
+  });

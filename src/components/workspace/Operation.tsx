@@ -1,4 +1,11 @@
 import {
+  displayLabel,
+  orderedStages,
+  areaAllowed,
+  type StageGroup,
+  type Pipeline,
+} from "@/lib/workspace/customization";
+import {
   CATEGORIES,
   categoryKey,
   categoryLabel,
@@ -143,6 +150,8 @@ export function SlaBadge({ row, ds }: { row: RecordRow; ds: OperationState }) {
   );
 }
 export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefined }) {
+  const { presentation } = useBi();
+  const [viewId, setViewId] = useState("all");
   const navigate = useNavigate();
   const { session, profile, includeTests, setIncludeTests, reload } = useBi();
   const qc = useQueryClient();
@@ -226,7 +235,17 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
     `${title(row)} ${row.code} ${clientById.get(row.client_id ?? "")?.name ?? ""}`
       .toLowerCase()
       .includes(search.toLowerCase());
-  const baseRows = tab === "clients" || tab === "tasks" ? [] : ds[tab].filter(visible);
+  const activeView = presentation?.views.find((v) => v.id === viewId && v.kind === tab);
+  const viewMatches = (r: RecordRow) =>
+    !activeView ||
+    ((!activeView.stages.length ||
+      activeView.stages.includes(
+        tab === "onboardings" && production ? (r.current_step ?? "") : (r.stage ?? ""),
+      )) &&
+      (!activeView.categories.length ||
+        activeView.categories.includes(categoryKey(r.classification))));
+  const baseRows =
+    tab === "clients" || tab === "tasks" ? [] : ds[tab].filter(visible).filter(viewMatches);
   const rows =
     tab === "demands" && categoryFilter !== "all"
       ? baseRows.filter((row) => categoryKey(row.classification) === categoryFilter)
@@ -380,7 +399,12 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
               className="mt-1 block text-xs text-muted-foreground"
               title={categoryInfo(row.classification)?.description}
             >
-              {categoryLabel(row.classification)}
+              {displayLabel(
+                presentation,
+                "category",
+                categoryKey(row.classification),
+                categoryLabel(row.classification),
+              )}
             </span>
           )}
           <div className="mt-1 text-xs text-muted-foreground">
@@ -460,14 +484,20 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
                   : ONBOARDING_STATUSES
                 : UPGRADE_STATUSES
             ).map((stage) => (
-              <option key={stage}>{stage}</option>
+              <option key={stage} value={stage}>
+                {displayLabel(
+                  presentation,
+                  tab === "onboardings" && !production ? "onboarding_status" : tab,
+                  stage,
+                )}
+              </option>
             ))}
           </select>
         )}
       </article>
     );
   }
-  const stages =
+  const baseStages =
     tab === "demands"
       ? DEMAND_STAGES
       : tab === "onboardings"
@@ -475,6 +505,18 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
           ? ONBOARDING_STEPS
           : ONBOARDING_STATUSES
         : UPGRADE_STATUSES;
+  const stageGroup = (
+    tab === "onboardings" && !production ? "onboarding_status" : tab
+  ) as StageGroup;
+  const stages = orderedStages(presentation, stageGroup, baseStages).filter(
+    (s) => !activeView?.stages.length || activeView.stages.includes(s),
+  );
+  if (!areaAllowed(profile, ["demands", "onboardings", "upgrades"].includes(tab) ? "crm" : tab))
+    return (
+      <Section title="Área oculta neste perfil">
+        <p>O administrador configurou os atalhos disponíveis para este perfil.</p>
+      </Section>
+    );
   return (
     <>
       <PageTitle
@@ -513,7 +555,9 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
                 value={kind}
                 className="shrink-0 rounded-none border-b-2 border-transparent px-5 py-3 data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-none"
               >
-                <span title={AREA_GUIDE[kind].description}>{AREA_GUIDE[kind].label}</span>
+                <span title={AREA_GUIDE[kind].description}>
+                  {displayLabel(presentation, "pipeline", kind, AREA_GUIDE[kind].label)}
+                </span>
               </TabsTrigger>
             ))}
             <Link
@@ -524,6 +568,36 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
             </Link>
           </TabsList>
         </Tabs>
+      )}
+      {!!presentation?.views.some((v) => v.kind === tab) && (
+        <div
+          className="mb-4 flex gap-2 overflow-x-auto"
+          role="group"
+          aria-label="Funis de visualização"
+        >
+          <Button
+            size="sm"
+            variant={viewId === "all" ? "secondary" : "outline"}
+            onClick={() => setViewId("all")}
+          >
+            Visão completa
+          </Button>
+          {presentation.views
+            .filter((v) => v.kind === tab)
+            .map((v) => (
+              <Button
+                key={v.id}
+                size="sm"
+                variant={viewId === v.id ? "secondary" : "outline"}
+                onClick={() => {
+                  setViewId(v.id);
+                  if (tab === "onboardings") setProduction(true);
+                }}
+              >
+                {v.label}
+              </Button>
+            ))}
+        </div>
       )}
       <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
         Entender esta área <HelpHint text={AREA_GUIDE[tab].description} />
@@ -594,7 +668,8 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
               }
               onClick={() => setCategoryFilter(c.key)}
             >
-              {c.name} <span className="ml-2 font-mono">{c.value}</span>
+              {c.key === "all" ? c.name : displayLabel(presentation, "category", c.key, c.name)}{" "}
+              <span className="ml-2 font-mono">{c.value}</span>
             </Button>
           ))}
         </div>
@@ -606,7 +681,7 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
       )}
       {empty && tab !== "tasks" && (
         <Section title="Nenhum registro nesta seleção">
-          {!includeTests && ds.clients.some((c) => c.is_test) && (
+          {profile?.role === "admin" && !includeTests && ds.clients.some((c) => c.is_test) && (
             <Button variant="outline" onClick={() => setIncludeTests(true)}>
               Mostrar carteira de teste
             </Button>
@@ -740,7 +815,9 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
                 className={`min-h-64 w-64 shrink-0 snap-start rounded-xl border p-3 transition-colors ${dropStage === stage ? "border-primary bg-primary/10" : "bg-muted/40"}`}
               >
                 <h2 className="flex items-start justify-between gap-2 font-sans text-sm font-semibold">
-                  <span>{stage}</span>
+                  <span title={`Função original: ${stage}`}>
+                    {displayLabel(presentation, stageGroup, stage)}
+                  </span>
                   <span className="rounded-full bg-background px-2 text-xs text-muted-foreground">
                     {group.length}
                   </span>
@@ -1114,6 +1191,7 @@ function RecordEditor({
       )}
     </Field>
   );
+  const { presentation } = useBi();
   const select = (key: string, label: string, options: string[], placeholder?: string) => (
     <Field label={label}>
       <select
@@ -1125,7 +1203,9 @@ function RecordEditor({
         {placeholder !== undefined && <option value="">{placeholder}</option>}
         {options.map((s) => (
           <option key={s} value={s}>
-            {key === "classification" ? categoryLabel(s) : s}
+            {key === "classification"
+              ? displayLabel(presentation, "category", categoryKey(s), categoryLabel(s))
+              : s}
           </option>
         ))}
       </select>

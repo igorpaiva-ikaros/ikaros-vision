@@ -177,7 +177,9 @@ describe("Client-first operation", () => {
     mount("demands");
     await screen.findByText("Nenhum registro nesta seleção");
     expect(screen.queryByRole("button", { name: /DEM-00001/ })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Mostrar carteira de teste" })).toBeVisible();
+    expect(
+      screen.queryByRole("button", { name: "Mostrar carteira de teste" }),
+    ).not.toBeInTheDocument();
   });
 });
 

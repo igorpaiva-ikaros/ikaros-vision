@@ -8,6 +8,7 @@ export interface Profile {
   active: boolean;
   commission_eligible: boolean;
   role: Role;
+  access?: import("./customization").MemberAccess;
 }
 export interface NativeClient {
   id: string;

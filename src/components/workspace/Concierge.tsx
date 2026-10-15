@@ -1,3 +1,5 @@
+import { useBi } from "@/lib/bi-context";
+import { displayLabel } from "@/lib/workspace/customization";
 import { useState } from "react";
 import { CircleHelp, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -114,7 +116,7 @@ const menus = [
     id: "administracao",
     title: "Administração",
     description:
-      "Administradores gerenciam contas, papéis, produtos e regras oficiais de SLA por categoria. Alterações de configuração devem ser feitas somente por quem tem esse acesso.",
+      "Administradores configuram equipe e acessos, nomes e funis do CRM, produtos e SLA. Em CRM e linguagem, salve um rascunho, confira a prévia e publique para a equipe. Líderes de CS recebem apenas as permissões que o administrador delegar.",
     children: [],
   },
   {
@@ -136,6 +138,7 @@ export const NAV_HELP: Record<string, string> = Object.fromEntries(
   menus.map((m) => [m.title, m.description]),
 );
 export function Concierge() {
+  const { presentation } = useBi();
   const [selected, setSelected] = useState("crm");
   const [query, setQuery] = useState("");
   const [area, setArea] = useState("demands");
@@ -205,7 +208,7 @@ export function Concierge() {
               {[
                 ...menus.map((m) => ({ title: m.title, text: m.description })),
                 ...CATEGORIES.map((c) => ({
-                  title: c.label,
+                  title: displayLabel(presentation, "category", c.value, c.label),
                   text: c.description + " Exemplo: " + c.example,
                 })),
                 ...Object.entries(STAGE_GUIDE).map(([title, text]) => ({ title, text })),
@@ -236,11 +239,23 @@ export function Concierge() {
                         variant={area === id ? "secondary" : "outline"}
                         onClick={() => setArea(id)}
                       >
-                        {AREA_GUIDE[id as keyof typeof AREA_GUIDE].label}
+                        {displayLabel(
+                          presentation,
+                          "pipeline",
+                          id,
+                          AREA_GUIDE[id as keyof typeof AREA_GUIDE].label,
+                        )}
                       </Button>
                     ))}
                   </div>
-                  <Section title={AREA_GUIDE[area as keyof typeof AREA_GUIDE].label}>
+                  <Section
+                    title={displayLabel(
+                      presentation,
+                      "pipeline",
+                      area,
+                      AREA_GUIDE[area as keyof typeof AREA_GUIDE].label,
+                    )}
+                  >
                     <p className="text-sm">
                       {AREA_GUIDE[area as keyof typeof AREA_GUIDE].description}
                     </p>
@@ -250,7 +265,12 @@ export function Concierge() {
                       <div className="grid gap-3 md:grid-cols-2">
                         {CATEGORIES.map((c) => (
                           <article key={c.value} className="rounded-lg border p-4">
-                            <h3 className="font-semibold text-sm">{c.label}</h3>
+                            <h3 className="font-semibold text-sm">
+                              {displayLabel(presentation, "category", c.value, c.label)}
+                            </h3>
+                            <p className="text-[11px] text-muted-foreground">
+                              Função original: {c.label}
+                            </p>
                             <p className="mt-2 text-sm text-muted-foreground">{c.description}</p>
                             <p className="mt-2 text-xs">Exemplo: {c.example}</p>
                           </article>
@@ -267,7 +287,9 @@ export function Concierge() {
                     <div className="space-y-3">
                       {stages.map(([name, text]) => (
                         <details key={name} className="rounded-lg border p-3">
-                          <summary className="cursor-pointer text-sm font-medium">{name}</summary>
+                          <summary className="cursor-pointer text-sm font-medium">
+                            {displayLabel(presentation, area, name)}
+                          </summary>
                           <p className="mt-2 text-sm text-muted-foreground">{text}</p>
                         </details>
                       ))}
@@ -277,7 +299,9 @@ export function Concierge() {
                     <Section title="Campos do atendimento">
                       {Object.entries(FIELD_HELP).map(([name, text]) => (
                         <details key={name} className="border-b py-3">
-                          <summary className="cursor-pointer text-sm font-medium">{name}</summary>
+                          <summary className="cursor-pointer text-sm font-medium">
+                            {displayLabel(presentation, area, name)}
+                          </summary>
                           <p className="mt-2 text-sm text-muted-foreground">{text}</p>
                         </details>
                       ))}

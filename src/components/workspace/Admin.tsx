@@ -1,3 +1,6 @@
+import { PresentationSettings } from "./PresentationSettings";
+import { AccessSettings } from "./AccessSettings";
+import { Link } from "@tanstack/react-router";
 import { Configuration } from "./Configuration";
 import { AvatarPicker } from "./AvatarPicker";
 import { useState } from "react";
@@ -36,6 +39,7 @@ export function Admin() {
     role: "cs" as "cs" | "admin" | "technical",
     avatar: null as string | null,
   });
+  const [section, setSection] = useState("team");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [minutes, setMinutes] = useState(60);
@@ -69,185 +73,231 @@ export function Admin() {
         title="Administração"
         subtitle="Contas, carteira compartilhada e regras da operação"
       />
+      <div
+        className="mb-5 flex flex-wrap gap-2"
+        role="tablist"
+        aria-label="Configurações administrativas"
+      >
+        {[
+          ["team", "Equipe e acessos"],
+          ["workflow", "CRM e linguagem"],
+          ["products", "Produtos e planos"],
+          ["sla", "Prazos e SLA"],
+          ["advanced", "Avançado"],
+        ].map(([key, label]) => (
+          <Button
+            key={key}
+            role="tab"
+            aria-selected={section === key}
+            variant={section === key ? "secondary" : "outline"}
+            onClick={() => setSection(key!)}
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
+      {section === "workflow" && <PresentationSettings />}
       {error && (
         <p role="alert" className="mb-4 text-destructive">
           {error}
         </p>
       )}
       <div className="grid gap-5 xl:grid-cols-2">
-        <Section title="Novo colaborador">
-          <form
-            className="space-y-3"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void perform(async () => {
-                await create({ data: newUser });
-                setNewUser({ name: "", email: "", password: "", role: "cs", avatar: null });
-              }, "Conta criada. Compartilhe o acesso diretamente com o colaborador.");
-            }}
-          >
-            <fieldset disabled={busy} className="space-y-3">
-              <AvatarPicker
-                value={newUser.avatar}
-                name={newUser.name}
-                onChange={(avatar) => setNewUser((v) => ({ ...v, avatar }))}
-              />
-              <Field label="Nome">
-                <Input
-                  required
-                  minLength={2}
-                  value={newUser.name}
-                  onChange={(e) => setNewUser((v) => ({ ...v, name: e.target.value }))}
-                />
-              </Field>
-              <Field label="E-mail (login)">
-                <Input
-                  type="email"
-                  required
-                  value={newUser.email}
-                  onChange={(e) => setNewUser((v) => ({ ...v, email: e.target.value }))}
-                />
-              </Field>
-              <Field label="Senha inicial">
-                <Input
-                  type="password"
-                  autoComplete="new-password"
-                  minLength={8}
-                  required
-                  value={newUser.password}
-                  onChange={(e) => setNewUser((v) => ({ ...v, password: e.target.value }))}
-                />
-              </Field>
-              <Field label="Acesso">
-                <select
-                  className={selectClass}
-                  value={newUser.role}
-                  onChange={(e) =>
-                    setNewUser((v) => ({
-                      ...v,
-                      role: e.target.value as "cs" | "admin" | "technical",
-                    }))
-                  }
-                >
-                  <option value="cs">CS · carteira e produção</option>
-                  <option value="admin">Administrador · gestão e contas</option>
-                  <option value="technical">Equipe técnica · somente demandas encaminhadas</option>
-                </select>
-              </Field>
-            </fieldset>
-            <Button disabled={busy}>Criar conta</Button>
-          </form>
-        </Section>
-        <Section title="Automação de SLA">
-          <p className={`text-sm ${healthy ? "text-success" : "text-destructive"}`}>
-            {healthy ? "Checagem ativa" : "Checagem sem confirmação recente"}
-          </p>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Última execução: {dateLabel(job?.ran_at)} · a cada 5 minutos
-          </p>
-          <p className="mt-3 text-sm">
-            As regras por categoria estão abaixo. A janela de risco avisa antes do vencimento,
-            respeitando a contagem útil ou corrida escolhida para cada obrigação.
-          </p>
-          <form
-            className="mt-4 space-y-3"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void perform(() => risk({ data: { minutes } }), "Janela de risco atualizada.");
-            }}
-          >
-            <Field
-              label={`Alerta antes do vencimento (atual: ${Number(ds.settings.find((x: any) => x.key === "sla_risk_minutes")?.value ?? 60)} minutos)`}
+        {section === "team" && (
+          <Section title="Novo colaborador">
+            <form
+              className="space-y-3"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void perform(async () => {
+                  await create({ data: newUser });
+                  setNewUser({ name: "", email: "", password: "", role: "cs", avatar: null });
+                }, "Conta criada. Compartilhe o acesso diretamente com o colaborador.");
+              }}
             >
-              <Input
-                type="number"
-                min={5}
-                max={240}
-                required
-                value={minutes}
-                onChange={(e) => setMinutes(Number(e.target.value))}
-              />
-            </Field>
-            <Button variant="outline" disabled={busy}>
-              Salvar janela de risco
-            </Button>
-          </form>
-          <p className="mt-3 text-xs text-muted-foreground">
-            Avisos internos para o responsável e os administradores, mesmo com o navegador fechado.
-            Cadastros de teste não geram avisos.
-          </p>
-        </Section>
-        <Section title="Entregas do mês" className="xl:col-span-2">
-          <div className="grid gap-3 text-sm sm:grid-cols-3">
-            <p>
-              Relatório de {ds.calendar?.report_month}: <b>{dateLabel(ds.calendar?.report_due)}</b>
-            </p>
-            <p>
-              NF do mês até: <b>{dateLabel(ds.calendar?.invoice_due)}</b>
-            </p>
-            <p>
-              Pagamento previsto: <b>{dateLabel(ds.calendar?.payment_expected)}</b>
-            </p>
-          </div>
-        </Section>
-        <Section title="Equipe" className="xl:col-span-2">
-          <div className="space-y-4">
-            {ds.members.map((m: any) => (
-              <MemberRow
-                key={`${m.id}-${m.role}-${m.active}-${m.commission_eligible}`}
-                member={m}
-              />
-            ))}
-          </div>
-        </Section>
-        <Section
-          title={`Vínculos pendentes da migração · ${ds.issues.length}`}
-          className="xl:col-span-2"
-        >
-          {!ds.issues.length ? (
-            <p className="text-sm text-muted-foreground">Nenhum vínculo pendente.</p>
-          ) : (
-            ds.issues.map((issue: any) => (
-              <div key={issue.id} className="grid gap-2 border-b py-3 sm:grid-cols-[1fr_300px]">
-                <div>
-                  <p className="text-sm font-medium">{issue.title ?? issue.notion_id}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {issue.source} · {issue.kind}
-                  </p>
-                </div>
-                <select
-                  className={selectClass}
-                  aria-label={`Vincular ${issue.title ?? issue.id}`}
-                  disabled={busy}
-                  defaultValue=""
-                  onChange={(e) => {
-                    if (e.target.value)
-                      void perform(
-                        () => resolve({ data: { issue: issue.id, client: e.target.value } }),
-                        "Vínculo resolvido.",
-                      );
-                  }}
-                >
-                  <option value="">Escolha o cliente correto</option>
-                  {ds.clients.map((c: any) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
+              <fieldset disabled={busy} className="space-y-3">
+                <AvatarPicker
+                  value={newUser.avatar}
+                  name={newUser.name}
+                  onChange={(avatar) => setNewUser((v) => ({ ...v, avatar }))}
+                />
+                <Field label="Nome">
+                  <Input
+                    required
+                    minLength={2}
+                    value={newUser.name}
+                    onChange={(e) => setNewUser((v) => ({ ...v, name: e.target.value }))}
+                  />
+                </Field>
+                <Field label="E-mail (login)">
+                  <Input
+                    type="email"
+                    required
+                    value={newUser.email}
+                    onChange={(e) => setNewUser((v) => ({ ...v, email: e.target.value }))}
+                  />
+                </Field>
+                <Field label="Senha inicial">
+                  <Input
+                    type="password"
+                    autoComplete="new-password"
+                    minLength={8}
+                    required
+                    value={newUser.password}
+                    onChange={(e) => setNewUser((v) => ({ ...v, password: e.target.value }))}
+                  />
+                </Field>
+                <Field label="Acesso">
+                  <select
+                    className={selectClass}
+                    value={newUser.role}
+                    onChange={(e) =>
+                      setNewUser((v) => ({
+                        ...v,
+                        role: e.target.value as "cs" | "admin" | "technical",
+                      }))
+                    }
+                  >
+                    <option value="cs">CS · carteira e produção</option>
+                    <option value="admin">Administrador · gestão e contas</option>
+                    <option value="technical">
+                      Equipe técnica · somente demandas encaminhadas
                     </option>
-                  ))}
-                </select>
-              </div>
-            ))
-          )}
-        </Section>
+                  </select>
+                </Field>
+              </fieldset>
+              <Button disabled={busy}>Criar conta</Button>
+            </form>
+          </Section>
+        )}
+        {section === "sla" && (
+          <Section title="Automação de SLA">
+            <p className={`text-sm ${healthy ? "text-success" : "text-destructive"}`}>
+              {healthy ? "Checagem ativa" : "Checagem sem confirmação recente"}
+            </p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Última execução: {dateLabel(job?.ran_at)} · a cada 5 minutos
+            </p>
+            <p className="mt-3 text-sm">
+              As regras por categoria estão abaixo. A janela de risco avisa antes do vencimento,
+              respeitando a contagem útil ou corrida escolhida para cada obrigação.
+            </p>
+            <form
+              className="mt-4 space-y-3"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void perform(() => risk({ data: { minutes } }), "Janela de risco atualizada.");
+              }}
+            >
+              <Field
+                label={`Alerta antes do vencimento (atual: ${Number(ds.settings.find((x: any) => x.key === "sla_risk_minutes")?.value ?? 60)} minutos)`}
+              >
+                <Input
+                  type="number"
+                  min={5}
+                  max={240}
+                  required
+                  value={minutes}
+                  onChange={(e) => setMinutes(Number(e.target.value))}
+                />
+              </Field>
+              <Button variant="outline" disabled={busy}>
+                Salvar janela de risco
+              </Button>
+            </form>
+            <p className="mt-3 text-xs text-muted-foreground">
+              Avisos internos para o responsável e os administradores, mesmo com o navegador
+              fechado. Cadastros de teste não geram avisos.
+            </p>
+          </Section>
+        )}
+        {section === "advanced" && (
+          <Section title="Entregas do mês" className="xl:col-span-2">
+            <div className="grid gap-3 text-sm sm:grid-cols-3">
+              <p>
+                Relatório de {ds.calendar?.report_month}:{" "}
+                <b>{dateLabel(ds.calendar?.report_due)}</b>
+              </p>
+              <p>
+                NF do mês até: <b>{dateLabel(ds.calendar?.invoice_due)}</b>
+              </p>
+              <p>
+                Pagamento previsto: <b>{dateLabel(ds.calendar?.payment_expected)}</b>
+              </p>
+            </div>
+          </Section>
+        )}
+        {section === "team" && (
+          <Section title="Equipe" className="xl:col-span-2">
+            <div className="space-y-4">
+              {ds.members.map((m: any) => (
+                <div key={m.id}>
+                  <MemberRow
+                    key={`${m.id}-${m.role}-${m.active}-${m.commission_eligible}-${JSON.stringify(m.access)}`}
+                    member={m}
+                  />
+                  {m.role === "cs" && <AccessSettings member={m} />}
+                </div>
+              ))}
+            </div>
+          </Section>
+        )}
+        {section === "advanced" && (
+          <Section
+            title={`Vínculos pendentes da migração · ${ds.issues.length}`}
+            className="xl:col-span-2"
+          >
+            {!ds.issues.length ? (
+              <p className="text-sm text-muted-foreground">Nenhum vínculo pendente.</p>
+            ) : (
+              ds.issues.map((issue: any) => (
+                <div key={issue.id} className="grid gap-2 border-b py-3 sm:grid-cols-[1fr_300px]">
+                  <div>
+                    <p className="text-sm font-medium">{issue.title ?? issue.notion_id}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {issue.source} · {issue.kind}
+                    </p>
+                  </div>
+                  <select
+                    className={selectClass}
+                    aria-label={`Vincular ${issue.title ?? issue.id}`}
+                    disabled={busy}
+                    defaultValue=""
+                    onChange={(e) => {
+                      if (e.target.value)
+                        void perform(
+                          () => resolve({ data: { issue: issue.id, client: e.target.value } }),
+                          "Vínculo resolvido.",
+                        );
+                    }}
+                  >
+                    <option value="">Escolha o cliente correto</option>
+                    {ds.clients.map((c: any) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ))
+            )}
+            <Link to="/integracao" className="mt-4 inline-block text-primary underline">
+              Abrir migração e integração
+            </Link>
+          </Section>
+        )}
       </div>
-      <Configuration
-        products={ds.products ?? []}
-        policies={ds.policies ?? []}
-        reload={() => {
-          reload();
-          void query.refetch();
-        }}
-      />
+      {(section === "products" || section === "sla") && (
+        <Configuration
+          section={section as "products" | "sla"}
+          products={ds.products ?? []}
+          policies={ds.policies ?? []}
+          reload={() => {
+            reload();
+            void query.refetch();
+          }}
+        />
+      )}
     </>
   );
 }
