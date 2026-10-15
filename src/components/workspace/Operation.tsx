@@ -1118,6 +1118,7 @@ function RecordEditor({
     <Field label={label}>
       <select
         className={selectClass}
+        aria-label={label}
         value={values[key] ?? ""}
         onChange={(e) => update(key, e.target.value)}
       >
