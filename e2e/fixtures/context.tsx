@@ -1,11 +1,16 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getPresentation } from "./functions";
 import { useQueryClient } from "@tanstack/react-query";
 export function useBi() {
   const qc = useQueryClient();
   const lead=sessionStorage.getItem("qa-leader")==="true";
-  const [previewConfig, setPreviewConfig] = useState(false);
+  const { data: previewConfig = false } = useQuery({
+    queryKey: ["qa-preview-config"],
+    queryFn: () => false,
+    initialData: false,
+    staleTime: Infinity,
+  });
+  const setPreviewConfig = (value: boolean) => qc.setQueryData(["qa-preview-config"], value);
   const q = useQuery({
     queryKey: ["presentation", "00000000-0000-4000-8000-000000000001"],
     queryFn: getPresentation,
@@ -36,7 +41,7 @@ export function useBi() {
     authReady: true,
     state: { status: "ready" },
     mode: "real",
-    reload: () => void qc.invalidateQueries(),
+    reload: () => void qc.invalidateQueries({ predicate: query => query.queryKey[0] !== "qa-preview-config" }),
     setMode: () => {},
     period: {},
     setPeriod: () => {},

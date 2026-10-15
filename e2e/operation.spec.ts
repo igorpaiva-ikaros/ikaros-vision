@@ -393,6 +393,7 @@ test("administrador salva rascunho, publica linguagem e separa configuração", 
   expect(
     await page.evaluate(() => (window as any).qaPresentation.published.labels["category:Bug"]),
   ).toBeUndefined();
+  await page.screenshot({ path: "vision-qa/admin-draft-settings.png", fullPage: true });
   await page
     .getByLabel("Revisei os nomes e entendo que as regras e funções originais permanecem.")
     .check();
@@ -423,4 +424,5 @@ test("líder acessa resultados e cadastro CS sem configuração administrativa",
  await expect(page.getByLabel('Mostrar testes')).toHaveCount(0);
  await expect(page.getByRole('tab',{name:'Prazos e SLA'})).toHaveCount(0);
  await expect(page.getByRole('option',{name:/Administrador/})).toHaveCount(0);
+ await page.screenshot({path:'vision-qa/leadership.png',fullPage:true});
 });
