@@ -1,9 +1,16 @@
+import { categoryLabel } from "@/lib/domain/categories";
 import { ExternalLink } from "lucide-react";
 import type { Client, Demand } from "@/lib/domain/types";
 import { clientName, slaOverdue } from "@/lib/domain/metrics";
 import { formatDateTime } from "@/lib/domain/period";
 import { mailtoLink, whatsappLink } from "@/lib/domain/contact";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Bool, Val } from "./primitives";
@@ -19,30 +26,56 @@ function Row({ k, v }: { k: string; v: React.ReactNode }) {
 function Block({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="border-t pt-4">
-      <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">{title}</h3>
+      <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+        {title}
+      </h3>
       {children}
     </div>
   );
 }
-const Txt = ({ v }: { v: string | null }) => <p className="whitespace-pre-wrap text-sm"><Val v={v} /></p>;
+const Txt = ({ v }: { v: string | null }) => (
+  <p className="whitespace-pre-wrap text-sm">
+    <Val v={v} />
+  </p>
+);
 
 export function ContactLinks({ c }: { c: Client }) {
-  const mails = [mailtoLink(c.emailContato), mailtoLink(c.emailEmpresa)].filter(Boolean) as string[];
+  const mails = [mailtoLink(c.emailContato), mailtoLink(c.emailEmpresa)].filter(
+    Boolean,
+  ) as string[];
   const wa = whatsappLink(c.whatsappContato);
-  if (!mails.length && !wa) return <span className="text-xs italic text-muted-foreground">Sem contato válido</span>;
+  if (!mails.length && !wa)
+    return <span className="text-xs italic text-muted-foreground">Sem contato válido</span>;
   return (
     <div className="flex flex-wrap gap-2">
       {mails.map((m) => (
-        <a key={m} href={m} className="text-xs text-primary underline underline-offset-2">{m.replace("mailto:", "")}</a>
+        <a key={m} href={m} className="text-xs text-primary underline underline-offset-2">
+          {m.replace("mailto:", "")}
+        </a>
       ))}
-      {wa && <a href={wa} target="_blank" rel="noreferrer" className="text-xs text-primary underline underline-offset-2">WhatsApp</a>}
+      {wa && (
+        <a
+          href={wa}
+          target="_blank"
+          rel="noreferrer"
+          className="text-xs text-primary underline underline-offset-2"
+        >
+          WhatsApp
+        </a>
+      )}
     </div>
   );
 }
 
 export function DemandDetail({
-  demand, clients, onClose,
-}: { demand: Demand | null; clients: Map<string, Client>; onClose: () => void }) {
+  demand,
+  clients,
+  onClose,
+}: {
+  demand: Demand | null;
+  clients: Map<string, Client>;
+  onClose: () => void;
+}) {
   const d = demand;
   const overdue = d ? slaOverdue(d) : null;
   return (
@@ -58,13 +91,15 @@ export function DemandDetail({
               </div>
               <SheetTitle className="font-display text-xl">{d.title ?? "Sem título"}</SheetTitle>
               <SheetDescription>
-                {d.classification ?? "Sem classificação"} · Prioridade {d.priority ?? "sem informação"}
+                {categoryLabel(d.classification)} · Prioridade {d.priority ?? "sem informação"}
               </SheetDescription>
             </SheetHeader>
             <div className="space-y-4 px-4 pb-8">
               {d.notionUrl ? (
                 <Button asChild variant="outline" size="sm">
-                  <a href={d.notionUrl} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4" /> Abrir no Notion</a>
+                  <a href={d.notionUrl} target="_blank" rel="noreferrer">
+                    <ExternalLink className="h-4 w-4" /> Abrir no Notion
+                  </a>
                 </Button>
               ) : (
                 <p className="text-xs text-muted-foreground">Registro do Ikaros Vision.</p>
@@ -88,7 +123,10 @@ export function DemandDetail({
                       <div className="font-medium">{clientName(c)}</div>
                       {c && (
                         <div className="mt-1 space-y-1 text-xs text-muted-foreground">
-                          <div>Contato: {c.contatoPrincipal ?? "Sem informação"} · Plano: {c.plano ?? "Sem informação"}</div>
+                          <div>
+                            Contato: {c.contatoPrincipal ?? "Sem informação"} · Plano:{" "}
+                            {c.plano ?? "Sem informação"}
+                          </div>
                           <ContactLinks c={c} />
                         </div>
                       )}
@@ -98,7 +136,12 @@ export function DemandDetail({
               </Block>
               <Block title="Datas e responsável">
                 <dl>
-                  <Row k="Responsável" v={<Val v={d.responsaveis.map((p) => p.name ?? "Sem nome").join(", ") || null} />} />
+                  <Row
+                    k="Responsável"
+                    v={
+                      <Val v={d.responsaveis.map((p) => p.name ?? "Sem nome").join(", ") || null} />
+                    }
+                  />
                   <Row k="Entrada" v={formatDateTime(d.createdAt)} />
                   <Row k="Prazo final" v={formatDateTime(d.dueDate)} />
                   <Row k="Publicação" v={formatDateTime(d.publishedAt)} />
@@ -107,19 +150,35 @@ export function DemandDetail({
                   <Row k="Cliente validou?" v={<Bool v={d.clientValidated} />} />
                 </dl>
                 {d.status === "Publicada" && (
-                  <p className="mt-2 text-xs text-muted-foreground">Publicada não significa concluída: a conclusão exige solução registrada e comunicação ao cliente.</p>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Publicada não significa concluída: a conclusão exige solução registrada e
+                    comunicação ao cliente.
+                  </p>
                 )}
               </Block>
               <Block title="SLA da operação">
                 <dl>
-                  <Row k="Situação" v={overdue === null ? <Val v={null} /> : overdue ? <span className="font-medium text-destructive">Em atraso</span> : "Sem atraso indicado"} />
+                  <Row
+                    k="Situação"
+                    v={
+                      overdue === null ? (
+                        <Val v={null} />
+                      ) : overdue ? (
+                        <span className="font-medium text-destructive">Em atraso</span>
+                      ) : (
+                        "Sem atraso indicado"
+                      )
+                    }
+                  />
                   <Row k="Status SLA útil" v={<Val v={d.sla.statusUtil} />} />
                   <Row k="Status do SLA" v={<Val v={d.sla.statusSla} />} />
                   <Row k="Prazo 1ª resposta" v={formatDateTime(d.sla.prazoPrimeiraResposta)} />
                   <Row k="Prazo solução" v={formatDateTime(d.sla.prazoSolucao)} />
                   <Row k="Prazo final efetivo" v={formatDateTime(d.sla.prazoFinalEfetivo)} />
                 </dl>
-                <p className="mt-2 text-xs text-muted-foreground">Prazos calculados pelo servidor em horário útil.</p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Prazos calculados pelo servidor em horário útil.
+                </p>
               </Block>
               <Block title="Solução e testes">
                 <dl>

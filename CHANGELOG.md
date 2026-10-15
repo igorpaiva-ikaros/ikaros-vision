@@ -1,3 +1,19 @@
+## 2026-10-15 — Concierge, categorias e dois compromissos de prazo
+
+- Concierge com busca, áreas, etapas, exemplos por categoria e ajuda contextual acessível.
+- Categoria com significado único, filtro horizontal combinado com responsável/busca e comparação de entradas no BI.
+- Primeira resposta independente da previsão. SLA oficial e prazo combinado medidos separadamente; revisões preservam primeiro prazo e justificativa no histórico.
+- Recálculo preserva avisos de aprovação e técnico e alertas de SLA cujo prazo continua válido.
+- Substitui a exigência de prazo antes da primeira resposta proposta inicialmente na PR #3.
+
+## 2026-10-15 — SLA por categoria e prazo na 1ª resposta
+
+- Corrige regressão de 07/10: a `20261007080100_shared_portfolio` recriou o gatilho das demandas com 4 horas úteis e próxima data útil fixas, ignorando Administração → SLA por categoria e o prazo automático de entrega. A migration `20261015180000` volta a calcular os prazos pela regra salva da categoria; registros encerrados conservam os prazos com que foram atendidos. As regras salvas não são alteradas.
+- Na aplicação da migration, demandas abertas com prazos divergentes da regra salva são alinhadas uma única vez e seus avisos antigos arquivados; a checagem de 5 minutos recria os avisos com os prazos corretos.
+- Nova demanda sem categoria padrão: Classificação passa a ser obrigatória (antes vinha "Suporte" preenchido). Complexidade (Pequena · CS executa / Complexa · setor técnico) e Prazo de entrega combinado ficam visíveis no card, que também mostra "Entrega até".
+- Regra inicial de primeira resposta substituída pela definição acima: acolhimento e compromisso de entrega separados.
+- Verificação: migration, recálculo e regra da 1ª resposta conferidos em PostgreSQL 16 local com a cadeia do teste de coordenação, incluindo base simulada com demandas abertas, encerradas e avisos. Novos testes de banco, interface e navegador; TypeScript, testes e build pelo CI Verificar BI do PR (ambiente desta alteração sem acesso ao registro npm).
+
 ## 2026-10-07 — Validação pelo pipeline
 
 - Barra de etapas clicáveis no card, com percurso registrado e etapas visitadas.

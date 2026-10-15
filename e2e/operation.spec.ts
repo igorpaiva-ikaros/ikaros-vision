@@ -12,7 +12,7 @@ test("desktop drag and cached tab navigation use real UI and router", async ({ p
     "Proposta de consórcio não carrega",
   );
   await expect.poll(() => page.evaluate(() => (window as any).qaMetrics.moves)).toBe(1);
-  await expect(page.getByLabel("Mover DEM-00001")).toBeEnabled();
+  await expect(page.getByLabel("Mover DEM-00001", { exact: true })).toBeEnabled();
   const token = await page.evaluate(() => {
     (window as any).qaToken = "retained-document";
     return (window as any).qaToken;
@@ -30,7 +30,7 @@ test("desktop drag and cached tab navigation use real UI and router", async ({ p
     "Ampliar equipe comercial",
   );
   await page.screenshot({
-    path: "/workspace/scratch/b964e3016bde/vision-qa/operation-desktop.png",
+    path: "vision-qa/operation-desktop.png",
     fullPage: true,
     animations: "disabled",
   });
@@ -39,8 +39,8 @@ test("desktop drag and cached tab navigation use real UI and router", async ({ p
 test("schedule from card preserves client and appears in agenda", async ({ page }) => {
   await page.goto("/operacao?tab=demands");
   await page.getByRole("button", { name: "Agendar tarefa", exact: true }).click();
-  await expect(page.getByLabel("Cliente *")).toBeDisabled();
-  await page.getByLabel("Tarefa *").fill("Retornar com correção");
+  await expect(page.getByRole("combobox", { name: "Cliente *", exact: true })).toBeDisabled();
+  await page.getByLabel("Tarefa *", { exact: true }).fill("Retornar com correção");
   await page.getByRole("button", { name: "Agendar", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.getByRole("link", { name: "Tarefas", exact: true }).click();
@@ -49,7 +49,7 @@ test("schedule from card preserves client and appears in agenda", async ({ page 
 test("mobile has accessible movement and scheduling", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/operacao?tab=demands");
-  await page.getByLabel("Mover DEM-00001").selectOption("Em execução");
+  await page.getByLabel("Mover DEM-00001", { exact: true }).selectOption("Em execução");
   await expect(page.locator('[data-stage="Em execução"]')).toContainText(
     "Proposta de consórcio não carrega",
   );
@@ -58,9 +58,9 @@ test("mobile has accessible movement and scheduling", async ({ page }) => {
     .getByRole("button", { name: "Agendar tarefa" })
     .click();
   await expect(page.getByRole("dialog")).toBeVisible();
-  await expect(page.getByLabel("Data e horário *")).toBeVisible();
+  await expect(page.getByLabel("Data e horário *", { exact: true })).toBeVisible();
   await page.screenshot({
-    path: "/workspace/scratch/b964e3016bde/vision-qa/operation-mobile.png",
+    path: "vision-qa/operation-mobile.png",
     fullPage: true,
     animations: "disabled",
   });
@@ -69,12 +69,12 @@ test("administrator can create accounts with profile photo", async ({ page }) =>
   await page.goto("/administracao");
   await expect(page.getByRole("heading", { name: "Novo colaborador" })).toBeVisible();
   await expect(page.getByLabel("E-mail (login)", { exact: true })).toBeVisible();
-  await expect(page.getByLabel("Senha inicial")).toBeVisible();
+  await expect(page.getByLabel("Senha inicial", { exact: true })).toBeVisible();
   const form = page
     .locator("section")
     .filter({ has: page.getByRole("heading", { name: "Novo colaborador", exact: true }) });
   await form.getByRole("button", { name: "Escolher foto" }).click();
-  await form.getByLabel("Arquivo da foto de perfil").setInputFiles({
+  await form.getByLabel("Arquivo da foto de perfil", { exact: true }).setInputFiles({
     name: "avatar.png",
     mimeType: "image/png",
     buffer: Buffer.from(
@@ -92,17 +92,19 @@ test("administrator can create accounts with profile photo", async ({ page }) =>
   });
   await expect(form.getByAltText("Foto de ")).toBeVisible();
   await form.getByLabel("Nome", { exact: true }).fill("Novo CS");
-  await form.getByLabel("E-mail (login)").fill("new@example.test");
-  await form.getByLabel("Senha inicial").fill("fixture-pass-123");
+  await form.getByLabel("E-mail (login)", { exact: true }).fill("new@example.test");
+  await form.getByLabel("Senha inicial", { exact: true }).fill("fixture-pass-123");
   await form.getByRole("button", { name: "Criar conta" }).click();
   await expect(page.getByText(/Conta criada/)).toBeVisible();
 });
 
-test("CS menu has five areas and calendar slots create and complete tasks", async ({ page }) => {
+test("CS menu includes Concierge and calendar slots create and complete tasks", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto("/operacao?tab=tasks");
   const menu = page.locator("aside").first().getByRole("navigation");
-  await expect(menu.getByRole("link")).toHaveCount(5);
+  await expect(menu.getByRole("link")).toHaveCount(6);
   await expect(menu.getByRole("link", { name: "CRM", exact: true })).toBeVisible();
   await expect(
     menu.getByRole("link", { name: "Histórico de entregas", exact: true }),
@@ -113,9 +115,9 @@ test("CS menu has five areas and calendar slots create and complete tasks", asyn
   const slot = page.getByRole("button", { name: /Agendar .* às 10h/ }).first();
   const label = await slot.getAttribute("aria-label");
   await slot.click();
-  await expect(page.getByLabel("Data e horário *")).toHaveValue(`${label!.split(" ")[1]}T10:00`);
-  await page.getByLabel("Cliente *").selectOption("00000000-0000-4000-8000-000000000011");
-  await page.getByLabel("Tarefa *").fill("Revisar implantação no calendário");
+  await expect(page.getByLabel("Data e horário *", { exact: true })).toHaveValue(`${label!.split(" ")[1]}T10:00`);
+  await page.getByRole("combobox", { name: "Cliente *", exact: true }).selectOption("00000000-0000-4000-8000-000000000011");
+  await page.getByLabel("Tarefa *", { exact: true }).fill("Revisar implantação no calendário");
   await page.getByRole("button", { name: "Agendar", exact: true }).click();
   const task = page.getByRole("button", { name: /Revisar implantação no calendário/ });
   await expect(task).toBeVisible();
@@ -123,7 +125,7 @@ test("CS menu has five areas and calendar slots create and complete tasks", asyn
   await page.getByRole("button", { name: "Concluir tarefa" }).click();
   await expect(task).toContainText("Concluída");
   await page.screenshot({
-    path: "/workspace/scratch/b964e3016bde/vision-qa/calendar-desktop.png",
+    path: "vision-qa/calendar-desktop.png",
     fullPage: true,
     animations: "disabled",
   });
@@ -140,16 +142,16 @@ test("administrator configures catalogue and rules only on explicit save", async
   const plan = page
     .locator("details")
     .filter({ has: page.locator("summary").filter({ hasText: "Wing" }) });
-  await plan.getByLabel("Mensalidade · contrato mensal (R$)").fill("1250");
+  await plan.getByLabel("Mensalidade · contrato mensal (R$)", { exact: true }).fill("1250");
   await plan.getByRole("button", { name: "Salvar plano" }).click();
   await expect(plan.locator("summary")).toContainText("1.250");
   const policy = page
     .locator("details")
     .filter({ has: page.locator("summary").filter({ hasText: "Bug" }) });
   await policy.locator("summary").click();
-  await page.getByLabel("Bug Primeira resposta quantidade").fill("30");
-  await page.getByLabel("Bug Primeira resposta unidade").selectOption("minutes");
-  await page.getByLabel("Bug Primeira resposta contagem").selectOption("calendar");
+  await page.getByLabel("Bug Primeira resposta quantidade", { exact: true }).fill("30");
+  await page.getByLabel("Bug Primeira resposta unidade", { exact: true }).selectOption("minutes");
+  await page.getByLabel("Bug Primeira resposta contagem", { exact: true }).selectOption("calendar");
   expect(await page.evaluate(() => (window as any).qaPolicySaves ?? 0)).toBe(0);
   await policy.getByRole("button", { name: "Salvar regras e recalcular abertas" }).click();
   await expect.poll(() => page.evaluate(() => (window as any).qaPolicySaves)).toBe(1);
@@ -159,7 +161,7 @@ test("perfil salva grupo e oferece atalho na carteira e na demanda", async ({ pa
   await page.goto("/operacao?tab=clients");
   await page.getByRole("button", { name: "Perfil", exact: true }).click();
   await page
-    .getByLabel("Link do grupo (WhatsApp)")
+    .getByLabel("Link do grupo (WhatsApp)", { exact: true })
     .fill("https://chat.whatsapp.com/TestGroupInvite12345");
   await page.getByRole("button", { name: "Salvar perfil" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
@@ -185,14 +187,15 @@ test("cadastro de cliente só aparece na carteira e CRM cria demanda pela pesqui
     "true",
   );
   await page.getByRole("button", { name: "Nova demanda", exact: true }).click();
-  await page.getByLabel("Pesquisar cliente para nova demanda").fill("não existe");
+  await page.getByLabel("Pesquisar cliente para nova demanda", { exact: true }).fill("não existe");
   await expect(page.getByText("Nenhum cliente encontrado na sua carteira.")).toBeVisible();
-  await page.getByLabel("Pesquisar cliente para nova demanda").fill("CLI-00001");
+  await page.getByLabel("Pesquisar cliente para nova demanda", { exact: true }).fill("CLI-00001");
   await page.getByRole("button", { name: /Corretora Exemplo CLI-00001/ }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toContainText("Corretora Exemplo");
   await dialog.getByLabel("Nome *", { exact: true }).fill("Validar proposta do cliente");
   await dialog.getByLabel("Demanda *", { exact: true }).fill("Revisar dados da proposta enviada");
+  await dialog.getByLabel("Classificação *", { exact: true }).selectOption("Dúvida");
   await dialog.getByRole("button", { name: "Criar registro", exact: true }).click();
   await expect(dialog).toHaveCount(0);
   await expect
@@ -220,9 +223,9 @@ test("demanda abre perfil sem perder edição e agenda tarefa vinculada", async 
   await profile.getByRole("button", { name: "Close", exact: true }).click();
   await expect(demand.getByLabel("Nome *", { exact: true })).toHaveValue("Título preservado");
   await demand.getByRole("button", { name: "Agendar tarefa", exact: true }).click();
-  const task = page.getByRole("dialog").filter({ has: page.getByLabel("Tarefa *") });
-  await expect(task.getByLabel("Cliente *")).toBeDisabled();
-  await task.getByLabel("Tarefa *").fill("Retorno vinculado à demanda");
+  const task = page.getByRole("dialog").filter({ has: page.getByLabel("Tarefa *", { exact: true }) });
+  await expect(task.getByRole("combobox", { name: "Cliente *", exact: true })).toBeDisabled();
+  await task.getByLabel("Tarefa *", { exact: true }).fill("Retorno vinculado à demanda");
   await task.getByRole("button", { name: "Agendar", exact: true }).click();
   await expect(
     demand
@@ -246,15 +249,15 @@ test("CS encaminha a mesma demanda, anexa evidência e comunica sem concluir", a
   const dialog = page.getByRole("dialog");
   await dialog.getByRole("button", { name: "Encaminhar à equipe técnica", exact: true }).click();
   await dialog
-    .getByLabel("Contexto e impacto para a equipe técnica")
+    .getByLabel("Contexto e impacto para a equipe técnica", { exact: true })
     .fill("Erro reproduzido com impacto na proposta.");
-  await dialog.getByLabel("Retorno para confirmar a previsão (São Paulo)").fill("2099-01-01T12:00");
+  await dialog.getByLabel("Retorno para confirmar a previsão (São Paulo)", { exact: true }).fill("2099-01-01T12:00");
   await dialog.getByRole("button", { name: "Enviar", exact: true }).click();
   await expect(dialog).toContainText("Recebida");
-  await dialog.getByLabel("Nova observação").fill("Cliente aguarda retorno no horário combinado.");
+  await dialog.getByLabel("Nova observação", { exact: true }).fill("Cliente aguarda retorno no horário combinado.");
   await dialog.getByRole("button", { name: "Enviar observação", exact: true }).click();
   await expect(dialog).toContainText("Cliente aguarda retorno no horário combinado.");
-  await dialog.getByLabel("Anexar documento, imagem, vídeo ou áudio").setInputFiles({
+  await dialog.getByLabel("Anexar documento, imagem, vídeo ou áudio", { exact: true }).setInputFiles({
     name: "evidencia.txt",
     mimeType: "text/plain",
     buffer: Buffer.from("Evidência local de teste"),
@@ -295,12 +298,12 @@ test("barra clicável envia para Pedro, trava o card e publicação confirmada l
   await dialog.getByRole("button", { name: "Close", exact: true }).click();
   const card = page.locator('[data-card-id="00000000-0000-4000-8000-000000000021"]');
   await expect(card).toHaveAttribute("draggable", "false");
-  await expect(page.getByLabel("Mover DEM-00001")).toBeDisabled();
+  await expect(page.getByLabel("Mover DEM-00001", { exact: true })).toBeDisabled();
   await page.goto("/aprovacoes");
   await page.getByRole("button").filter({ hasText: "Proposta de consórcio não carrega" }).click();
   dialog = page.getByRole("dialog");
   await dialog.getByRole("button", { name: "Validar e confirmar publicação", exact: true }).click();
-  await dialog.getByLabel("Referência do deploy realizado").fill("deploy-confirmado-42");
+  await dialog.getByLabel("Referência do deploy realizado", { exact: true }).fill("deploy-confirmado-42");
   await dialog
     .getByRole("button", { name: "Confirmar publicação e liberar para o CS", exact: true })
     .click();
@@ -309,7 +312,7 @@ test("barra clicável envia para Pedro, trava o card e publicação confirmada l
   await expect(page.locator('[data-stage="Publicada"]')).toContainText(
     "Proposta de consórcio não carrega",
   );
-  await expect(page.getByLabel("Mover DEM-00001")).toBeEnabled();
+  await expect(page.getByLabel("Mover DEM-00001", { exact: true })).toBeEnabled();
   await page.getByText("Proposta de consórcio não carrega", { exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Ir para Publicada", exact: true }),
@@ -327,4 +330,33 @@ test("arrastar para Aguardando validação faz o mesmo envio automático", async
   );
   await expect.poll(() => page.evaluate(() => (window as any).qaValidationSent)).toBe(1);
   await expect(card).toHaveAttribute("draggable", "false");
+});
+
+test("categoria filtra sem mover cards e Concierge explica por toque", async ({ page }) => {
+  await page.goto("/operacao?tab=demands");
+  const filters = page.getByRole("group", { name: "Filtrar demandas por categoria" });
+  await filters.getByRole("button", { name: /^Upgrade/ }).click();
+  await expect(page.locator('[data-card-id="00000000-0000-4000-8000-000000000021"]')).toHaveCount(
+    0,
+  );
+  await filters.getByRole("button", { name: /^Todas/ }).click();
+  await expect(page.locator('[data-card-id="00000000-0000-4000-8000-000000000021"]')).toBeVisible();
+  expect(await page.evaluate(() => (window as any).qaMetrics.moves)).toBe(0);
+  await page.getByRole("link", { name: "Concierge", exact: true }).first().click();
+  await expect(page.getByRole("heading", { name: "Concierge", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Implantação / configuração", exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("group", { name: "Áreas do CRM" })
+    .getByRole("button", { name: "Onboarding", exact: true })
+    .click();
+  await page.getByText("5. Migração", { exact: true }).click();
+  await expect(page.getByText("Importe e confira os dados de clientes e vendas.")).toBeVisible();
+  await page.getByLabel("Buscar no Concierge", { exact: true }).fill("permissões");
+  await expect(page.getByRole("heading", { name: "Resultados da busca" })).toBeVisible();
+  await page.screenshot({
+    path: "vision-qa/concierge.png",
+    fullPage: true,
+  });
 });

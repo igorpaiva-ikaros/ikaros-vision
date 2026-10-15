@@ -1,3 +1,11 @@
+import {
+  CATEGORIES,
+  categoryKey,
+  categoryLabel,
+  categoryInfo,
+  categoryCounts,
+} from "@/lib/domain/categories";
+import { HelpHint, fieldHelp } from "@/components/workspace/Concierge";
 import { PipelineProgress } from "./PipelineProgress";
 import { CaseWorkspace } from "./CaseWorkspace";
 import { WhatsAppGroup } from "./WhatsAppGroup";
@@ -65,6 +73,7 @@ export const DEMAND_STAGES = [
   "Concluída",
   "Cancelada",
 ];
+export const DEMAND_CATEGORIES = CATEGORIES.map((c) => c.value as string);
 export const selectClass = "h-10 w-full rounded-md border border-input bg-background px-3 text-sm";
 export function dateLabel(value: unknown) {
   if (!value) return "—";
@@ -151,6 +160,7 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
     retry: false,
   });
   const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [ownerFilter, setOwnerFilter] = useState<string>("mine");
   const [editor, setEditor] = useState<{ kind: Entity; client: string; row?: RecordRow } | null>(
     null,
@@ -216,7 +226,11 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
     `${title(row)} ${row.code} ${clientById.get(row.client_id ?? "")?.name ?? ""}`
       .toLowerCase()
       .includes(search.toLowerCase());
-  const rows = tab === "clients" || tab === "tasks" ? [] : ds[tab].filter(visible);
+  const baseRows = tab === "clients" || tab === "tasks" ? [] : ds[tab].filter(visible);
+  const rows =
+    tab === "demands" && categoryFilter !== "all"
+      ? baseRows.filter((row) => categoryKey(row.classification) === categoryFilter)
+      : baseRows;
   const empty = tab === "clients" ? clients.length === 0 : rows.length === 0;
   async function move(row: RecordRow, stage: string) {
     if (
@@ -361,6 +375,14 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
             {row.is_test ? " · TESTE" : ""}
           </div>
           <div className="mt-1 font-semibold text-sm">{title(row)}</div>
+          {tab === "demands" && (
+            <span
+              className="mt-1 block text-xs text-muted-foreground"
+              title={categoryInfo(row.classification)?.description}
+            >
+              {categoryLabel(row.classification)}
+            </span>
+          )}
           <div className="mt-1 text-xs text-muted-foreground">
             {client?.name ?? "Vínculo pendente"}
           </div>
@@ -491,7 +513,7 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
                 value={kind}
                 className="shrink-0 rounded-none border-b-2 border-transparent px-5 py-3 data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-none"
               >
-                {AREA_GUIDE[kind].label}
+                <span title={AREA_GUIDE[kind].description}>{AREA_GUIDE[kind].label}</span>
               </TabsTrigger>
             ))}
             <Link
@@ -503,6 +525,9 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
           </TabsList>
         </Tabs>
       )}
+      <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
+        Entender esta área <HelpHint text={AREA_GUIDE[tab].description} />
+      </div>
       {tab === "onboardings" && (
         <div className="mb-4 flex flex-wrap gap-2">
           <Button
@@ -547,6 +572,33 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
           </Select>
         )}
       </div>
+      {tab === "demands" && (
+        <div
+          className="mb-5 flex gap-2 overflow-x-auto pb-2"
+          role="group"
+          aria-label="Filtrar demandas por categoria"
+        >
+          {[
+            { key: "all", name: "Todas", value: baseRows.length },
+            ...categoryCounts(baseRows, (row) => row.classification),
+          ].map((c) => (
+            <Button
+              key={c.key}
+              size="sm"
+              variant={categoryFilter === c.key ? "secondary" : "outline"}
+              aria-pressed={categoryFilter === c.key}
+              className="shrink-0"
+              title={
+                categoryInfo(c.key)?.description ??
+                "Todas as categorias na seleção atual de responsável e busca."
+              }
+              onClick={() => setCategoryFilter(c.key)}
+            >
+              {c.name} <span className="ml-2 font-mono">{c.value}</span>
+            </Button>
+          ))}
+        </div>
+      )}
       {id && tab !== "clients" && tab !== "tasks" && !ds[tab].some((r) => r.id === id) && (
         <p role="alert" className="mb-4 text-sm text-muted-foreground">
           Registro não encontrado na sua carteira.
@@ -762,10 +814,18 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
 }
 export function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="block space-y-1 text-sm">
-      <span className="font-medium">{label}</span>
-      {children}
-    </label>
+    <div className="relative">
+      <label className="block space-y-1 text-sm">
+        <span className="font-medium pr-6">{label}</span>
+        {children}
+      </label>
+      <span className="absolute right-0 top-0">
+        <HelpHint
+          text={fieldHelp(label)}
+          label={`Entender ${label.toLocaleLowerCase("pt-BR").replace("*", "").trim()}`}
+        />
+      </span>
+    </div>
   );
 }
 function LinkedRecordTasks({
@@ -916,7 +976,8 @@ function RecordEditor({
           title: row?.title ?? "",
           description: row?.description ?? "",
           priority: row?.priority ?? "Normal",
-          classification: row?.classification ?? "Suporte",
+          classification: row?.classification ?? "",
+          complexity: row?.complexity ?? null,
           solution: row?.solution ?? "",
           client_informed: row?.client_informed ?? false,
           context: row?.context ?? "",
@@ -924,6 +985,8 @@ function RecordEditor({
           test_result: row?.test_result ?? "",
           approval_repository_url: row?.approval_repository_url ?? null,
           due_date: row?.due_date ?? null,
+          promise_reason: "",
+          promise_confirmed: false,
         }
       : kind === "upgrades"
         ? {
@@ -970,7 +1033,11 @@ function RecordEditor({
   const [dirty, setDirty] = useState(false);
   const [reason, setReason] = useState("");
   const update = (key: string, value: unknown) => {
-    setValues((v) => ({ ...v, [key]: value }));
+    setValues((v) => ({
+      ...v,
+      [key]: value,
+      ...(key === "due_date" ? { promise_confirmed: false } : {}),
+    }));
     setDirty(true);
     setError("");
   };
@@ -981,6 +1048,14 @@ function RecordEditor({
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (busy || readOnly) return;
+    if (
+      kind === "demands" &&
+      !DEMAND_CATEGORIES.includes(values["classification"]) &&
+      values["classification"] !== "Suporte"
+    ) {
+      setError("Selecione a categoria da demanda.");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
@@ -1039,15 +1114,19 @@ function RecordEditor({
       )}
     </Field>
   );
-  const select = (key: string, label: string, options: string[]) => (
+  const select = (key: string, label: string, options: string[], placeholder?: string) => (
     <Field label={label}>
       <select
         className={selectClass}
+        aria-label={label}
         value={values[key] ?? ""}
         onChange={(e) => update(key, e.target.value)}
       >
+        {placeholder !== undefined && <option value="">{placeholder}</option>}
         {options.map((s) => (
-          <option key={s}>{s}</option>
+          <option key={s} value={s}>
+            {key === "classification" ? categoryLabel(s) : s}
+          </option>
         ))}
       </select>
     </Field>
@@ -1169,24 +1248,103 @@ function RecordEditor({
               <>
                 {text("description", "Demanda *", true, true)}
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {select("classification", "Classificação", [
-                    "Dúvida",
-                    "Suporte",
-                    "Bug",
-                    "Pequena melhoria",
-                    "Demanda complexa",
-                    "Configuração",
-                    "Onboarding",
-                    "Upgrade",
-                  ])}
+                  {select(
+                    "classification",
+                    "Classificação *",
+                    values["classification"] === "Suporte"
+                      ? [...DEMAND_CATEGORIES, "Suporte"]
+                      : DEMAND_CATEGORIES,
+                    "Selecione a categoria",
+                  )}
                   {select("priority", "Prioridade", ["Baixa", "Normal", "Alta", "Crítica"])}
+                  <Field label="Complexidade">
+                    <select
+                      className={selectClass}
+                      value={values["complexity"] ?? ""}
+                      onChange={(e) => update("complexity", e.target.value || null)}
+                    >
+                      <option value="">A definir na triagem</option>
+                      <option value="Pequena">Pequena · CS executa</option>
+                      <option value="Complexa">Complexa · setor técnico</option>
+                      {values["complexity"] &&
+                        !["Pequena", "Complexa"].includes(values["complexity"]) && (
+                          <option value={values["complexity"]}>{values["complexity"]}</option>
+                        )}
+                    </select>
+                  </Field>
+                  <Field label="Prazo de entrega combinado (São Paulo)">
+                    <Input
+                      type="datetime-local"
+                      value={
+                        values["due_date"]
+                          ? new Intl.DateTimeFormat("sv-SE", {
+                              timeZone: "America/Sao_Paulo",
+                              year: "numeric",
+                              month: "2-digit",
+                              day: "2-digit",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: false,
+                            })
+                              .format(new Date(values["due_date"]))
+                              .replace(" ", "T")
+                          : ""
+                      }
+                      onChange={(e) =>
+                        update(
+                          "due_date",
+                          e.target.value
+                            ? new Date(`${e.target.value}:00-03:00`).toISOString()
+                            : null,
+                        )
+                      }
+                    />
+                  </Field>
                 </div>
+                <div className="space-y-2 rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">
+                    O combinado com o cliente é acompanhado separadamente do SLA oficial. Se mudar o
+                    prazo, o anterior permanece no histórico.
+                  </p>
+                  <label className="flex gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={!!values["promise_confirmed"]}
+                      onChange={(e) => update("promise_confirmed", e.target.checked)}
+                    />
+                    Já alinhei este prazo com o cliente
+                  </label>
+                  {current?.due_date &&
+                    values["due_date"] !== current.due_date &&
+                    text("promise_reason", "Motivo da alteração do prazo", true, true)}
+                  {current?.due_date && (
+                    <p className="text-xs">
+                      Combinado: {dateLabel(current.due_date)} ·{" "}
+                      {ds.sla
+                        .find((s) => s.id === current.id)
+                        ?.promise_state?.replaceAll("_", " ") ?? "A acompanhar"}
+                    </p>
+                  )}
+                  {current?.original_promise_due && (
+                    <p className="text-xs">
+                      Primeiro prazo combinado: {dateLabel(current.original_promise_due)}
+                    </p>
+                  )}
+                </div>
+                {values["classification"] && (
+                  <p className="text-xs text-muted-foreground" role="note">
+                    {categoryInfo(values["classification"])?.description}
+                  </p>
+                )}
                 {current && (
                   <>
                     <SlaBadge row={current} ds={ds} />
-                    <div className="grid gap-2 text-xs sm:grid-cols-2">
+                    <div className="grid gap-2 text-xs sm:grid-cols-3">
                       <span>1ª resposta até {dateLabel(current.first_response_due)}</span>
                       <span>Solução / encaminhamento até {dateLabel(current.resolution_due)}</span>
+                      <span>
+                        SLA de entrega da empresa: {dateLabel(current.policy_delivery_due)}
+                      </span>
                     </div>
                     {text("solution", "Solução aplicada", false, true)}
                     <label className="flex gap-2 text-sm">
@@ -1200,9 +1358,7 @@ function RecordEditor({
                   </>
                 )}
                 <details>
-                  <summary className="cursor-pointer text-sm">
-                    Contexto, testes e prazo de entrega
-                  </summary>
+                  <summary className="cursor-pointer text-sm">Contexto, testes e GitHub</summary>
                   <div className="mt-3 space-y-3">
                     {text("context", "Contexto", false, true)}
                     {text("tests_run", "Testes realizados", false, true)}
@@ -1213,34 +1369,6 @@ function RecordEditor({
                         value={values["approval_repository_url"] ?? ""}
                         onChange={(e) => update("approval_repository_url", e.target.value || null)}
                         placeholder="Opcional, quando existir uma mudança no código"
-                      />
-                    </Field>
-                    <Field label="Prazo de entrega combinado (São Paulo)">
-                      <Input
-                        type="datetime-local"
-                        value={
-                          values["due_date"]
-                            ? new Intl.DateTimeFormat("sv-SE", {
-                                timeZone: "America/Sao_Paulo",
-                                year: "numeric",
-                                month: "2-digit",
-                                day: "2-digit",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                hour12: false,
-                              })
-                                .format(new Date(values["due_date"]))
-                                .replace(" ", "T")
-                            : ""
-                        }
-                        onChange={(e) =>
-                          update(
-                            "due_date",
-                            e.target.value
-                              ? new Date(`${e.target.value}:00-03:00`).toISOString()
-                              : null,
-                          )
-                        }
                       />
                     </Field>
                   </div>

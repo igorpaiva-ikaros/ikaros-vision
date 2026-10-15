@@ -1,3 +1,4 @@
+import { categoryKey } from "./categories";
 import { CLOSED_STATUSES, type Client, type Demand } from "./types";
 import { daysOf, inPeriod, toDayKey, type Period } from "./period";
 
@@ -63,7 +64,7 @@ export function applyFilters(
   return demands.filter((d) => {
     if (f.clientId && !d.clientIds.includes(f.clientId)) return false;
     if (f.responsavelId && !d.responsaveis.some((p) => p.id === f.responsavelId)) return false;
-    if (f.classification && d.classification !== f.classification) return false;
+    if (f.classification && categoryKey(d.classification) !== categoryKey(f.classification)) return false;
     if (f.status && d.status !== f.status) return false;
     if (f.priority && d.priority !== f.priority) return false;
     if (q) {

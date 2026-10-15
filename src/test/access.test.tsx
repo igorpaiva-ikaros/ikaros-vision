@@ -58,7 +58,7 @@ describe("Entrada interna", () => {
     mocks.bi["profile"]={role:"admin",full_name:"Gestor"};mocks.bi["state"]={status:"ok"};
     render(<AppShell><div>Conteúdo privado</div></AppShell>);
     expect(screen.getByText("Conteúdo privado")).toBeVisible();
-    for(const name of ["Visão geral","Demandas","Clientes","Equipe","Administração","Migração","Notificações","Ajuda"])expect(screen.getAllByRole("link",{name}).length).toBeGreaterThan(0);
+    for(const name of ["Visão geral","Demandas","Clientes","Equipe","Administração","Migração","Notificações","Concierge"])expect(screen.getAllByRole("link",{name}).length).toBeGreaterThan(0);
     fireEvent.click(screen.getAllByRole("button",{name:"Sair"})[0]!);expect(mocks.signOut).toHaveBeenCalledOnce();
   });
   it.each(["/","/clientes","/administracao","/integracao"])("CS não monta tela administrativa na URL %s",path=>{

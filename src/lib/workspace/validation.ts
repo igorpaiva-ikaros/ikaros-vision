@@ -26,6 +26,7 @@ export const entityForms = {
         "Onboarding",
         "Upgrade",
       ]),
+      complexity: z.string().trim().max(60).nullable().optional(),
       channel: nullable,
       context: nullable,
       impact: nullable,
@@ -41,6 +42,8 @@ export const entityForms = {
       test_result: nullable,
       client_informed: z.boolean().optional(),
       client_validated: z.boolean().optional(),
+      promise_reason: nullable,
+      promise_confirmed: z.boolean().optional(),
       due_date: z.string().datetime({ offset: true }).nullable().optional(),
     })
     .strict(),
