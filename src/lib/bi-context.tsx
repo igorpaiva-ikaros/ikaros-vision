@@ -32,7 +32,9 @@ interface BiCtx {
   reload: () => void;
 }
 
-const Ctx = createContext<BiCtx | null>(null);
+// Stable across hot reloads so provider and consumers always share the same context.
+const g = globalThis as { __ikarosBiCtx?: import("react").Context<BiCtx | null> };
+const Ctx = (g.__ikarosBiCtx ??= createContext<BiCtx | null>(null));
 const MODE_KEY = "ikaros-bi-mode"; // only a UI flag, never data
 
 export function BiProvider({ children }: { children: ReactNode }) {
