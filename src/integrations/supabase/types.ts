@@ -518,9 +518,14 @@ export type Database = {
           notion_code: string | null
           notion_id: string | null
           notion_raw: Json | null
+          original_promise_due: string | null
           owner_id: string | null
           policy_delivery_due: string | null
           priority: string
+          promise_aligned_at: string | null
+          promise_confirmed: boolean
+          promise_reason: string | null
+          promise_revision: number
           published_at: string | null
           received_at: string | null
           resolution_due: string | null
@@ -561,9 +566,14 @@ export type Database = {
           notion_code?: string | null
           notion_id?: string | null
           notion_raw?: Json | null
+          original_promise_due?: string | null
           owner_id?: string | null
           policy_delivery_due?: string | null
           priority?: string
+          promise_aligned_at?: string | null
+          promise_confirmed?: boolean
+          promise_reason?: string | null
+          promise_revision?: number
           published_at?: string | null
           received_at?: string | null
           resolution_due?: string | null
@@ -604,9 +614,14 @@ export type Database = {
           notion_code?: string | null
           notion_id?: string | null
           notion_raw?: Json | null
+          original_promise_due?: string | null
           owner_id?: string | null
           policy_delivery_due?: string | null
           priority?: string
+          promise_aligned_at?: string | null
+          promise_confirmed?: boolean
+          promise_reason?: string | null
+          promise_revision?: number
           published_at?: string | null
           received_at?: string | null
           resolution_due?: string | null
@@ -822,6 +837,44 @@ export type Database = {
           ran_at?: string
         }
         Relationships: []
+      }
+      member_access: {
+        Row: {
+          hidden_areas: string[]
+          is_lead: boolean
+          manage_cs: boolean
+          promote_cs: boolean
+          updated_at: string
+          user_id: string
+          view_team: boolean
+        }
+        Insert: {
+          hidden_areas?: string[]
+          is_lead?: boolean
+          manage_cs?: boolean
+          promote_cs?: boolean
+          updated_at?: string
+          user_id: string
+          view_team?: boolean
+        }
+        Update: {
+          hidden_areas?: string[]
+          is_lead?: boolean
+          manage_cs?: boolean
+          promote_cs?: boolean
+          updated_at?: string
+          user_id?: string
+          view_team?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_access_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
@@ -1390,6 +1443,33 @@ export type Database = {
         }
         Relationships: []
       }
+      workspace_presentation: {
+        Row: {
+          draft: Json
+          published: Json
+          published_at: string | null
+          singleton: boolean
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          draft?: Json
+          published?: Json
+          published_at?: string | null
+          singleton?: boolean
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          draft?: Json
+          published?: Json
+          published_at?: string | null
+          singleton?: boolean
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       demand_sla: {
@@ -1401,31 +1481,40 @@ export type Database = {
           first_response_state: string | null
           id: string | null
           is_test: boolean | null
+          original_promise_state: string | null
           owner_id: string | null
+          promise_due: string | null
+          promise_state: string | null
           resolution_due: string | null
           resolution_state: string | null
         }
         Insert: {
           client_id?: string | null
-          delivery_due?: never
+          delivery_due?: string | null
           delivery_state?: never
           first_response_due?: string | null
           first_response_state?: never
           id?: string | null
           is_test?: boolean | null
+          original_promise_state?: never
           owner_id?: string | null
+          promise_due?: string | null
+          promise_state?: never
           resolution_due?: string | null
           resolution_state?: never
         }
         Update: {
           client_id?: string | null
-          delivery_due?: never
+          delivery_due?: string | null
           delivery_state?: never
           first_response_due?: string | null
           first_response_state?: never
           id?: string | null
           is_test?: boolean | null
+          original_promise_state?: never
           owner_id?: string | null
+          promise_due?: string | null
+          promise_state?: never
           resolution_due?: string | null
           resolution_state?: never
         }
@@ -1517,6 +1606,8 @@ export type Database = {
         Returns: string
       }
       contract_calendar: { Args: never; Returns: Json }
+      cs_team_members: { Args: never; Returns: Json }
+      cs_team_stats: { Args: never; Returns: Json }
       delivery_action: {
         Args: {
           _action: string
@@ -1597,6 +1688,11 @@ export type Database = {
       }
       delivery_deadline_tick: { Args: never; Returns: number }
       demand_stage_trace: { Args: { _demand: string }; Returns: Json }
+      get_workspace_presentation: { Args: never; Returns: Json }
+      has_cs_capability: {
+        Args: { _cap: string; _uid: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1671,6 +1767,11 @@ export type Database = {
         }
         Returns: undefined
       }
+      real_client: { Args: { _id: string }; Returns: boolean }
+      real_operation_record: {
+        Args: { _id: string; _kind: string }
+        Returns: boolean
+      }
       receive_ikaros_sale: {
         Args: {
           _company: string
@@ -1713,6 +1814,10 @@ export type Database = {
       }
       resolve_import_issue: {
         Args: { _client: string; _issue: string }
+        Returns: undefined
+      }
+      save_member_access: {
+        Args: { _access: Json; _id: string }
         Returns: undefined
       }
       save_product: {
@@ -1782,6 +1887,14 @@ export type Database = {
         Args: { _category: string; _rules: Json; _version: number }
         Returns: Json
       }
+      save_workspace_presentation: {
+        Args: { _config: Json; _publish?: boolean; _version: number }
+        Returns: Json
+      }
+      set_cs_leader: {
+        Args: { _id: string; _leader: boolean }
+        Returns: undefined
+      }
       set_sla_risk_window: { Args: { _minutes: number }; Returns: undefined }
       sla_add_business_minutes: {
         Args: { mins: number; ts: string }
@@ -1831,9 +1944,14 @@ export type Database = {
           notion_code: string | null
           notion_id: string | null
           notion_raw: Json | null
+          original_promise_due: string | null
           owner_id: string | null
           policy_delivery_due: string | null
           priority: string
+          promise_aligned_at: string | null
+          promise_confirmed: boolean
+          promise_reason: string | null
+          promise_revision: number
           published_at: string | null
           received_at: string | null
           resolution_due: string | null
@@ -1891,9 +2009,14 @@ export type Database = {
           notion_code: string | null
           notion_id: string | null
           notion_raw: Json | null
+          original_promise_due: string | null
           owner_id: string | null
           policy_delivery_due: string | null
           priority: string
+          promise_aligned_at: string | null
+          promise_confirmed: boolean
+          promise_reason: string | null
+          promise_revision: number
           published_at: string | null
           received_at: string | null
           resolution_due: string | null
@@ -1949,9 +2072,14 @@ export type Database = {
           notion_code: string | null
           notion_id: string | null
           notion_raw: Json | null
+          original_promise_due: string | null
           owner_id: string | null
           policy_delivery_due: string | null
           priority: string
+          promise_aligned_at: string | null
+          promise_confirmed: boolean
+          promise_reason: string | null
+          promise_revision: number
           published_at: string | null
           received_at: string | null
           resolution_due: string | null
@@ -2056,6 +2184,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      validate_presentation: { Args: { _config: Json }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "viewer" | "cs" | "technical"
