@@ -1,3 +1,4 @@
+import { NAV_HELP } from "@/components/workspace/Concierge";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 import {
@@ -44,13 +45,14 @@ const ADMIN_NAV = [
   { href: "/integracao", label: "Migração", icon: PlugZap },
   { href: "/operacao?tab=tasks", label: "Tarefas", icon: CalendarClock },
   { href: "/notificacoes", label: "Notificações", icon: Bell },
-  { href: "/ajuda", label: "Ajuda", icon: BookOpen },
+  { href: "/ajuda", label: "Concierge", icon: BookOpen },
 ];
 const TECH_NAV = [
   { href: "/tecnico", label: "Equipe técnica", icon: PanelsTopLeft },
   { href: "/notificacoes", label: "Notificações", icon: Bell },
 ];
 const CS_NAV = [
+  { href: "/ajuda", label: "Concierge", icon: BookOpen },
   { href: "/operacao?tab=crm", label: "CRM", icon: PanelsTopLeft },
   { href: "/operacao?tab=clients", label: "Carteira", icon: Building2 },
   { href: "/operacao?tab=changelog", label: "Histórico de entregas", icon: History },
@@ -110,6 +112,12 @@ export function AppShell({ children }: { children: ReactNode }) {
     items.map(({ href, label, icon: Icon }) => (
       <Link
         key={href}
+        title={
+          NAV_HELP[label] ??
+          (label === "Concierge"
+            ? "Explicações das áreas, categorias, campos e etapas."
+            : "Consulte e acompanhe esta área da operação.")
+        }
         to={href.split("?")[0] as "/operacao"}
         search={href.includes("?") ? { tab: href.split("tab=")[1] as "clients" } : {}}
         className={cn(

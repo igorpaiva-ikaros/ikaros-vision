@@ -44,6 +44,7 @@ beforeAll(async () => {
     "20261007080500_delivery_jobs_and_realtime",
     "20261007093000_clickable_validation_pipeline",
     "20261015180000_restore_sla_policy_and_first_response_deadline",
+    "20261015193000_independent_client_promise",
   ])
     await db.exec(await readFile(`supabase/migrations/${file}.sql`, "utf8"));
   await db.exec(
@@ -417,22 +418,14 @@ describe("SLA por categoria e prazo na 1ª resposta", () => {
       await db.exec("rollback");
     }
   });
-  it("exige prazo de entrega ou próximo retorno técnico na 1ª resposta de entregas", async () => {
+  it("registra primeiro atendimento sem exigir previsão de entrega", async () => {
     await user(other, async () => {
       const bug = await one(
         `insert into demands(client_id,title,description,classification) values('${client}','Bug sem prazo','Contexto','Bug') returning id,version`,
       );
-      await db.exec("savepoint before_first_response");
-      await expect(
-        db.query(`select transition_demand('${bug.id}','first_response',${bug.version})`),
-      ).rejects.toThrow(/prazo de entrega combinado/);
-      await db.exec("rollback to savepoint before_first_response");
-      const dated = await one(
-        `update demands set due_date='2026-10-20 18:00-03' where id='${bug.id}' returning version`,
-      );
       expect(
         await one(
-          `select (transition_demand('${bug.id}','first_response',${dated.version})).first_response_at is not null as registered`,
+          `select (transition_demand('${bug.id}','first_response',${bug.version})).first_response_at is not null as registered`,
         ),
       ).toEqual({ registered: true });
       const question = await one(
@@ -457,5 +450,79 @@ describe("SLA por categoria e prazo na 1ª resposta", () => {
         ),
       ).toEqual({ registered: true });
     });
+  });
+});
+
+describe("Compromisso do CS separado do SLA e notificações preservadas", () => {
+  it("prazo manual não substitui SLA e alteração mantém o histórico", async () => {
+    await db.exec("begin");
+    try {
+      await db.exec(
+        "update sla_policies set delivery_value=2,delivery_unit='days' where category='Bug'",
+      );
+      const d = await one(
+        `insert into demands(client_id,owner_id,title,classification,received_at,due_date) values('${client}','${other}','Dois prazos','Bug',now(),now()+interval '1 hour') returning id,policy_delivery_due,due_date`,
+      );
+      const sla = await one(`select delivery_due,promise_due from demand_sla where id='${d.id}'`);
+      expect(sla.delivery_due).toEqual(d.policy_delivery_due);
+      expect(sla.promise_due).toEqual(d.due_date);
+      expect(sla.delivery_due).not.toEqual(sla.promise_due);
+      await db.exec("savepoint missing_reason");
+      await expect(
+        db.query(`update demands set due_date=now()+interval '3 hours' where id='${d.id}'`),
+      ).rejects.toThrow(/justifique/);
+      await db.exec("rollback to savepoint missing_reason");
+      await db.exec(
+        `update demands set due_date=now()+interval '3 hours',promise_reason='Investigação exige nova validação',promise_confirmed=true where id='${d.id}'`,
+      );
+      expect(
+        (await one(`select original_promise_due from demands where id='${d.id}'`))
+          .original_promise_due,
+      ).toEqual(d.due_date);
+      expect(
+        (
+          await one(
+            `select count(*)::int n from workflow_history where entity_id='${d.id}' and action='delivery_promise'`,
+          )
+        ).n,
+      ).toBe(2);
+    } finally {
+      await db.exec("rollback");
+    }
+  });
+  it("realinhamento conserva avisos de revisão e SLA com prazo inalterado", async () => {
+    await db.exec("begin");
+    try {
+      const d = await one(
+        `insert into demands(client_id,owner_id,title,classification,received_at) values('${client}','${other}','Avisos preservados','Bug',now()-interval '7 days') returning id,first_response_due`,
+      );
+      await db.exec(
+        `select case_notice('${d.id}','Aguardando aprovação do Pedro',false);select sla_tick();`,
+      );
+      await db.exec(
+        "update sla_policies set delivery_value=2,delivery_unit='hours' where category='Bug'",
+      );
+      const migration = await readFile(
+        "supabase/migrations/20261015180000_restore_sla_policy_and_first_response_deadline.sql",
+        "utf8",
+      );
+      await db.exec(migration.replace(/^BEGIN;$/m, "").replace(/^COMMIT;$/m, ""));
+      expect(
+        (
+          await one(
+            `select count(*)::int n from notifications where entity_id='${d.id}' and obligation='delivery_event' and superseded_at is null`,
+          )
+        ).n,
+      ).toBeGreaterThan(0);
+      expect(
+        (
+          await one(
+            `select count(*)::int n from notifications where entity_id='${d.id}' and obligation='first_response' and superseded_at is null`,
+          )
+        ).n,
+      ).toBeGreaterThan(0);
+    } finally {
+      await db.exec("rollback");
+    }
   });
 });

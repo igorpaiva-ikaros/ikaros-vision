@@ -30,7 +30,7 @@ test("desktop drag and cached tab navigation use real UI and router", async ({ p
     "Ampliar equipe comercial",
   );
   await page.screenshot({
-    path: "/workspace/scratch/b964e3016bde/vision-qa/operation-desktop.png",
+    path: "vision-qa/operation-desktop.png",
     fullPage: true,
     animations: "disabled",
   });
@@ -60,7 +60,7 @@ test("mobile has accessible movement and scheduling", async ({ page }) => {
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.getByLabel("Data e horário *")).toBeVisible();
   await page.screenshot({
-    path: "/workspace/scratch/b964e3016bde/vision-qa/operation-mobile.png",
+    path: "vision-qa/operation-mobile.png",
     fullPage: true,
     animations: "disabled",
   });
@@ -98,11 +98,13 @@ test("administrator can create accounts with profile photo", async ({ page }) =>
   await expect(page.getByText(/Conta criada/)).toBeVisible();
 });
 
-test("CS menu has five areas and calendar slots create and complete tasks", async ({ page }) => {
+test("CS menu includes Concierge and calendar slots create and complete tasks", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto("/operacao?tab=tasks");
   const menu = page.locator("aside").first().getByRole("navigation");
-  await expect(menu.getByRole("link")).toHaveCount(5);
+  await expect(menu.getByRole("link")).toHaveCount(6);
   await expect(menu.getByRole("link", { name: "CRM", exact: true })).toBeVisible();
   await expect(
     menu.getByRole("link", { name: "Histórico de entregas", exact: true }),
@@ -123,7 +125,7 @@ test("CS menu has five areas and calendar slots create and complete tasks", asyn
   await page.getByRole("button", { name: "Concluir tarefa" }).click();
   await expect(task).toContainText("Concluída");
   await page.screenshot({
-    path: "/workspace/scratch/b964e3016bde/vision-qa/calendar-desktop.png",
+    path: "vision-qa/calendar-desktop.png",
     fullPage: true,
     animations: "disabled",
   });
@@ -328,4 +330,33 @@ test("arrastar para Aguardando validação faz o mesmo envio automático", async
   );
   await expect.poll(() => page.evaluate(() => (window as any).qaValidationSent)).toBe(1);
   await expect(card).toHaveAttribute("draggable", "false");
+});
+
+test("categoria filtra sem mover cards e Concierge explica por toque", async ({ page }) => {
+  await page.goto("/operacao?tab=demands");
+  const filters = page.getByRole("group", { name: "Filtrar demandas por categoria" });
+  await filters.getByRole("button", { name: /^Upgrade/ }).click();
+  await expect(page.locator('[data-card-id="00000000-0000-4000-8000-000000000021"]')).toHaveCount(
+    0,
+  );
+  await filters.getByRole("button", { name: /^Todas/ }).click();
+  await expect(page.locator('[data-card-id="00000000-0000-4000-8000-000000000021"]')).toBeVisible();
+  expect(await page.evaluate(() => (window as any).qaMetrics.moves)).toBe(0);
+  await page.getByRole("link", { name: "Concierge", exact: true }).first().click();
+  await expect(page.getByRole("heading", { name: "Concierge", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Implantação / configuração", exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("group", { name: "Áreas do CRM" })
+    .getByRole("button", { name: "Onboarding", exact: true })
+    .click();
+  await page.getByText("5. Migração", { exact: true }).click();
+  await expect(page.getByText("Importe e confira os dados de clientes e vendas.")).toBeVisible();
+  await page.getByLabel("Buscar no Concierge").fill("permissões");
+  await expect(page.getByRole("heading", { name: "Resultados da busca" })).toBeVisible();
+  await page.screenshot({
+    path: "vision-qa/concierge.png",
+    fullPage: true,
+  });
 });

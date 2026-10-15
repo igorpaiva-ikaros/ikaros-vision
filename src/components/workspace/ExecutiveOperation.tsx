@@ -43,6 +43,14 @@ export function ExecutiveOperation() {
     (sum, r) => sum + Number(ds.commissions.find((c) => c.id === r.id)?.commission_due ?? 0),
     0,
   );
+  const commitments = ds.demands.filter(visible).filter((r) => r.due_date && !r.canceled_at);
+  const lateCommitments = commitments.filter(
+    (r) => !r.completed_at && new Date(r.due_date!).getTime() < Date.now(),
+  );
+  const delivered = commitments.filter((r) => inPeriod(r.completed_at, period));
+  const onTime = delivered.filter(
+    (r) => new Date(r.completed_at!).getTime() <= new Date(r.due_date!).getTime(),
+  );
   return (
     <div className="mt-6 space-y-5">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -62,6 +70,25 @@ export function ExecutiveOperation() {
           hint="Efetivações elegíveis · previsão, sem transferência"
         />
       </div>
+      <Section title="Compromissos de entrega do CS">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <KpiCard label="Combinados em atraso agora" value={lateCommitments.length} />
+          <KpiCard
+            label="Entregas no prazo combinado"
+            value={onTime.length}
+            hint="Conclusões no período · último combinado"
+          />
+          <KpiCard
+            label="Entregas após o combinado"
+            value={delivered.length - onTime.length}
+            hint="Independente do SLA oficial"
+          />
+        </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          O SLA da empresa é medido separadamente. O primeiro prazo e as justificativas de
+          reagendamento ficam no card e no histórico.
+        </p>
+      </Section>
       <Section title="Acompanhamento urgente">
         {risks.length ? (
           <div className="space-y-3">

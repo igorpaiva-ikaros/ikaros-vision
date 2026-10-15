@@ -8,8 +8,7 @@
 --    mantém 4 horas úteis e a próxima data útil. Demandas abertas cujos prazos divergem da regra
 --    salva são alinhadas uma única vez e seus avisos antigos são arquivados, como faz o salvamento
 --    da regra em Administração; a checagem de 5 minutos recria os avisos com os prazos corretos.
--- 2. Bug, Pequena melhoria e Demanda complexa só registram a 1ª resposta com prazo de entrega
---    combinado, prazo automático da categoria ou próximo retorno do setor técnico.
+-- 2. Primeira resposta registra o recebimento ao cliente, sem exigir previsão de entrega.
 BEGIN;
 CREATE OR REPLACE FUNCTION public.guard_operation_row() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE uid uuid := auth.uid(); admin boolean := uid IS NULL OR public.is_admin(uid); tr boolean := coalesce(current_setting('app.transition', true), '') = 'on';
@@ -99,7 +98,9 @@ WITH drift AS (
  UPDATE public.demands d SET classification=d.classification FROM drift WHERE d.id=drift.id RETURNING d.id
 )
 UPDATE public.notifications SET superseded_at=now()
-WHERE entity_type='demand' AND superseded_at IS NULL AND entity_id IN(SELECT id FROM realigned);
+WHERE entity_type='demand' AND superseded_at IS NULL AND entity_id IN(SELECT id FROM realigned)
+AND obligation IN('first_response','resolution_or_forward','delivery')
+AND deadline IS DISTINCT FROM (SELECT CASE notifications.obligation WHEN 'first_response' THEN d.first_response_due WHEN 'resolution_or_forward' THEN d.resolution_due ELSE coalesce(d.due_date,d.policy_delivery_due) END FROM public.demands d WHERE d.id=notifications.entity_id);
 
 CREATE OR REPLACE FUNCTION public.transition_demand(_id uuid,_action text,_version int,_stage text DEFAULT NULL,_reason text DEFAULT NULL) RETURNS public.demands LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
 DECLARE d public.demands;
@@ -107,15 +108,6 @@ BEGIN
  IF _action='move' AND _stage IN('Aguardando validação','Aguardando aprovação') THEN RETURN public.submit_demand_validation(_id,_version); END IF;
  IF _action='publish' OR (_action='move' AND _stage IN('Publicada','Publicada / avisar cliente','Aprovada para publicação')) THEN RAISE EXCEPTION 'approval_required'; END IF;
  IF EXISTS(SELECT 1 FROM public.delivery_requests WHERE demand_id=_id AND approval_state IN('aguardando','aprovada')) THEN RAISE EXCEPTION 'validation_locked: aguarde a decisão do administrador'; END IF;
- IF _action='first_response' AND public.can_manage_case(_id,auth.uid()) THEN
-  SELECT * INTO d FROM public.demands WHERE id=_id;
-  IF d.first_response_at IS NULL AND d.completed_at IS NULL AND d.canceled_at IS NULL
-     AND d.classification IN('Bug','Pequena melhoria','Demanda complexa')
-     AND coalesce(d.due_date,d.policy_delivery_due) IS NULL
-     AND NOT EXISTS(SELECT 1 FROM public.delivery_requests r WHERE r.demand_id=_id AND r.technical AND r.next_update_at IS NOT NULL) THEN
-   RAISE EXCEPTION 'incomplete: informe o prazo de entrega combinado com o cliente (ou o próximo retorno do setor técnico) antes de registrar a 1ª resposta';
-  END IF;
- END IF;
  RETURN public.transition_demand_core(_id,_action,_version,_stage,_reason);
 END $$;
 REVOKE ALL ON FUNCTION public.transition_demand(uuid,text,int,text,text) FROM public,anon;GRANT EXECUTE ON FUNCTION public.transition_demand(uuid,text,int,text,text) TO authenticated;

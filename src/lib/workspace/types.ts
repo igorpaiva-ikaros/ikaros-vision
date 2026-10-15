@@ -83,6 +83,10 @@ export interface RecordRow {
   completed_at?: string | null;
   canceled_at?: string | null;
   cancel_reason?: string | null;
+  promise_reason?: string | null;
+  promise_confirmed?: boolean;
+  promise_aligned_at?: string | null;
+  original_promise_due?: string | null;
   due_date?: string | null;
   policy_delivery_due?: string | null;
   started_at?: string | null;
@@ -120,6 +124,9 @@ export interface SlaRow {
   first_response_due: string | null;
   resolution_due: string | null;
   delivery_due?: string | null;
+  promise_state?: SlaStatus;
+  promise_due?: string | null;
+  original_promise_state?: SlaStatus;
 }
 export interface Notification {
   entity_id?: string;

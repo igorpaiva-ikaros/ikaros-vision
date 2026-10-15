@@ -1,3 +1,4 @@
+import { Concierge } from "@/components/workspace/Concierge";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -48,5 +49,6 @@ const approvals = createRoute({
   path: "/aprovacoes",
   component: () => <DeliveryQueue approvals />,
 });
-const router = createRouter({ routeTree: root.addChildren([operation, admin, tech, approvals]) });
+const help = createRoute({ getParentRoute: () => root, path: "/ajuda", component: Concierge });
+const router = createRouter({ routeTree: root.addChildren([operation, admin, tech, approvals, help]) });
 createRoot(document.getElementById("root")!).render(<RouterProvider router={router} />);

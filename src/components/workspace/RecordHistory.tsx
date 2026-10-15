@@ -5,6 +5,7 @@ import { useBi } from "@/lib/bi-context";
 import { dateLabel } from "./Operation";
 import type { Entity } from "@/lib/workspace/types";
 const LABEL: Record<string, string> = {
+  delivery_promise: "Prazo alinhado com o cliente",
   created: "Criado",
   stage_entered: "Etapa inicial",
   submit_validation: "Enviada ao administrador",
@@ -50,6 +51,12 @@ export function RecordHistory({ id, kind }: { id: string; kind: Entity }) {
                 {LABEL[h.action] ?? h.action}
                 {h.to_value ? ` · ${h.to_value}` : ""}
               </p>
+              {h.action === "delivery_promise" && (
+                <p className="text-xs">
+                  Anterior: {dateLabel(h.details?.before)} · Novo: {dateLabel(h.details?.after)}
+                  {h.details?.reason ? ` · Motivo: ${h.details.reason}` : ""}
+                </p>
+              )}
               <p className="text-xs text-muted-foreground">
                 {dateLabel(h.at)} · {h.actor}
               </p>

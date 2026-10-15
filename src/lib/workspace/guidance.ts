@@ -8,7 +8,7 @@ export const AREA_GUIDE: Record<OperationTab, { label: string; description: stri
   demands: {
     label: "Demandas",
     description:
-      "Organize dúvidas, suporte, bugs e melhorias. Registre a primeira resposta, acompanhe o SLA e conclua após informar a solução ao cliente.",
+      "Organize dúvidas, implantação, bugs e melhorias. Registre a primeira resposta, acompanhe o SLA e conclua após informar a solução ao cliente.",
   },
   onboardings: {
     label: "Onboarding",

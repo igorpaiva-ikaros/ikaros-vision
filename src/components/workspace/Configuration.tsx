@@ -1,3 +1,4 @@
+import { categoryLabel, categoryInfo } from "@/lib/domain/categories";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -43,6 +44,11 @@ export function Configuration({
         </Button>
       </Section>
       <Section title="SLA por categoria de demanda">
+        <p className="mb-3 text-xs text-muted-foreground">
+          Dúvida / orientação usa a regra Dúvida. Suporte permanece somente para registros
+          históricos; suas regras são preservadas. Implantação / configuração usa a regra
+          Configuração.
+        </p>
         <p className="mb-4 text-sm text-muted-foreground">
           A instalação preserva os prazos atuais. Ao salvar uma mudança, demandas abertas desta
           categoria são recalculadas a partir do recebimento. Demandas encerradas e prazos manuais
@@ -174,7 +180,7 @@ function PolicyForm({ policy, reload }: { policy: SlaPolicy; reload: () => void 
   return (
     <details className="rounded-lg border bg-card p-4">
       <summary className="cursor-pointer font-medium">
-        {category}
+        {category === "Suporte" ? "Suporte (histórico)" : categoryLabel(category)}
         <span className="ml-2 text-xs text-muted-foreground">
           Resposta: {rules.response_value} {unitLabel(rules.response_unit)} · Resolução:{" "}
           {rules.resolution_value} {unitLabel(rules.resolution_unit)}
