@@ -26,6 +26,7 @@ export const entityForms = {
         "Onboarding",
         "Upgrade",
       ]),
+      complexity: z.string().trim().max(60).nullable().optional(),
       channel: nullable,
       context: nullable,
       impact: nullable,

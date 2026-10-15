@@ -115,18 +115,35 @@ describe("Client-first operation", () => {
     fireEvent.change(screen.getByLabelText("Demanda *"), {
       target: { value: "Como revisar a proposta?" },
     });
+    fireEvent.change(screen.getByLabelText("Classificação *"), { target: { value: "Dúvida" } });
     fireEvent.click(screen.getByRole("button", { name: "Criar registro" }));
     await waitFor(() =>
       expect(mocks.save).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             kind: "demands",
-            values: expect.objectContaining({ client_id: client, title: "Nova dúvida" }),
+            values: expect.objectContaining({
+              client_id: client,
+              title: "Nova dúvida",
+              classification: "Dúvida",
+            }),
           }),
         }),
       ),
     );
     expect(mocks.reload).toHaveBeenCalled();
+  });
+  it("exige a categoria antes de criar a demanda, sem categoria padrão", async () => {
+    mount("clients");
+    fireEvent.click(await screen.findByRole("button", { name: "+ Demanda" }));
+    expect(screen.getByLabelText("Classificação *")).toHaveValue("");
+    fireEvent.change(screen.getByLabelText("Nome *"), { target: { value: "Sem categoria" } });
+    fireEvent.change(screen.getByLabelText("Demanda *"), {
+      target: { value: "Pedido enviado sem categoria" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Criar registro" }));
+    expect(await screen.findByText("Selecione a categoria da demanda.")).toBeVisible();
+    expect(mocks.save).not.toHaveBeenCalled();
   });
   it("opens a compact card, protects unsaved changes and registers an action with version", async () => {
     mount("demands");

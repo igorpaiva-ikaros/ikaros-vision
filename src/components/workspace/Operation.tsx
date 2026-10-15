@@ -65,6 +65,18 @@ export const DEMAND_STAGES = [
   "Concluída",
   "Cancelada",
 ];
+export const DEMAND_CATEGORIES = [
+  "Dúvida",
+  "Suporte",
+  "Bug",
+  "Pequena melhoria",
+  "Demanda complexa",
+  "Configuração",
+  "Onboarding",
+  "Upgrade",
+];
+// Categorias com entrega: a 1ª resposta exige prazo combinado (ou próximo retorno técnico).
+export const DEADLINE_CATEGORIES = ["Bug", "Pequena melhoria", "Demanda complexa"];
 export const selectClass = "h-10 w-full rounded-md border border-input bg-background px-3 text-sm";
 export function dateLabel(value: unknown) {
   if (!value) return "—";
@@ -916,7 +928,8 @@ function RecordEditor({
           title: row?.title ?? "",
           description: row?.description ?? "",
           priority: row?.priority ?? "Normal",
-          classification: row?.classification ?? "Suporte",
+          classification: row?.classification ?? "",
+          complexity: row?.complexity ?? null,
           solution: row?.solution ?? "",
           client_informed: row?.client_informed ?? false,
           context: row?.context ?? "",
@@ -981,6 +994,10 @@ function RecordEditor({
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (busy || readOnly) return;
+    if (kind === "demands" && !DEMAND_CATEGORIES.includes(values["classification"])) {
+      setError("Selecione a categoria da demanda.");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
@@ -1039,13 +1056,14 @@ function RecordEditor({
       )}
     </Field>
   );
-  const select = (key: string, label: string, options: string[]) => (
+  const select = (key: string, label: string, options: string[], placeholder?: string) => (
     <Field label={label}>
       <select
         className={selectClass}
         value={values[key] ?? ""}
         onChange={(e) => update(key, e.target.value)}
       >
+        {placeholder !== undefined && <option value="">{placeholder}</option>}
         {options.map((s) => (
           <option key={s}>{s}</option>
         ))}
@@ -1169,24 +1187,76 @@ function RecordEditor({
               <>
                 {text("description", "Demanda *", true, true)}
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {select("classification", "Classificação", [
-                    "Dúvida",
-                    "Suporte",
-                    "Bug",
-                    "Pequena melhoria",
-                    "Demanda complexa",
-                    "Configuração",
-                    "Onboarding",
-                    "Upgrade",
-                  ])}
+                  {select(
+                    "classification",
+                    "Classificação *",
+                    DEMAND_CATEGORIES,
+                    "Selecione a categoria",
+                  )}
                   {select("priority", "Prioridade", ["Baixa", "Normal", "Alta", "Crítica"])}
+                  <Field label="Complexidade">
+                    <select
+                      className={selectClass}
+                      value={values["complexity"] ?? ""}
+                      onChange={(e) => update("complexity", e.target.value || null)}
+                    >
+                      <option value="">A definir na triagem</option>
+                      <option value="Pequena">Pequena · CS executa</option>
+                      <option value="Complexa">Complexa · setor técnico</option>
+                      {values["complexity"] &&
+                        !["Pequena", "Complexa"].includes(values["complexity"]) && (
+                          <option value={values["complexity"]}>{values["complexity"]}</option>
+                        )}
+                    </select>
+                  </Field>
+                  <Field label="Prazo de entrega combinado (São Paulo)">
+                    <Input
+                      type="datetime-local"
+                      value={
+                        values["due_date"]
+                          ? new Intl.DateTimeFormat("sv-SE", {
+                              timeZone: "America/Sao_Paulo",
+                              year: "numeric",
+                              month: "2-digit",
+                              day: "2-digit",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: false,
+                            })
+                              .format(new Date(values["due_date"]))
+                              .replace(" ", "T")
+                          : ""
+                      }
+                      onChange={(e) =>
+                        update(
+                          "due_date",
+                          e.target.value
+                            ? new Date(`${e.target.value}:00-03:00`).toISOString()
+                            : null,
+                        )
+                      }
+                    />
+                  </Field>
                 </div>
+                {DEADLINE_CATEGORIES.includes(values["classification"]) &&
+                  !values["due_date"] &&
+                  !current?.policy_delivery_due &&
+                  !current?.first_response_at && (
+                    <p className="text-xs text-muted-foreground">
+                      Bug, pequena melhoria e demanda complexa só registram a 1ª resposta com prazo
+                      de entrega combinado com o cliente (ou com o próximo retorno do setor
+                      técnico).
+                    </p>
+                  )}
                 {current && (
                   <>
                     <SlaBadge row={current} ds={ds} />
-                    <div className="grid gap-2 text-xs sm:grid-cols-2">
+                    <div className="grid gap-2 text-xs sm:grid-cols-3">
                       <span>1ª resposta até {dateLabel(current.first_response_due)}</span>
                       <span>Solução / encaminhamento até {dateLabel(current.resolution_due)}</span>
+                      <span>
+                        Entrega até {dateLabel(current.due_date ?? current.policy_delivery_due)}
+                      </span>
                     </div>
                     {text("solution", "Solução aplicada", false, true)}
                     <label className="flex gap-2 text-sm">
@@ -1200,9 +1270,7 @@ function RecordEditor({
                   </>
                 )}
                 <details>
-                  <summary className="cursor-pointer text-sm">
-                    Contexto, testes e prazo de entrega
-                  </summary>
+                  <summary className="cursor-pointer text-sm">Contexto, testes e GitHub</summary>
                   <div className="mt-3 space-y-3">
                     {text("context", "Contexto", false, true)}
                     {text("tests_run", "Testes realizados", false, true)}
@@ -1213,34 +1281,6 @@ function RecordEditor({
                         value={values["approval_repository_url"] ?? ""}
                         onChange={(e) => update("approval_repository_url", e.target.value || null)}
                         placeholder="Opcional, quando existir uma mudança no código"
-                      />
-                    </Field>
-                    <Field label="Prazo de entrega combinado (São Paulo)">
-                      <Input
-                        type="datetime-local"
-                        value={
-                          values["due_date"]
-                            ? new Intl.DateTimeFormat("sv-SE", {
-                                timeZone: "America/Sao_Paulo",
-                                year: "numeric",
-                                month: "2-digit",
-                                day: "2-digit",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                hour12: false,
-                              })
-                                .format(new Date(values["due_date"]))
-                                .replace(" ", "T")
-                            : ""
-                        }
-                        onChange={(e) =>
-                          update(
-                            "due_date",
-                            e.target.value
-                              ? new Date(`${e.target.value}:00-03:00`).toISOString()
-                              : null,
-                          )
-                        }
                       />
                     </Field>
                   </div>

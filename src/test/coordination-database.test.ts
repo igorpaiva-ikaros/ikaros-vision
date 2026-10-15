@@ -43,6 +43,7 @@ beforeAll(async () => {
     "20261007080400_sales_intake",
     "20261007080500_delivery_jobs_and_realtime",
     "20261007093000_clickable_validation_pipeline",
+    "20261015180000_restore_sla_policy_and_first_response_deadline",
   ])
     await db.exec(await readFile(`supabase/migrations/${file}.sql`, "utf8"));
   await db.exec(
@@ -380,6 +381,81 @@ describe("Click / drag validation workflow", () => {
         (await one(`select approval_state from delivery_requests where demand_id='${d.id}'`))
           .approval_state,
       ).toBe("rejeitada");
+    });
+  });
+});
+describe("SLA por categoria e prazo na 1ª resposta", () => {
+  it("aplica a regra da categoria após toda a cadeia de migrations e preserva encerradas", async () => {
+    await db.exec("begin");
+    try {
+      await db.exec(
+        `update sla_policies set response_value=30,response_unit='minutes',delivery_value=2,delivery_unit='hours' where category='Bug'`,
+      );
+      const d = await one(
+        `insert into demands(client_id,owner_id,title,description,classification,received_at) values('${client}','${other}','Regra Bug','Contexto','Bug','2026-10-06 10:00-03') returning id,first_response_due='2026-10-06 10:30-03'::timestamptz as response,resolution_due='2026-10-07 10:00-03'::timestamptz as resolution,policy_delivery_due='2026-10-06 12:00-03'::timestamptz as delivery`,
+      );
+      expect(d).toMatchObject({ response: true, resolution: true, delivery: true });
+      const closed = await one(
+        `insert into demands(client_id,owner_id,title,classification,received_at,completed_at,solution,client_informed) values('${client}','${other}','Encerrada','Bug','2026-10-06 10:00-03','2026-10-06 11:00-03','Resolvido',true) returning id,first_response_due`,
+      );
+      await db.exec(
+        `update sla_policies set response_value=1,response_unit='hours' where category='Bug'`,
+      );
+      await db.exec(`update demands set title='Encerrada editada' where id='${closed.id}'`);
+      expect(
+        (await one(`select first_response_due from demands where id='${closed.id}'`))
+          .first_response_due,
+      ).toEqual(closed.first_response_due);
+      await db.exec(
+        `set local role authenticated;select set_config('request.jwt.claim.sub','${other}',true)`,
+      );
+      const edited = await one(
+        `update demands set title='Regra Bug editada' where id='${d.id}' returning first_response_due='2026-10-06 11:00-03'::timestamptz as response`,
+      );
+      expect(edited).toEqual({ response: true });
+    } finally {
+      await db.exec("rollback");
+    }
+  });
+  it("exige prazo de entrega ou próximo retorno técnico na 1ª resposta de entregas", async () => {
+    await user(other, async () => {
+      const bug = await one(
+        `insert into demands(client_id,title,description,classification) values('${client}','Bug sem prazo','Contexto','Bug') returning id,version`,
+      );
+      await db.exec("savepoint before_first_response");
+      await expect(
+        db.query(`select transition_demand('${bug.id}','first_response',${bug.version})`),
+      ).rejects.toThrow(/prazo de entrega combinado/);
+      await db.exec("rollback to savepoint before_first_response");
+      const dated = await one(
+        `update demands set due_date='2026-10-20 18:00-03' where id='${bug.id}' returning version`,
+      );
+      expect(
+        await one(
+          `select (transition_demand('${bug.id}','first_response',${dated.version})).first_response_at is not null as registered`,
+        ),
+      ).toEqual({ registered: true });
+      const question = await one(
+        `insert into demands(client_id,title,description,classification) values('${client}','Dúvida simples','Contexto','Dúvida') returning id,version`,
+      );
+      expect(
+        await one(
+          `select (transition_demand('${question.id}','first_response',${question.version})).first_response_at is not null as registered`,
+        ),
+      ).toEqual({ registered: true });
+    });
+    const complex = await one(
+      `insert into demands(client_id,owner_id,title,description,classification) values('${client}','${other}','Complexa no técnico','Contexto','Demanda complexa') returning id,version`,
+    );
+    await db.exec(
+      `insert into delivery_requests(demand_id,technical,next_update_at,context) values('${complex.id}',true,now()+interval '1 day','Contexto técnico')`,
+    );
+    await user(other, async () => {
+      expect(
+        await one(
+          `select (transition_demand('${complex.id}','first_response',${complex.version})).first_response_at is not null as registered`,
+        ),
+      ).toEqual({ registered: true });
     });
   });
 });

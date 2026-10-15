@@ -193,6 +193,7 @@ test("cadastro de cliente só aparece na carteira e CRM cria demanda pela pesqui
   await expect(dialog).toContainText("Corretora Exemplo");
   await dialog.getByLabel("Nome *", { exact: true }).fill("Validar proposta do cliente");
   await dialog.getByLabel("Demanda *", { exact: true }).fill("Revisar dados da proposta enviada");
+  await dialog.getByLabel("Classificação *", { exact: true }).selectOption("Dúvida");
   await dialog.getByRole("button", { name: "Criar registro", exact: true }).click();
   await expect(dialog).toHaveCount(0);
   await expect
