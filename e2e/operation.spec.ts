@@ -414,15 +414,16 @@ test("administrador salva rascunho, publica linguagem e separa configuração", 
   await page.screenshot({ path: "vision-qa/admin-customization.png", fullPage: true });
 });
 
-
-test("líder acessa resultados e cadastro CS sem configuração administrativa",async({page})=>{
- await page.addInitScript(()=>sessionStorage.setItem('qa-leader','true'));
- await page.goto('/administracao');
- await expect(page.getByRole('heading',{name:'Liderança CS',exact:true})).toBeVisible();
- await expect(page.getByRole('heading',{name:'Resultados do time',exact:true})).toBeVisible();
- await expect(page.getByRole('button',{name:'Criar conta CS',exact:true})).toBeVisible();
- await expect(page.getByLabel('Mostrar testes')).toHaveCount(0);
- await expect(page.getByRole('tab',{name:'Prazos e SLA'})).toHaveCount(0);
- await expect(page.getByRole('option',{name:/Administrador/})).toHaveCount(0);
- await page.screenshot({path:'vision-qa/leadership.png',fullPage:true});
+test("líder acessa resultados e cadastro CS sem configuração administrativa", async ({ page }) => {
+  await page.addInitScript(() => sessionStorage.setItem("qa-leader", "true"));
+  await page.goto("/administracao");
+  await expect(page.getByRole("heading", { name: "Liderança CS", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Resultados do time", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Criar conta CS", exact: true })).toBeVisible();
+  await expect(page.getByLabel("Mostrar testes")).toHaveCount(0);
+  await expect(page.getByRole("tab", { name: "Prazos e SLA" })).toHaveCount(0);
+  await expect(page.getByRole("option", { name: /Administrador/ })).toHaveCount(0);
+  await page.screenshot({ path: "vision-qa/leadership.png", fullPage: true });
 });

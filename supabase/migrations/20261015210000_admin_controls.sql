@@ -91,12 +91,17 @@ END LOOP; END $$;
 CREATE FUNCTION public.real_operation_record(_kind text,_id uuid) RETURNS boolean LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=public AS $$
 DECLARE ok boolean; BEGIN
  IF _kind='client' OR _kind='clients' THEN RETURN public.real_client(_id); END IF;
+ IF _kind='task' OR _kind='tasks' THEN
+  SELECT public.real_client(t.client_id) AND (t.record_id IS NULL OR public.real_operation_record(t.record_kind,t.record_id)) INTO ok FROM scheduled_tasks t WHERE t.id=_id;
+  RETURN coalesce(ok,false);
+ END IF;
  _kind:=CASE _kind WHEN 'demand' THEN 'demands' WHEN 'onboarding' THEN 'onboardings' WHEN 'upgrade' THEN 'upgrades' WHEN 'interaction' THEN 'interactions' ELSE _kind END;
  IF _kind NOT IN('demands','onboardings','upgrades','interactions','changelog') THEN RETURN false; END IF;
  EXECUTE format('SELECT NOT is_test AND public.real_client(client_id) FROM public.%I WHERE id=$1',_kind) INTO ok USING _id; RETURN coalesce(ok,false);
 END $$;
 CREATE POLICY "Test history private" ON workflow_history AS RESTRICTIVE FOR SELECT TO authenticated USING(public.is_admin(auth.uid()) OR public.real_operation_record(entity_type,entity_id));
 CREATE POLICY "Test tasks private" ON scheduled_tasks AS RESTRICTIVE FOR SELECT TO authenticated USING(public.is_admin(auth.uid()) OR (public.real_client(client_id) AND (record_id IS NULL OR public.real_operation_record(record_kind,record_id))));
+CREATE POLICY "Test notifications private" ON notifications AS RESTRICTIVE FOR ALL TO authenticated USING(public.is_admin(auth.uid()) OR public.real_operation_record(entity_type,entity_id)) WITH CHECK(public.is_admin(auth.uid()) OR public.real_operation_record(entity_type,entity_id));
 CREATE OR REPLACE FUNCTION public.can_read_case(_demand uuid,_uid uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
  SELECT (public.is_admin(_uid) OR public.real_operation_record('demand',_demand)) AND (public.is_operator(_uid) AND EXISTS(SELECT 1 FROM demands WHERE id=_demand AND client_id IS NOT NULL) OR public.is_technical(_uid) AND EXISTS(SELECT 1 FROM delivery_requests WHERE demand_id=_demand AND technical))
 $$;

@@ -601,6 +601,16 @@ describe("Administração delegada e testes privados", () => {
         `insert into demands(client_id,title,is_test) values('${c.id}','Private test card',true) returning id,version`,
       );
       await db.exec(`insert into delivery_requests(demand_id,technical) values('${d.id}',true)`);
+      const task = await one(
+        `insert into scheduled_tasks(id,client_id,title,task_type,due_at,created_by) values(gen_random_uuid(),'${client}','Real task','Retorno',now(),'${other}') returning id`,
+      );
+      const privateTask = await one(
+        `insert into scheduled_tasks(id,client_id,title,task_type,due_at,created_by,record_kind,record_id) values(gen_random_uuid(),'${c.id}','Private task','Retorno',now(),'${other}','demands','${d.id}') returning id`,
+      );
+      await db.exec(`insert into notifications(recipient_id,entity_type,entity_id,obligation,deadline,level,title,link) values
+        ('${other}','demand','${d.id}','delivery_event',now(),'reminder','Private case notification','/operacao'),
+        ('${other}','task','${privateTask.id}','scheduled_task',now(),'reminder','Private task notification','/operacao'),
+        ('${other}','task','${task.id}','scheduled_task',now(),'reminder','Real task notification','/operacao')`);
       await db.exec(
         `set local role authenticated;select set_config('request.jwt.claim.sub','${other}',true)`,
       );
@@ -608,6 +618,16 @@ describe("Administração delegada e testes privados", () => {
       expect((await db.query(`select id from demands where id='${d.id}'`)).rows).toHaveLength(0);
       expect((await one(`select can_read_case('${d.id}','${other}') allowed`)).allowed).toBe(false);
       expect((await one(`select can_read_case('${d.id}','${tech}') allowed`)).allowed).toBe(false);
+      expect(
+        (
+          await db.query(
+            `select title from notifications where entity_id in ('${d.id}','${privateTask.id}','${task.id}')`,
+          )
+        ).rows,
+      ).toEqual([{ title: "Real task notification" }]);
+      expect(
+        (await db.query(`select id from scheduled_tasks where id='${privateTask.id}'`)).rows,
+      ).toHaveLength(0);
       await expect(
         db.exec(`select claim_record('demands','${d.id}',${d.version})`),
       ).rejects.toThrow(/forbidden/);
