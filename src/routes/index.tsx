@@ -1,3 +1,5 @@
+import { displayLabel } from "@/lib/workspace/customization";
+import { categoryKey } from "@/lib/domain/categories";
 import { categoryCounts, categoryLabel } from "@/lib/domain/categories";
 import { inPeriod } from "@/lib/domain/period";
 import { ExecutiveOperation } from "@/components/workspace/ExecutiveOperation";
@@ -26,12 +28,15 @@ export const Route = createFileRoute("/")({
 });
 
 function Overview({ ds }: { ds: Dataset }) {
-  const { period } = useBi();
+  const { period, presentation } = useBi();
   const { demands, clientsById } = useScoped(ds);
   const k = computeKpis(demands, period);
   const backlog = demands.filter(isBacklog);
   const entries = demands.filter((d) => inPeriod(d.createdAt, period));
-  const categories = categoryCounts(entries, (d) => d.classification);
+  const categories = categoryCounts(entries, (d) => d.classification).map((c) => ({
+    ...c,
+    name: displayLabel(presentation, "category", c.key, c.name),
+  }));
   return (
     <>
       <PageTitle
@@ -100,7 +105,14 @@ function Overview({ ds }: { ds: Dataset }) {
         </Section>
         <Section title="Backlog por classificação">
           <HBar
-            data={countBy(backlog, (d) => categoryLabel(d.classification))}
+            data={countBy(backlog, (d) =>
+              displayLabel(
+                presentation,
+                "category",
+                categoryKey(d.classification),
+                categoryLabel(d.classification),
+              ),
+            )}
             color="var(--chart-2)"
           />
         </Section>

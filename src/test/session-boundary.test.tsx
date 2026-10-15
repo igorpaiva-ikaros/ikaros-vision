@@ -10,7 +10,10 @@ const mocks = vi.hoisted(() => ({
   getAccess: vi.fn(),
 }));
 vi.mock("@tanstack/react-start", () => ({ useServerFn: (fn: any) => fn }));
-vi.mock("@/lib/workspace.functions", () => ({ getAccess: mocks.getAccess }));
+vi.mock("@/lib/workspace.functions", () => ({
+  getAccess: mocks.getAccess,
+  getPresentation: async () => ({ version: 1, published: { labels: {}, order: {}, views: [] } }),
+}));
 vi.mock("@/lib/bi.functions", () => ({ getBiState: mocks.getState }));
 vi.mock("@/integrations/supabase/client", () => ({
   backendConfigured: true,

@@ -34,7 +34,13 @@ export async function readProfile(context: AuthContext): Promise<Profile | null>
       : roles?.some((r: any) => r.role === "technical")
         ? "technical"
         : null;
-  return role ? { ...p, role } : null;
+  const { data: access, error: accessError } = await context.supabase
+    .from("member_access")
+    .select("is_lead,view_team,manage_cs,promote_cs,hidden_areas")
+    .eq("user_id", context.userId)
+    .maybeSingle();
+  if (accessError) throw new Error("Não foi possível verificar as permissões delegadas.");
+  return role ? { ...p, role, access: access ?? undefined } : null;
 }
 export function checkResult(result: { error?: any; data?: any }) {
   if (result.error) throw new Error(safeDbMessage(result.error.message));

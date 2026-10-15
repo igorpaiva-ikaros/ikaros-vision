@@ -80,3 +80,12 @@ Novas demandas usam Dúvida / orientação, Bug, Pequena melhoria, Demanda compl
 O CRM combina seleção de categoria com responsável e busca; as contagens consideram responsável, busca e filtro de testes, antes da seleção de categoria. No BI, volume e participação por categoria consideram entradas no período de São Paulo, inclusive encerradas; registros sem recebimento conhecido não entram. Backlog é mostrado separadamente.
 
 Aplicar, nesta ordem, `20261015180000_restore_sla_policy_and_first_response_deadline.sql` (revisada nesta entrega) e `20261015193000_independent_client_promise.sql`, antes de publicar. A segunda migration separa SLA oficial de entrega (`policy_delivery_due`) e compromisso do CS (`due_date`), preserva primeira previsão e registra revisões e justificativas. Não reinventa alinhamentos de registros legados. Regras oficiais não são alteradas. Notificações de aprovação e técnica não são arquivadas por recálculo de SLA.
+
+
+### Administração configurável (15/10/2026)
+
+Aplique `20261015210000_admin_controls.sql` antes de publicar o frontend. Não altera valores de SLA, categorias persistidas ou etapas de negócio. `workspace_presentation` separa rascunho de versão publicada com controle de concorrência e histórico. A prévia é uma opção da sessão administrativa; colaboradores só recebem a versão publicada. Renomear/ordenar modifica a apresentação, nunca a ação do banco. Funis personalizados são visões filtradas dos mesmos registros, não novos estados nem automações.
+
+Administração tem abas Equipe e acessos, CRM e linguagem, Produtos e planos, Prazos e SLA, Avançado. Migração fica em Avançado; notificações no sino. Concierge vem após Tarefas. Testes ficam visíveis apenas a administradores, também por RLS, histórico e casos técnicos. A prévia de configuração não é um ambiente isolado de código/produção: para simular dados, use registros marcados como teste.
+
+Liderança usa papel CS mais delegações separadas (`member_access`): visualizar indicadores operacionais, cadastrar CS, promover/remover líderes. Não concede BI financeiro, aprovação/publicação, conta administrativa nem repasse de delegações. Criar conta passa pelo servidor e a provisionamento validado no banco. Só administrador grava delegações. Promoção não ativa automaticamente permissões; o administrador as define. Atalhos visíveis organizam navegação; não são fronteira de confidencialidade entre colegas da carteira compartilhada. Nenhuma delegação é atribuída automaticamente nesta migration.

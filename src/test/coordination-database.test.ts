@@ -45,6 +45,7 @@ beforeAll(async () => {
     "20261007093000_clickable_validation_pipeline",
     "20261015180000_restore_sla_policy_and_first_response_deadline",
     "20261015193000_independent_client_promise",
+    "20261015210000_admin_controls",
   ])
     await db.exec(await readFile(`supabase/migrations/${file}.sql`, "utf8"));
   await db.exec(
@@ -521,6 +522,95 @@ describe("Compromisso do CS separado do SLA e notificações preservadas", () =>
           )
         ).n,
       ).toBeGreaterThan(0);
+    } finally {
+      await db.exec("rollback");
+    }
+  });
+});
+
+describe("Administração delegada e testes privados", () => {
+  it("rascunho só é lido pelo administrador e publicar respeita a versão", async () => {
+    await user(admin, async () => {
+      const config = JSON.stringify({ labels: { "category:Bug": "Falha" }, order: {}, views: [] });
+      const first = await one("select get_workspace_presentation() data");
+      await db.exec(`select save_workspace_presentation(${first.data.version},'${config}',false)`);
+      expect((await one("select get_workspace_presentation() data")).data.published.labels).toEqual(
+        {},
+      );
+      expect(
+        (await one("select get_workspace_presentation() data")).data.draft.labels["category:Bug"],
+      ).toBe("Falha");
+      await db.exec(
+        `select save_workspace_presentation(${first.data.version + 1},'${config}',true)`,
+      );
+      expect(
+        (await one("select get_workspace_presentation() data")).data.published.labels[
+          "category:Bug"
+        ],
+      ).toBe("Falha");
+      await expect(
+        db.exec(`select save_workspace_presentation(${first.data.version},'${config}',true)`),
+      ).rejects.toThrow(/conflict/);
+    });
+    await user(other, async () => {
+      expect((await one("select get_workspace_presentation() data")).data.draft).toBeUndefined();
+      await expect(
+        db.exec(`select save_workspace_presentation(1,'{"labels":{},"order":{},"views":[]}',true)`),
+      ).rejects.toThrow(/forbidden/);
+    });
+  });
+  it("líder não pode criar administrador, delegar permissões ou promover a si mesmo", async () => {
+    await db.exec(
+      `insert into member_access(user_id,is_lead,view_team,manage_cs,promote_cs) values('${other}',true,true,true,true)`,
+    );
+    await user(other, async () => {
+      expect((await one(`select has_cs_capability('${other}','manage_cs') allowed`)).allowed).toBe(
+        true,
+      );
+      await expect(db.exec(`select save_member_access('${other}','{}')`)).rejects.toThrow(
+        /forbidden/,
+      );
+    });
+    await user(other, async () => {
+      await expect(db.exec(`select set_cs_leader('${other}',true)`)).rejects.toThrow(/forbidden/);
+    });
+    await user(other, async () => {
+      await expect(db.exec(`select set_cs_leader('${admin}',true)`)).rejects.toThrow(/forbidden/);
+    });
+    const id = "00000000-0000-4000-8000-000000000099";
+    await db.exec(`insert into auth.users values('${id}','new@example.test')`);
+    await expect(
+      db.exec(`select provision_member('${id}','New','new@example.test','admin','${other}')`),
+    ).rejects.toThrow(/forbidden/);
+    await db.exec(`select provision_member('${id}','New','new@example.test','cs','${other}')`);
+    await user(other, async () => {
+      await db.exec(`select set_cs_leader('${id}',true)`);
+      expect((await one(`select has_cs_capability('${id}','manage_cs') allowed`)).allowed).toBe(
+        false,
+      );
+    });
+    await db.exec(`delete from member_access where user_id='${other}'`);
+  });
+  it("CS e técnico não acessam testes por tabela, histórico ou caso técnico", async () => {
+    await db.exec("begin");
+    try {
+      const c = await one(
+        "insert into clients(name,is_test) values('Private test',true) returning id",
+      );
+      const d = await one(
+        `insert into demands(client_id,title,is_test) values('${c.id}','Private test card',true) returning id,version`,
+      );
+      await db.exec(`insert into delivery_requests(demand_id,technical) values('${d.id}',true)`);
+      await db.exec(
+        `set local role authenticated;select set_config('request.jwt.claim.sub','${other}',true)`,
+      );
+      expect((await db.query(`select id from clients where id='${c.id}'`)).rows).toHaveLength(0);
+      expect((await db.query(`select id from demands where id='${d.id}'`)).rows).toHaveLength(0);
+      expect((await one(`select can_read_case('${d.id}','${other}') allowed`)).allowed).toBe(false);
+      expect((await one(`select can_read_case('${d.id}','${tech}') allowed`)).allowed).toBe(false);
+      await expect(
+        db.exec(`select claim_record('demands','${d.id}',${d.version})`),
+      ).rejects.toThrow(/forbidden/);
     } finally {
       await db.exec("rollback");
     }

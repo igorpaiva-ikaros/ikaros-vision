@@ -338,3 +338,34 @@ if (savedReview) {
   deliveries.push(...saved.deliveries);
   traces.push(...saved.traces);
 }
+
+let presentation: any = {
+  version: 1,
+  published: { labels: {}, order: {}, views: [] },
+  draft: { labels: {}, order: {}, views: [] },
+  published_at: null,
+};
+export async function getPresentation() {
+  return structuredClone(presentation);
+}
+export async function savePresentation({ data }: any) {
+  if (data.version !== presentation.version) throw new Error("conflict");
+  presentation = {
+    ...presentation,
+    version: presentation.version + 1,
+    draft: structuredClone(data.config),
+    ...(data.publish ? { published: structuredClone(data.config) } : {}),
+  };
+  (window as any).qaPresentation = structuredClone(presentation);
+  return presentation;
+}
+export async function saveMemberAccess({ data }: any) {
+  (window as any).qaMemberAccess = data;
+  return { ok: true };
+}
+export async function setCsLeader() {
+  return { ok: true };
+}
+export async function getLeadershipState() {
+  return { members: [], stats: [] };
+}

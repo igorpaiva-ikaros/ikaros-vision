@@ -1,3 +1,12 @@
+## 2026-10-15 — Administração, liderança e personalização
+- Concierge após Tarefas; Mostrar testes exclusivo de administradores, com isolamento dos registros no banco.
+- Administração organizada por assunto, CRM no grupo Operação e relatórios no grupo Gestão.
+- Nomes de categorias/funis/etapas e ordem visual editáveis; rascunho privado, prévia e publicação explícita.
+- Funis de visualização por categorias e etapas, preservando cards, histórico e SLA.
+- Delegação de indicadores operacionais, criação de CS e promoção de líderes; sem poderes de administrador.
+- Validação de configurações, controle de versão, auditoria e testes de autorização.
+
+
 ## 2026-10-15 — Concierge, categorias e dois compromissos de prazo
 
 - Concierge com busca, áreas, etapas, exemplos por categoria e ajuda contextual acessível.

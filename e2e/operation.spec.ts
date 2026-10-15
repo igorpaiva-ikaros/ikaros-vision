@@ -105,6 +105,8 @@ test("CS menu includes Concierge and calendar slots create and complete tasks", 
   await page.goto("/operacao?tab=tasks");
   const menu = page.locator("aside").first().getByRole("navigation");
   await expect(menu.getByRole("link")).toHaveCount(6);
+  await expect(menu.getByRole("link").last()).toHaveText("Concierge");
+  await expect(page.getByLabel("Mostrar testes")).toHaveCount(0);
   await expect(menu.getByRole("link", { name: "CRM", exact: true })).toBeVisible();
   await expect(
     menu.getByRole("link", { name: "Histórico de entregas", exact: true }),
@@ -115,8 +117,12 @@ test("CS menu includes Concierge and calendar slots create and complete tasks", 
   const slot = page.getByRole("button", { name: /Agendar .* às 10h/ }).first();
   const label = await slot.getAttribute("aria-label");
   await slot.click();
-  await expect(page.getByLabel("Data e horário *", { exact: true })).toHaveValue(`${label!.split(" ")[1]}T10:00`);
-  await page.getByRole("combobox", { name: "Cliente *", exact: true }).selectOption("00000000-0000-4000-8000-000000000011");
+  await expect(page.getByLabel("Data e horário *", { exact: true })).toHaveValue(
+    `${label!.split(" ")[1]}T10:00`,
+  );
+  await page
+    .getByRole("combobox", { name: "Cliente *", exact: true })
+    .selectOption("00000000-0000-4000-8000-000000000011");
   await page.getByLabel("Tarefa *", { exact: true }).fill("Revisar implantação no calendário");
   await page.getByRole("button", { name: "Agendar", exact: true }).click();
   const task = page.getByRole("button", { name: /Revisar implantação no calendário/ });
@@ -133,6 +139,7 @@ test("CS menu includes Concierge and calendar slots create and complete tasks", 
 
 test("administrator configures catalogue and rules only on explicit save", async ({ page }) => {
   await page.goto("/administracao");
+  await page.getByRole("tab", { name: "Produtos e planos", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Produtos e planos" })).toBeVisible();
   await page
     .getByText("Wing", { exact: false })
@@ -145,6 +152,7 @@ test("administrator configures catalogue and rules only on explicit save", async
   await plan.getByLabel("Mensalidade · contrato mensal (R$)", { exact: true }).fill("1250");
   await plan.getByRole("button", { name: "Salvar plano" }).click();
   await expect(plan.locator("summary")).toContainText("1.250");
+  await page.getByRole("tab", { name: "Prazos e SLA", exact: true }).click();
   const policy = page
     .locator("details")
     .filter({ has: page.locator("summary").filter({ hasText: "Bug" }) });
@@ -223,7 +231,9 @@ test("demanda abre perfil sem perder edição e agenda tarefa vinculada", async 
   await profile.getByRole("button", { name: "Close", exact: true }).click();
   await expect(demand.getByLabel("Nome *", { exact: true })).toHaveValue("Título preservado");
   await demand.getByRole("button", { name: "Agendar tarefa", exact: true }).click();
-  const task = page.getByRole("dialog").filter({ has: page.getByLabel("Tarefa *", { exact: true }) });
+  const task = page
+    .getByRole("dialog")
+    .filter({ has: page.getByLabel("Tarefa *", { exact: true }) });
   await expect(task.getByRole("combobox", { name: "Cliente *", exact: true })).toBeDisabled();
   await task.getByLabel("Tarefa *", { exact: true }).fill("Retorno vinculado à demanda");
   await task.getByRole("button", { name: "Agendar", exact: true }).click();
@@ -251,17 +261,23 @@ test("CS encaminha a mesma demanda, anexa evidência e comunica sem concluir", a
   await dialog
     .getByLabel("Contexto e impacto para a equipe técnica", { exact: true })
     .fill("Erro reproduzido com impacto na proposta.");
-  await dialog.getByLabel("Retorno para confirmar a previsão (São Paulo)", { exact: true }).fill("2099-01-01T12:00");
+  await dialog
+    .getByLabel("Retorno para confirmar a previsão (São Paulo)", { exact: true })
+    .fill("2099-01-01T12:00");
   await dialog.getByRole("button", { name: "Enviar", exact: true }).click();
   await expect(dialog).toContainText("Recebida");
-  await dialog.getByLabel("Nova observação", { exact: true }).fill("Cliente aguarda retorno no horário combinado.");
+  await dialog
+    .getByLabel("Nova observação", { exact: true })
+    .fill("Cliente aguarda retorno no horário combinado.");
   await dialog.getByRole("button", { name: "Enviar observação", exact: true }).click();
   await expect(dialog).toContainText("Cliente aguarda retorno no horário combinado.");
-  await dialog.getByLabel("Anexar documento, imagem, vídeo ou áudio", { exact: true }).setInputFiles({
-    name: "evidencia.txt",
-    mimeType: "text/plain",
-    buffer: Buffer.from("Evidência local de teste"),
-  });
+  await dialog
+    .getByLabel("Anexar documento, imagem, vídeo ou áudio", { exact: true })
+    .setInputFiles({
+      name: "evidencia.txt",
+      mimeType: "text/plain",
+      buffer: Buffer.from("Evidência local de teste"),
+    });
   await expect(dialog.getByRole("button", { name: /evidencia.txt/ })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Aprovar para publicação" })).toHaveCount(0);
   await dialog.getByRole("button", { name: "Close", exact: true }).click();
@@ -303,7 +319,9 @@ test("barra clicável envia para Pedro, trava o card e publicação confirmada l
   await page.getByRole("button").filter({ hasText: "Proposta de consórcio não carrega" }).click();
   dialog = page.getByRole("dialog");
   await dialog.getByRole("button", { name: "Validar e confirmar publicação", exact: true }).click();
-  await dialog.getByLabel("Referência do deploy realizado", { exact: true }).fill("deploy-confirmado-42");
+  await dialog
+    .getByLabel("Referência do deploy realizado", { exact: true })
+    .fill("deploy-confirmado-42");
   await dialog
     .getByRole("button", { name: "Confirmar publicação e liberar para o CS", exact: true })
     .click();
@@ -359,4 +377,50 @@ test("categoria filtra sem mover cards e Concierge explica por toque", async ({ 
     path: "vision-qa/concierge.png",
     fullPage: true,
   });
+});
+
+test("administrador salva rascunho, publica linguagem e separa configuração", async ({ page }) => {
+  await page.goto("/administracao");
+  await expect(page.getByLabel("Mostrar testes")).toBeVisible();
+  await page.getByRole("tab", { name: "CRM e linguagem", exact: true }).click();
+  await page
+    .locator("summary")
+    .filter({ hasText: /^Categorias$/ })
+    .click();
+  await page.getByLabel("Nome de category Bug", { exact: true }).fill("Falha do sistema");
+  await page.getByRole("button", { name: "Salvar rascunho e testar", exact: true }).click();
+  await expect(page.getByText(/Prévia das configurações/)).toBeVisible();
+  expect(
+    await page.evaluate(() => (window as any).qaPresentation.published.labels["category:Bug"]),
+  ).toBeUndefined();
+  await page
+    .getByLabel("Revisei os nomes e entendo que as regras e funções originais permanecem.")
+    .check();
+  await page.getByRole("button", { name: "Publicar para a equipe", exact: true }).click();
+  await expect
+    .poll(() =>
+      page.evaluate(() => (window as any).qaPresentation.published.labels["category:Bug"]),
+    )
+    .toBe("Falha do sistema");
+  await page.locator("aside").getByRole("link", { name: "CRM", exact: true }).click();
+  await expect(
+    page
+      .getByRole("group", { name: "Filtrar demandas por categoria" })
+      .getByRole("button", { name: /Falha do sistema/ }),
+  ).toBeVisible();
+  await page.getByText("Proposta de consórcio não carrega", { exact: true }).click();
+  await expect(page.getByLabel("Classificação *", { exact: true })).toHaveValue("Bug");
+  await page.screenshot({ path: "vision-qa/admin-customization.png", fullPage: true });
+});
+
+
+test("líder acessa resultados e cadastro CS sem configuração administrativa",async({page})=>{
+ await page.addInitScript(()=>sessionStorage.setItem('qa-leader','true'));
+ await page.goto('/administracao');
+ await expect(page.getByRole('heading',{name:'Liderança CS',exact:true})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Resultados do time',exact:true})).toBeVisible();
+ await expect(page.getByRole('button',{name:'Criar conta CS',exact:true})).toBeVisible();
+ await expect(page.getByLabel('Mostrar testes')).toHaveCount(0);
+ await expect(page.getByRole('tab',{name:'Prazos e SLA'})).toHaveCount(0);
+ await expect(page.getByRole('option',{name:/Administrador/})).toHaveCount(0);
 });

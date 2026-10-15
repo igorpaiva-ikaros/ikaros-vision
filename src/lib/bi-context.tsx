@@ -1,10 +1,11 @@
+import { DEFAULT_PRESENTATION, type Presentation } from "./workspace/customization";
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import type { Session } from "@supabase/supabase-js";
 import { supabase, backendConfigured } from "@/integrations/supabase/client";
 import { getBiState } from "./bi.functions";
-import { getAccess } from "./workspace.functions";
+import { getAccess, getPresentation } from "./workspace.functions";
 import type { Profile } from "./workspace/types";
 import { buildDemoDataset } from "./demo/dataset";
 import { buildPeriod, type Period } from "./domain/period";
@@ -13,6 +14,9 @@ import type { ConnectionState, Dataset } from "./domain/types";
 type Mode = "real" | "demo";
 
 interface BiCtx {
+  presentation: Presentation;
+  previewConfig: boolean;
+  setPreviewConfig: (v: boolean) => void;
   mode: Mode;
   setMode: (m: Mode) => void;
   includeTests: boolean;
@@ -32,6 +36,7 @@ const Ctx = createContext<BiCtx | null>(null);
 const MODE_KEY = "ikaros-bi-mode"; // only a UI flag, never data
 
 export function BiProvider({ children }: { children: ReactNode }) {
+  const [previewConfig, setPreviewConfig] = useState(false);
   const [mode, setModeState] = useState<Mode>("real");
   const [includeTests, setIncludeTests] = useState(false);
   const [period, setPeriod] = useState<Period>(() => buildPeriod("7d"));
@@ -40,6 +45,7 @@ export function BiProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient();
   const fetchState = useServerFn(getBiState);
   const fetchAccess = useServerFn(getAccess);
+  const fetchPresentation = useServerFn(getPresentation);
 
   useEffect(() => {
     if (sessionStorage.getItem(MODE_KEY) === "demo") setModeState("demo");
@@ -82,6 +88,18 @@ export function BiProvider({ children }: { children: ReactNode }) {
     retry: false,
   });
   const profile = access.data ?? null;
+  const presentationQuery = useQuery({
+    queryKey: ["presentation", userId],
+    queryFn: () => fetchPresentation(),
+    enabled: !!profile,
+    staleTime: 10_000,
+    refetchInterval: 30_000,
+    retry: false,
+  });
+  const presentation =
+    (profile?.role === "admin" && previewConfig
+      ? presentationQuery.data?.draft
+      : presentationQuery.data?.published) ?? DEFAULT_PRESENTATION;
   useEffect(() => {
     if (!userId || !profile) return;
     const channel = supabase.channel(`vision-workspace-${userId}`);
@@ -150,7 +168,10 @@ export function BiProvider({ children }: { children: ReactNode }) {
       value={{
         mode: profile?.role !== "admin" ? "real" : mode,
         setMode,
-        includeTests,
+        presentation,
+        previewConfig: profile?.role === "admin" && previewConfig,
+        setPreviewConfig,
+        includeTests: profile?.role === "admin" && includeTests,
         setIncludeTests,
         period,
         setPeriod,
@@ -164,6 +185,8 @@ export function BiProvider({ children }: { children: ReactNode }) {
           (profile?.role === "admin" && q.isLoading),
         dataset,
         reload: () => {
+          void qc.invalidateQueries({ queryKey: ["presentation"] });
+          void qc.invalidateQueries({ queryKey: ["leadership-state"] });
           void qc.invalidateQueries({ queryKey: ["workspace-access"] });
           void qc.invalidateQueries({ queryKey: ["client-registration-options"] });
           void qc.invalidateQueries({ queryKey: ["bi-state"] });

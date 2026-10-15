@@ -1,3 +1,5 @@
+import { useBi } from "@/lib/bi-context";
+import { displayLabel } from "@/lib/workspace/customization";
 import { categoryLabel, categoryInfo } from "@/lib/domain/categories";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -11,9 +13,11 @@ import { Field, selectClass } from "./Operation";
 
 export function Configuration({
   products,
+  section,
   policies,
   reload,
 }: {
+  section?: "products" | "sla";
   products: Product[];
   policies: SlaPolicy[];
   reload: () => void;
@@ -21,46 +25,50 @@ export function Configuration({
   const [adding, setAdding] = useState(false);
   return (
     <div className="space-y-6">
-      <Section title="Produtos e planos">
-        <p className="mb-4 text-sm text-muted-foreground">
-          O CS seleciona os planos ativos. Alterações no catálogo não reajustam contratos nem
-          comissões anteriores. O preço anual é o equivalente mensal de um contrato de 12 meses.
-        </p>
-        <div className="space-y-3">
-          {products.map((p) => (
-            <ProductForm key={p.id + ":" + p.version} product={p} reload={reload} />
-          ))}
-          {adding && (
-            <ProductForm
-              reload={() => {
-                setAdding(false);
-                reload();
-              }}
-            />
-          )}
-        </div>
-        <Button className="mt-4" variant="outline" onClick={() => setAdding(!adding)}>
-          {adding ? "Cancelar novo plano" : "+ Novo produto / plano"}
-        </Button>
-      </Section>
-      <Section title="SLA por categoria de demanda">
-        <p className="mb-3 text-xs text-muted-foreground">
-          Dúvida / orientação usa a regra Dúvida. Suporte permanece somente para registros
-          históricos; suas regras são preservadas. Implantação / configuração usa a regra
-          Configuração.
-        </p>
-        <p className="mb-4 text-sm text-muted-foreground">
-          A instalação preserva os prazos atuais. Ao salvar uma mudança, demandas abertas desta
-          categoria são recalculadas a partir do recebimento. Demandas encerradas e prazos manuais
-          de entrega são preservados. Contagem útil: segunda a sexta, 9h às 18h, horário de São
-          Paulo, respeitando os feriados do calendário.
-        </p>
-        <div className="space-y-3">
-          {policies.map((p) => (
-            <PolicyForm key={p.category + ":" + p.version} policy={p} reload={reload} />
-          ))}
-        </div>
-      </Section>
+      {section !== "sla" && (
+        <Section title="Produtos e planos">
+          <p className="mb-4 text-sm text-muted-foreground">
+            O CS seleciona os planos ativos. Alterações no catálogo não reajustam contratos nem
+            comissões anteriores. O preço anual é o equivalente mensal de um contrato de 12 meses.
+          </p>
+          <div className="space-y-3">
+            {products.map((p) => (
+              <ProductForm key={p.id + ":" + p.version} product={p} reload={reload} />
+            ))}
+            {adding && (
+              <ProductForm
+                reload={() => {
+                  setAdding(false);
+                  reload();
+                }}
+              />
+            )}
+          </div>
+          <Button className="mt-4" variant="outline" onClick={() => setAdding(!adding)}>
+            {adding ? "Cancelar novo plano" : "+ Novo produto / plano"}
+          </Button>
+        </Section>
+      )}
+      {section !== "products" && (
+        <Section title="SLA por categoria de demanda">
+          <p className="mb-3 text-xs text-muted-foreground">
+            Dúvida / orientação usa a regra Dúvida. Suporte permanece somente para registros
+            históricos; suas regras são preservadas. Implantação / configuração usa a regra
+            Configuração.
+          </p>
+          <p className="mb-4 text-sm text-muted-foreground">
+            A instalação preserva os prazos atuais. Ao salvar uma mudança, demandas abertas desta
+            categoria são recalculadas a partir do recebimento. Demandas encerradas e prazos manuais
+            de entrega são preservados. Contagem útil: segunda a sexta, 9h às 18h, horário de São
+            Paulo, respeitando os feriados do calendário.
+          </p>
+          <div className="space-y-3">
+            {policies.map((p) => (
+              <PolicyForm key={p.category + ":" + p.version} policy={p} reload={reload} />
+            ))}
+          </div>
+        </Section>
+      )}
     </div>
   );
 }
@@ -161,6 +169,7 @@ function ProductForm({ product, reload }: { product?: Product; reload: () => voi
   );
 }
 function PolicyForm({ policy, reload }: { policy: SlaPolicy; reload: () => void }) {
+  const { presentation } = useBi();
   const save = useServerFn(saveSlaPolicy);
   const { category, version, ...initial } = policy;
   // Database rows contain timestamps too: submit an explicit whitelist of editable values.
@@ -180,7 +189,9 @@ function PolicyForm({ policy, reload }: { policy: SlaPolicy; reload: () => void 
   return (
     <details className="rounded-lg border bg-card p-4">
       <summary className="cursor-pointer font-medium">
-        {category === "Suporte" ? "Suporte (histórico)" : categoryLabel(category)}
+        {category === "Suporte"
+          ? "Suporte (histórico)"
+          : displayLabel(presentation, "category", category, categoryLabel(category))}
         <span className="ml-2 text-xs text-muted-foreground">
           Resposta: {rules.response_value} {unitLabel(rules.response_unit)} · Resolução:{" "}
           {rules.resolution_value} {unitLabel(rules.resolution_unit)}

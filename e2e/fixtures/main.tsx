@@ -1,3 +1,5 @@
+import {Leadership} from "@/components/workspace/Leadership";
+import {useBi} from "@/lib/bi-context";
 import { Concierge } from "@/components/workspace/Concierge";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -38,7 +40,7 @@ const operation = createRoute({
     return <Operation tab={(tab === "crm" ? pipeline : tab) as any} id={id} />;
   },
 });
-const admin = createRoute({ getParentRoute: () => root, path: "/administracao", component: Admin });
+const admin = createRoute({ getParentRoute: () => root, path: "/administracao", component: ()=>useBi().profile.role==="admin"?<Admin/>:<Leadership/> });
 const tech = createRoute({
   getParentRoute: () => root,
   path: "/tecnico",

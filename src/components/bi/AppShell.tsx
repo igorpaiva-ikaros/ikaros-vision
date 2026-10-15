@@ -1,3 +1,4 @@
+import { can, areaAllowed } from "@/lib/workspace/customization";
 import { NAV_HELP } from "@/components/workspace/Concierge";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
@@ -31,45 +32,58 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 const ADMIN_NAV = [
-  { href: "/", label: "Visão geral", icon: BarChart3 },
-  { href: "/demandas", label: "Demandas", icon: ListChecks },
-  { href: "/clientes", label: "Clientes", icon: Building2 },
-  { href: "/equipe", label: "Equipe", icon: Users },
-  { href: "/operacao?tab=crm", label: "CRM", icon: PanelsTopLeft },
+  { href: "/operacao?tab=crm", label: "CRM", icon: PanelsTopLeft, group: "Operação" },
   { href: "/operacao?tab=clients", label: "Carteira", icon: Building2 },
   { href: "/operacao?tab=changelog", label: "Histórico de entregas", icon: History },
   { href: "/operacao?tab=interactions", label: "Conversas e decisões", icon: MessagesSquare },
-  { href: "/aprovacoes", label: "Aprovações e publicações", icon: ListChecks },
-  { href: "/tecnico", label: "Equipe técnica", icon: PanelsTopLeft },
-  { href: "/administracao", label: "Administração", icon: Settings },
-  { href: "/integracao", label: "Migração", icon: PlugZap },
   { href: "/operacao?tab=tasks", label: "Tarefas", icon: CalendarClock },
-  { href: "/notificacoes", label: "Notificações", icon: Bell },
   { href: "/ajuda", label: "Concierge", icon: BookOpen },
+  { href: "/aprovacoes", label: "Aprovações e publicações", icon: ListChecks, group: "Gestão" },
+  { href: "/tecnico", label: "Equipe técnica", icon: PanelsTopLeft },
+  { href: "/", label: "Visão geral", icon: BarChart3 },
+  { href: "/demandas", label: "Relatório de demandas", icon: ListChecks },
+  { href: "/clientes", label: "Indicadores de clientes", icon: Building2 },
+  { href: "/equipe", label: "Resultados do time", icon: Users },
+  { href: "/administracao", label: "Administração", icon: Settings, group: "Configuração" },
 ];
 const TECH_NAV = [
   { href: "/tecnico", label: "Equipe técnica", icon: PanelsTopLeft },
   { href: "/notificacoes", label: "Notificações", icon: Bell },
 ];
 const CS_NAV = [
-  { href: "/ajuda", label: "Concierge", icon: BookOpen },
   { href: "/operacao?tab=crm", label: "CRM", icon: PanelsTopLeft },
   { href: "/operacao?tab=clients", label: "Carteira", icon: Building2 },
   { href: "/operacao?tab=changelog", label: "Histórico de entregas", icon: History },
   { href: "/operacao?tab=interactions", label: "Conversas e decisões", icon: MessagesSquare },
   { href: "/operacao?tab=tasks", label: "Tarefas", icon: CalendarClock },
+  { href: "/ajuda", label: "Concierge", icon: BookOpen },
 ];
 export function AppShell({ children }: { children: ReactNode }) {
   const location = useRouterState({ select: (s) => s.location });
   const path = location.pathname;
   const nav = useNavigate();
-  const { mode, setMode, includeTests, setIncludeTests, session, authReady, state, profile } =
-    useBi();
+  const {
+    mode,
+    setMode,
+    includeTests,
+    setIncludeTests,
+    session,
+    authReady,
+    state,
+    profile,
+    previewConfig,
+    setPreviewConfig,
+  } = useBi();
+  const isAdmin = profile?.role === "admin";
+  const leadership =
+    can(profile, "view_team") || can(profile, "manage_cs") || can(profile, "promote_cs");
   const isCs = profile?.role === "cs";
   const isTech = profile?.role === "technical";
   const permitted = isTech
     ? ["/tecnico", "/notificacoes"].includes(path)
-    : !isCs || ["/operacao", "/notificacoes", "/ajuda", "/tecnico"].includes(path);
+    : !isCs ||
+      ["/operacao", "/notificacoes", "/ajuda", "/tecnico"].includes(path) ||
+      (leadership && path === "/administracao");
   useEffect(() => {
     if (authReady && !session && path !== "/auth") void nav({ to: "/auth", replace: true });
     else if (session && !permitted && path !== "/auth")
@@ -106,36 +120,55 @@ export function AppShell({ children }: { children: ReactNode }) {
         Abrindo sua operação…
       </div>
     );
-  const items = isTech ? TECH_NAV : isCs ? CS_NAV : ADMIN_NAV;
+  const items = (
+    isTech
+      ? TECH_NAV
+      : isCs
+        ? [
+            ...CS_NAV.filter((item) => {
+              const area = item.href.includes("tab=") ? item.href.split("tab=")[1] : null;
+              return !area || areaAllowed(profile, area);
+            }),
+            ...(leadership ? [{ href: "/administracao", label: "Liderança CS", icon: Users }] : []),
+          ]
+        : ADMIN_NAV
+  ) as { href: string; label: string; icon: typeof Users; group?: string }[];
   const current = location.href;
   const links = (mobile = false) =>
-    items.map(({ href, label, icon: Icon }) => (
-      <Link
-        key={href}
-        title={
-          NAV_HELP[label] ??
-          (label === "Concierge"
-            ? "Explicações das áreas, categorias, campos e etapas."
-            : "Consulte e acompanhe esta área da operação.")
-        }
-        to={href.split("?")[0] as "/operacao"}
-        search={href.includes("?") ? { tab: href.split("tab=")[1] as "clients" } : {}}
-        className={cn(
-          mobile
-            ? "flex items-center gap-2 whitespace-nowrap rounded px-3 py-2 text-sm"
-            : "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-colors",
-          current === href ||
-            (href === "/" && path === "/") ||
-            (href.includes("?tab=") &&
-              path === "/operacao" &&
-              (location.search as any)?.tab === href.split("tab=")[1])
-            ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-[inset_3px_0_0_var(--sidebar-primary)]"
-            : "hover:bg-sidebar-accent/60",
+    items.map(({ href, label, icon: Icon, group }) => (
+      <div key={href}>
+        {group && !mobile && (
+          <p className="px-3 pt-5 pb-1 text-[10px] uppercase tracking-widest text-muted-foreground">
+            {group}
+          </p>
         )}
-      >
-        <Icon className="h-4 w-4 shrink-0" />
-        {label}
-      </Link>
+        <Link
+          key={href}
+          title={
+            NAV_HELP[label] ??
+            (label === "Concierge"
+              ? "Explicações das áreas, categorias, campos e etapas."
+              : "Consulte e acompanhe esta área da operação.")
+          }
+          to={href.split("?")[0] as "/operacao"}
+          search={href.includes("?") ? { tab: href.split("tab=")[1] as "clients" } : {}}
+          className={cn(
+            mobile
+              ? "flex items-center gap-2 whitespace-nowrap rounded px-3 py-2 text-sm"
+              : "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-colors",
+            current === href ||
+              (href === "/" && path === "/") ||
+              (href.includes("?tab=") &&
+                path === "/operacao" &&
+                (location.search as any)?.tab === href.split("tab=")[1])
+              ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-[inset_3px_0_0_var(--sidebar-primary)]"
+              : "hover:bg-sidebar-accent/60",
+          )}
+        >
+          <Icon className="h-4 w-4 shrink-0" />
+          {label}
+        </Link>
+      </div>
     ));
   return (
     <div className="flex min-h-screen">
@@ -172,6 +205,16 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Button>
           </div>
         )}
+        {isAdmin && previewConfig && (
+          <div className="flex items-center justify-between gap-3 bg-warning/15 px-6 py-3 text-sm">
+            <span>
+              Prévia das configurações · só nesta sessão. A equipe continua na versão publicada.
+            </span>
+            <Button variant="outline" size="sm" onClick={() => setPreviewConfig(false)}>
+              Voltar à versão publicada
+            </Button>
+          </div>
+        )}
         <header className="bi-header flex flex-wrap items-center justify-between gap-4 border-b px-6 py-5">
           <div>
             <div className="bi-eyebrow text-muted-foreground">
@@ -192,14 +235,16 @@ export function AppShell({ children }: { children: ReactNode }) {
               <LogOut className="h-4 w-4" />
               Sair
             </Button>
-            {!isCs && <PeriodPicker />}
+            {isAdmin && <PeriodPicker />}
             <NotificationBell />
-            <div className="flex items-center gap-2">
-              <Switch id="tests" checked={includeTests} onCheckedChange={setIncludeTests} />
-              <Label htmlFor="tests" className="text-sm">
-                Mostrar testes
-              </Label>
-            </div>
+            {isAdmin && (
+              <div className="flex items-center gap-2">
+                <Switch id="tests" checked={includeTests} onCheckedChange={setIncludeTests} />
+                <Label htmlFor="tests" className="text-sm">
+                  Mostrar testes
+                </Label>
+              </div>
+            )}
           </div>
         </header>
         <nav className="flex gap-1 overflow-x-auto border-b bg-card px-4 py-2 md:hidden">

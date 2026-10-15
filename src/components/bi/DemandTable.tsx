@@ -1,3 +1,6 @@
+import { useBiOptional } from "@/lib/bi-context";
+import { displayLabel } from "@/lib/workspace/customization";
+import { categoryKey } from "@/lib/domain/categories";
 import { CATEGORIES } from "@/lib/domain/categories";
 import { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp } from "lucide-react";
@@ -72,6 +75,7 @@ export function DemandTable({
   clients: Client[];
   clientsById: Map<string, Client>;
 }) {
+  const presentation = useBiOptional()?.presentation;
   const [f, setF] = useState<DemandFilters>(EMPTY_FILTERS);
   const [sort, setSort] = useState<{ k: SortKey; d: "asc" | "desc" }>({
     k: "createdAt",
@@ -122,7 +126,10 @@ export function DemandTable({
           label="Classificação"
           value={f.classification}
           onChange={(v) => set({ classification: v })}
-          options={CATEGORIES.map((c) => ({ v: c.value, l: c.label }))}
+          options={CATEGORIES.map((c) => ({
+            v: c.value,
+            l: displayLabel(presentation, "category", c.value, c.label),
+          }))}
         />
         <F
           label="Status"
@@ -176,7 +183,7 @@ export function DemandTable({
                   </TableCell>
                   <TableCell>
                     <Badge variant="secondary" className="whitespace-nowrap">
-                      {d.status ?? "Sem informação"}
+                      {displayLabel(presentation, "demands", d.status ?? "Sem informação")}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-sm">{d.priority ?? "—"}</TableCell>

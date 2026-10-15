@@ -1,3 +1,6 @@
+import { useBiOptional } from "@/lib/bi-context";
+import { displayLabel } from "@/lib/workspace/customization";
+import { categoryKey } from "@/lib/domain/categories";
 import { categoryLabel } from "@/lib/domain/categories";
 import { ExternalLink } from "lucide-react";
 import type { Client, Demand } from "@/lib/domain/types";
@@ -76,6 +79,7 @@ export function DemandDetail({
   clients: Map<string, Client>;
   onClose: () => void;
 }) {
+  const presentation = useBiOptional()?.presentation;
   const d = demand;
   const overdue = d ? slaOverdue(d) : null;
   return (
@@ -86,12 +90,18 @@ export function DemandDetail({
             <SheetHeader>
               <div className="flex flex-wrap gap-2">
                 <Badge variant="secondary">{d.demandCode ?? "Sem ID"}</Badge>
-                {d.status && <Badge>{d.status}</Badge>}
+                {d.status && <Badge>{displayLabel(presentation, "demands", d.status)}</Badge>}
                 {d.isTest && <Badge variant="outline">Registro de teste</Badge>}
               </div>
               <SheetTitle className="font-display text-xl">{d.title ?? "Sem título"}</SheetTitle>
               <SheetDescription>
-                {categoryLabel(d.classification)} · Prioridade {d.priority ?? "sem informação"}
+                {displayLabel(
+                  presentation,
+                  "category",
+                  categoryKey(d.classification),
+                  categoryLabel(d.classification),
+                )}{" "}
+                · Prioridade {d.priority ?? "sem informação"}
               </SheetDescription>
             </SheetHeader>
             <div className="space-y-4 px-4 pb-8">

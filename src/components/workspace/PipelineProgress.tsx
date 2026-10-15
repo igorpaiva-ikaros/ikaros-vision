@@ -1,3 +1,4 @@
+import { displayLabel, orderedStages } from "@/lib/workspace/customization";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getDemandStageTrace } from "@/lib/workspace.functions";
@@ -24,7 +25,7 @@ export function PipelineProgress({
   disabled: boolean;
   onSelect: (stage: string) => void;
 }) {
-  const { session } = useBi();
+  const { session, presentation } = useBi();
   const get = useServerFn(getDemandStageTrace);
   const query = useQuery({
     queryKey: ["demand-stage-trace", session?.user.id, row.id],
@@ -46,18 +47,18 @@ export function PipelineProgress({
     >
       <div className="flex justify-between gap-2 text-xs">
         <span className="font-medium">Percurso da demanda</span>
-        <span aria-live="polite">{current}</span>
+        <span aria-live="polite">{displayLabel(presentation, "demands", current)}</span>
       </div>
       <div className="overflow-x-auto pb-2">
         <div className="flex min-w-[900px] gap-2">
-          {DEMAND_PATH.map((stage) => {
+          {orderedStages(presentation, "demands", DEMAND_PATH).map((stage) => {
             const visit = visited.get(stage),
               active = current === stage;
             return (
               <button
                 type="button"
                 key={stage}
-                aria-label={`Ir para ${stage}`}
+                aria-label={`Ir para ${displayLabel(presentation, "demands", stage)}`}
                 aria-current={active ? "step" : undefined}
                 disabled={disabled || (active && stage !== "Aguardando validação")}
                 onClick={() => onSelect(stage)}
@@ -80,7 +81,7 @@ export function PipelineProgress({
                 <span
                   className={`text-[11px] leading-tight block ${active ? "text-primary font-semibold" : visit ? "text-foreground" : "text-muted-foreground"} ${!disabled ? "group-hover:text-primary" : ""}`}
                 >
-                  {stage}
+                  {displayLabel(presentation, "demands", stage)}
                 </span>
               </button>
             );
