@@ -35,6 +35,7 @@ export interface NativeClient {
   erp_slug: string | null;
 }
 export interface RecordRow {
+  scope?: "client" | "system";
   id: string;
   code: string;
   notion_id: string | null;
@@ -217,7 +218,7 @@ export const SLA_LABEL: Record<SlaStatus, string> = {
 export type OperationTab = "clients" | "tasks" | Entity;
 export interface ScheduledTask {
   id: string;
-  client_id: string;
+  client_id: string | null;
   record_kind: Entity | null;
   record_id: string | null;
   title: string;

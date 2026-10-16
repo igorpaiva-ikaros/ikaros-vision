@@ -13,6 +13,8 @@ export const entityForms = {
   demands: z
     .object({
       ...common,
+      client_id: z.string().uuid().nullable(),
+      scope: z.enum(["client", "system"]).default("client"),
       title: text.min(2).max(300),
       description: text.min(2),
       priority: z.enum(["Baixa", "Normal", "Alta", "Crítica"]),
@@ -46,7 +48,11 @@ export const entityForms = {
       promise_confirmed: z.boolean().optional(),
       due_date: z.string().datetime({ offset: true }).nullable().optional(),
     })
-    .strict(),
+    .strict()
+    .refine(
+      (v) => (v.scope === "system" ? v.client_id === null : v.client_id !== null),
+      "Selecione um cliente ou a opção Sistema geral · Ikaros.",
+    ),
   onboardings: z
     .object({
       ...common,
@@ -139,7 +145,7 @@ export const avatarInput = z
 export const scheduledTaskInput = z
   .object({
     id: z.string().uuid(),
-    client: z.string().uuid(),
+    client: z.string().uuid().nullable(),
     title: z.string().trim().min(2).max(300),
     type: z.enum(["Retorno", "Ligação", "Reunião", "Treinamento", "Validação", "Outro"]),
     due: z.string().datetime({ offset: true }),
@@ -150,7 +156,11 @@ export const scheduledTaskInput = z
     status: z.enum(["pending", "completed", "canceled"]).default("pending"),
   })
   .strict()
-  .refine((v) => !!v.kind === !!v.record, "Vincule um registro válido.");
+  .refine((v) => !!v.kind === !!v.record, "Vincule um registro válido.")
+  .refine(
+    (v) => v.client !== null || (v.kind === "demands" && !!v.record),
+    "Vincule a tarefa a uma demanda geral ou a um cliente.",
+  );
 export const createUserInput = z
   .object({
     name: text.min(2).max(200),

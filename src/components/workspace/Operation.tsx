@@ -170,10 +170,13 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
   });
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [scopeFilter, setScopeFilter] = useState("all");
   const [ownerFilter, setOwnerFilter] = useState<string>("mine");
-  const [editor, setEditor] = useState<{ kind: Entity; client: string; row?: RecordRow } | null>(
-    null,
-  );
+  const [editor, setEditor] = useState<{
+    kind: Entity;
+    client: string | null;
+    row?: RecordRow;
+  } | null>(null);
   const [choosingClient, setChoosingClient] = useState(false);
   const [clientEditor, setClientEditor] = useState<NativeClient | null>(null);
   const [busy, setBusy] = useState(false);
@@ -201,7 +204,7 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
   useEffect(() => {
     if (id && openedId.current !== id && query.data && tab !== "clients" && tab !== "tasks") {
       const row = query.data[tab].find((r) => r.id === id);
-      if (row?.client_id) {
+      if (row && (row.client_id || row.scope === "system")) {
         openedId.current = id;
         setEditor({ kind: tab, client: row.client_id, row });
       }
@@ -232,6 +235,7 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
   const visible = (row: RecordRow) =>
     (includeTests || (!row.is_test && !clientById.get(row.client_id ?? "")?.is_test)) &&
     matchesOwner(row) &&
+    (tab !== "demands" || scopeFilter === "all" || (row.scope ?? "client") === scopeFilter) &&
     `${title(row)} ${row.code} ${clientById.get(row.client_id ?? "")?.name ?? ""}`
       .toLowerCase()
       .includes(search.toLowerCase());
@@ -272,7 +276,7 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
         "Publicada",
       ].includes(stage)
     ) {
-      if (row.client_id) setEditor({ kind, client: row.client_id, row });
+      if (row.client_id || row.scope === "system") setEditor({ kind, client: row.client_id, row });
       toast.info("Use as ações no card para registrar contexto, previsão e aprovação.");
       return;
     }
@@ -281,11 +285,11 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
       action === "cancel" ||
       (action === "complete" &&
         kind === "demands" &&
-        (!row.solution?.trim() || !row.client_informed)) ||
+        (!row.solution?.trim() || (row.scope !== "system" && !row.client_informed))) ||
       (action === "complete" && kind === "onboardings" && !row.info_complete_at) ||
       (action === "effective" && !row.accepted_at)
     ) {
-      if (row.client_id) setEditor({ kind, client: row.client_id, row });
+      if (row.client_id || row.scope === "system") setEditor({ kind, client: row.client_id, row });
       toast.info(
         action === "cancel"
           ? "Informe o motivo no card para cancelar."
@@ -384,8 +388,8 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
         <button
           className="w-full text-left"
           onClick={() =>
-            client
-              ? setEditor({ kind: tab as Entity, client: client.id, row })
+            client || row.scope === "system"
+              ? setEditor({ kind: tab as Entity, client: row.client_id, row })
               : toast.info("O administrador precisa vincular este registro a um cliente.")
           }
         >
@@ -408,7 +412,9 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
             </span>
           )}
           <div className="mt-1 text-xs text-muted-foreground">
-            {client?.name ?? "Vínculo pendente"}
+            {row.scope === "system"
+              ? "Sistema geral · Ikaros"
+              : (client?.name ?? "Vínculo pendente")}
           </div>
         </button>
         {(tab === "demands" || tab === "onboardings") && <SlaBadge row={row} ds={ds} />}
@@ -449,12 +455,14 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
           {String(row.priority ?? row.current_step ?? row.new_plan ?? "")}
         </div>
         {tab === "upgrades" && <div className="text-sm">{money(row.new_value)} / mês</div>}
-        {client && (
+        {(client || row.scope === "system") && (
           <Button
             size="sm"
             variant="ghost"
             className="h-7 w-full justify-start px-0 text-xs"
-            onClick={() => setTaskDraft({ client: client.id, kind: tab as Entity, record: row.id })}
+            onClick={() =>
+              setTaskDraft({ client: row.client_id, kind: tab as Entity, record: row.id })
+            }
           >
             <CalendarClock className="mr-1 h-3.5 w-3.5" />
             Agendar tarefa
@@ -621,6 +629,18 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
         </div>
       )}
       <div className="mb-5 flex flex-wrap items-center gap-3">
+        {tab === "demands" && (
+          <select
+            className={selectClass + " max-w-56"}
+            aria-label="Filtrar origem da demanda"
+            value={scopeFilter}
+            onChange={(e) => setScopeFilter(e.target.value)}
+          >
+            <option value="all">Clientes e sistema geral</option>
+            <option value="client">Demandas de clientes</option>
+            <option value="system">Sistema geral · Ikaros</option>
+          </select>
+        )}
         <Input
           aria-label="Buscar na carteira"
           placeholder="Buscar por nome, cliente ou código"
@@ -687,7 +707,7 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
             </Button>
           )}
           <p className="mt-2 text-sm text-muted-foreground">
-            Comece pela carteira e abra um cliente para criar o trabalho.
+            Use Nova demanda no CRM para registrar trabalho de um cliente ou do sistema geral.
           </p>
         </Section>
       )}
@@ -872,7 +892,7 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
           {...editor}
           ds={ds}
           openClient={() => {
-            const c = clientById.get(editor.client);
+            const c = clientById.get(editor.client ?? "");
             if (c) setClientEditor(c);
           }}
           openTask={setTaskDraft}
@@ -911,7 +931,7 @@ function LinkedRecordTasks({
   record,
   open,
 }: {
-  client: string;
+  client: string | null;
   kind: Entity;
   record: string;
   open: (draft: TaskDraft) => void;
@@ -975,7 +995,7 @@ function ClientDemandPicker({
 }: {
   clients: NativeClient[];
   close: () => void;
-  select: (id: string) => void;
+  select: (id: string | null) => void;
 }) {
   const [search, setSearch] = useState("");
   const matched = clients.filter((c) =>
@@ -993,8 +1013,22 @@ function ClientDemandPicker({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Nova demanda</DialogTitle>
-          <DialogDescription>Selecione o cliente da sua carteira.</DialogDescription>
+          <DialogDescription>
+            Escolha uma demanda do sistema geral ou selecione um cliente.
+          </DialogDescription>
         </DialogHeader>
+        <Button
+          variant="outline"
+          className="h-auto justify-start py-3 text-left"
+          onClick={() => select(null)}
+        >
+          <span>
+            Sistema geral · Ikaros
+            <span className="block text-xs font-normal text-muted-foreground">
+              Melhoria ou correção interna, sem cliente específico. Você será o responsável.
+            </span>
+          </span>
+        </Button>
         <Input
           autoFocus
           aria-label="Pesquisar cliente para nova demanda"
@@ -1036,7 +1070,7 @@ function RecordEditor({
   openTask,
 }: {
   kind: Entity;
-  client: string;
+  client: string | null;
   row?: RecordRow;
   ds: OperationState;
   close: () => void;
@@ -1044,12 +1078,14 @@ function RecordEditor({
   openTask: (draft: TaskDraft) => void;
 }) {
   const { reload, profile } = useBi();
+  const general = kind === "demands" && (row?.scope === "system" || client === null);
   const save = useServerFn(saveRecord);
   const transition = useServerFn(transitionRecord);
   const [values, setValues] = useState<Record<string, any>>(() =>
     kind === "demands"
       ? {
           client_id: client,
+          scope: row?.scope ?? (client === null ? "system" : "client"),
           title: row?.title ?? "",
           description: row?.description ?? "",
           priority: row?.priority ?? "Normal",
@@ -1237,12 +1273,18 @@ function RecordEditor({
             {row ? `${row.code} · ${title(row)}` : `Novo registro · ${ENTITY_LABEL[kind]}`}
           </DialogTitle>
           <DialogDescription>
-            {ds.clients.find((c) => c.id === client)?.name} ·{" "}
+            {general ? "Sistema geral · Ikaros" : ds.clients.find((c) => c.id === client)?.name} ·{" "}
             {ds.people?.find((p) => p.id === current?.owner_id)?.full_name ??
               (current ? "A assumir" : profile?.full_name)}
             {current?.stage ? ` · ${current.stage}` : ""}
           </DialogDescription>
         </DialogHeader>
+        {general && (
+          <p className="text-xs text-muted-foreground">
+            Demanda interna, sem cliente específico. Mantém os prazos de solução e entrega da
+            categoria; primeira resposta e aviso ao cliente não se aplicam.
+          </p>
+        )}
         {current && kind === "demands" && (
           <PipelineProgress
             row={current}
@@ -1256,9 +1298,13 @@ function RecordEditor({
               }
               if (
                 stage === "Concluída" &&
-                (!current.solution?.trim() || !current.client_informed)
+                (!current.solution?.trim() || (!general && !current.client_informed))
               ) {
-                setError("Informe a solução e confirme o aviso ao cliente antes de concluir.");
+                setError(
+                  general
+                    ? "Informe a solução aplicada antes de concluir."
+                    : "Informe a solução e confirme o aviso ao cliente antes de concluir.",
+                );
                 return;
               }
               void action(stageAction("demands", stage), stage);
@@ -1277,10 +1323,14 @@ function RecordEditor({
           </p>
         )}
         <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={openClient}>
-            Ver cliente
-          </Button>
-          <WhatsAppGroup url={ds.clients.find((c) => c.id === client)?.whatsapp_group_url} />
+          {!general && (
+            <>
+              <Button type="button" variant="outline" size="sm" onClick={openClient}>
+                Ver cliente
+              </Button>
+              <WhatsAppGroup url={ds.clients.find((c) => c.id === client)?.whatsapp_group_url} />
+            </>
+          )}
           {current && (
             <Button
               type="button"
@@ -1352,7 +1402,13 @@ function RecordEditor({
                         )}
                     </select>
                   </Field>
-                  <Field label="Prazo de entrega combinado (São Paulo)">
+                  <Field
+                    label={
+                      general
+                        ? "Prazo planejado de entrega (São Paulo)"
+                        : "Prazo de entrega combinado (São Paulo)"
+                    }
+                  >
                     <Input
                       type="datetime-local"
                       value={
@@ -1383,23 +1439,26 @@ function RecordEditor({
                 </div>
                 <div className="space-y-2 rounded-lg border p-3">
                   <p className="text-xs text-muted-foreground">
-                    O combinado com o cliente é acompanhado separadamente do SLA oficial. Se mudar o
-                    prazo, o anterior permanece no histórico.
+                    {general
+                      ? "Seu prazo planejado é acompanhado separadamente do SLA da empresa. Alterações preservam o histórico."
+                      : "O combinado com o cliente é acompanhado separadamente do SLA oficial. Se mudar o prazo, o anterior permanece no histórico."}
                   </p>
-                  <label className="flex gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={!!values["promise_confirmed"]}
-                      onChange={(e) => update("promise_confirmed", e.target.checked)}
-                    />
-                    Já alinhei este prazo com o cliente
-                  </label>
+                  {!general && (
+                    <label className="flex gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={!!values["promise_confirmed"]}
+                        onChange={(e) => update("promise_confirmed", e.target.checked)}
+                      />
+                      Já alinhei este prazo com o cliente
+                    </label>
+                  )}
                   {current?.due_date &&
                     values["due_date"] !== current.due_date &&
                     text("promise_reason", "Motivo da alteração do prazo", true, true)}
                   {current?.due_date && (
                     <p className="text-xs">
-                      Combinado: {dateLabel(current.due_date)} ·{" "}
+                      {general ? "Planejado" : "Combinado"}: {dateLabel(current.due_date)} ·{" "}
                       {ds.sla
                         .find((s) => s.id === current.id)
                         ?.promise_state?.replaceAll("_", " ") ?? "A acompanhar"}
@@ -1407,7 +1466,8 @@ function RecordEditor({
                   )}
                   {current?.original_promise_due && (
                     <p className="text-xs">
-                      Primeiro prazo combinado: {dateLabel(current.original_promise_due)}
+                      Primeiro prazo {general ? "planejado" : "combinado"}:{" "}
+                      {dateLabel(current.original_promise_due)}
                     </p>
                   )}
                 </div>
@@ -1420,21 +1480,25 @@ function RecordEditor({
                   <>
                     <SlaBadge row={current} ds={ds} />
                     <div className="grid gap-2 text-xs sm:grid-cols-3">
-                      <span>1ª resposta até {dateLabel(current.first_response_due)}</span>
+                      {!general && (
+                        <span>1ª resposta até {dateLabel(current.first_response_due)}</span>
+                      )}
                       <span>Solução / encaminhamento até {dateLabel(current.resolution_due)}</span>
                       <span>
                         SLA de entrega da empresa: {dateLabel(current.policy_delivery_due)}
                       </span>
                     </div>
                     {text("solution", "Solução aplicada", false, true)}
-                    <label className="flex gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={!!values["client_informed"]}
-                        onChange={(e) => update("client_informed", e.target.checked)}
-                      />
-                      Cliente informado
-                    </label>
+                    {!general && (
+                      <label className="flex gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={!!values["client_informed"]}
+                          onChange={(e) => update("client_informed", e.target.checked)}
+                        />
+                        Cliente informado
+                      </label>
+                    )}
                   </>
                 )}
                 <details>
@@ -1637,13 +1701,14 @@ function RecordEditor({
               <div className="flex flex-wrap gap-2">
                 {kind === "demands" && (
                   <>
-                    {eventButton(
-                      "Registrar 1ª resposta",
-                      "first_response",
-                      !!current.first_response_at,
-                    )}
+                    {!general &&
+                      eventButton(
+                        "Registrar 1ª resposta",
+                        "first_response",
+                        !!current.first_response_at,
+                      )}
 
-                    {eventButton("Cliente validou", "validate", !!current.validated_at)}
+                    {!general && eventButton("Cliente validou", "validate", !!current.validated_at)}
                     {eventButton("Concluir demanda", "complete")}
                   </>
                 )}

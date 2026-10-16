@@ -8,7 +8,7 @@ export const AREA_GUIDE: Record<OperationTab, { label: string; description: stri
   demands: {
     label: "Demandas",
     description:
-      "Organize dúvidas, implantação, bugs e melhorias. Registre a primeira resposta, acompanhe o SLA e conclua após informar a solução ao cliente.",
+      "Organize demandas de clientes e melhorias gerais do Ikaros. Em Nova demanda, escolha Sistema geral para trabalho interno sem cliente. Acompanhe os prazos e registre a solução.",
   },
   onboardings: {
     label: "Onboarding",

@@ -5,7 +5,7 @@ import { useBi } from "@/lib/bi-context";
 import { dateLabel } from "./Operation";
 import type { Entity } from "@/lib/workspace/types";
 const LABEL: Record<string, string> = {
-  delivery_promise: "Prazo alinhado com o cliente",
+  delivery_promise: "Prazo de entrega registrado",
   created: "Criado",
   stage_entered: "Etapa inicial",
   submit_validation: "Enviada ao administrador",

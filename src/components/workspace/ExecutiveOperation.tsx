@@ -102,8 +102,11 @@ export function ExecutiveOperation() {
                   {r.code} · {r.title}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {ds.clients.find((c) => c.id === r.client_id)?.name ?? "Vínculo pendente"} ·{" "}
-                  {riskFor(r, ds) === "atrasado" ? "Atrasado" : "Em risco"} ·{" "}
+                  {r.scope === "system"
+                    ? "Sistema geral · Ikaros"
+                    : (ds.clients.find((c) => c.id === r.client_id)?.name ??
+                      "Vínculo pendente")}{" "}
+                  · {riskFor(r, ds) === "atrasado" ? "Atrasado" : "Em risco"} ·{" "}
                   {dateLabel(r.limit15_due ?? r.first_response_due)}
                 </div>
               </a>
