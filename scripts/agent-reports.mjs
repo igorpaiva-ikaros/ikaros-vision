@@ -10,6 +10,7 @@ import {
   agentReportSchema,
   reportFilePath,
   completionFact,
+  canonicalReport,
 } from "../src/lib/workspace/agent-report.ts";
 import { caseFile } from "../src/lib/workspace/evidence.ts";
 
@@ -71,14 +72,15 @@ async function main() {
       manifest: { name: type.name, mime: type.mime, size: bytes.length, sha256: hash(bytes) },
     });
   }
-  // Preserve the exact received JSON as TXT, a supported private evidence format.
+  // Preserve every fact as TXT; canonical formatting avoids duplicate generated evidence.
+  const source = Buffer.from(canonicalReport(report), "utf8");
   files.push({
-    bytes: raw,
+    bytes: source,
     manifest: {
       name: "relatorio-estruturado.txt",
       mime: "text/plain",
-      size: raw.length,
-      sha256: hash(raw),
+      size: source.length,
+      sha256: hash(source),
     },
   });
   const unique = [...new Map(files.map((f) => [f.manifest.sha256, f])).values()];

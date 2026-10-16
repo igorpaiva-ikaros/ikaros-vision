@@ -118,6 +118,23 @@ export const agentReportSchema = z
   });
 export type AgentReport = z.infer<typeof agentReportSchema>;
 
+// Stable formatting prevents regenerated JSON from duplicating its TXT evidence.
+export function canonicalReport(report: AgentReport) {
+  const ordered = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(ordered);
+    if (value !== null && typeof value === "object") {
+      const row = value as Record<string, unknown>;
+      return Object.fromEntries(
+        Object.keys(row)
+          .sort()
+          .map((key) => [key, ordered(row[key])]),
+      );
+    }
+    return value;
+  };
+  return JSON.stringify(ordered(report), null, 2) + "\n";
+}
+
 export function reportFilePath(demandId: string, file: AgentReport["files"][number]) {
   return `${demandId}/agent-reports/${file.sha256}.${file.name.split(".").pop()!.toLowerCase()}`;
 }

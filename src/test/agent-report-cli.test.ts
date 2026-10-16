@@ -4,7 +4,12 @@ import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
-import { agentReportSchema, reportFilePath, completionFact } from "@/lib/workspace/agent-report";
+import {
+  agentReportSchema,
+  reportFilePath,
+  completionFact,
+  canonicalReport,
+} from "@/lib/workspace/agent-report";
 
 const payload = () => ({
   version: "ikaros-vision-agent-report-v1",
@@ -36,6 +41,14 @@ const payload = () => ({
   missing_files: ["Original image not supplied"],
 });
 describe("Report facts, local validation and credential boundary", () => {
+  it("gives regenerated JSON with identical facts the same evidence content", () => {
+    const first = agentReportSchema.parse(payload());
+    const reordered = Object.fromEntries(Object.entries(payload()).reverse());
+    expect(canonicalReport(first)).toBe(canonicalReport(agentReportSchema.parse(reordered)));
+    const changed = payload();
+    changed.narrative = "New, independently documented evidence.";
+    expect(canonicalReport(first)).not.toBe(canonicalReport(agentReportSchema.parse(changed)));
+  });
   it("returns date-only completion without exposing its internal normalized hour", () => {
     expect(completionFact("2000-01-03T02:00:00Z", ["completed_at"])).toEqual({
       at: null,
