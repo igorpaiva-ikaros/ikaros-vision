@@ -469,10 +469,12 @@ test("CS cria demanda geral, encontra em Minhas demandas e agenda tarefa sem cli
   const task = page
     .getByRole("dialog")
     .filter({ has: page.getByLabel("Tarefa *", { exact: true }) });
-  await expect(task.getByLabel("Cliente ou demanda geral *", { exact: true })).toBeDisabled();
-  await expect(task.getByLabel("Cliente ou demanda geral *", { exact: true })).toHaveValue(
-    `system:${saved.id}`,
-  );
+  await expect(
+    task.getByRole("combobox", { name: "Cliente ou demanda geral *", exact: true }),
+  ).toBeDisabled();
+  await expect(
+    task.getByRole("combobox", { name: "Cliente ou demanda geral *", exact: true }),
+  ).toHaveValue(`system:${saved.id}`);
   await task.getByLabel("Tarefa *", { exact: true }).fill("Investigar índices do ERP");
   await task.getByRole("button", { name: "Agendar", exact: true }).click();
   await expect(
