@@ -47,6 +47,8 @@ npm run test:e2e
 
 Os testes de banco executam PostgreSQL em PGlite, com identidades fictícias e o esquema real: RLS, atribuição, conflitos, eventos, conclusão, importação idempotente, calendário, comissão e deduplicação de alertas. Os testes de navegador conferem a barreira de login em rotas diretas e no celular. Para usar um Chromium já instalado, configure `PLAYWRIGHT_CHROMIUM_PATH`.
 
+Relatórios de atendimentos podem ser preparados pelo fluxo autenticado e idempotente descrito em [Recebimento de relatórios](docs/AGENT-REPORT-INTAKE.md). O usuário encaminha relato e anexos; o agente confere cliente/duplicidade, registra os arquivos privados e verifica o resultado. Aplicar `20261016200000_agent_report_intake.sql` no Vision antes de publicar essa funcionalidade. Disponibilidade local não comprova registro real nem publicação.
+
 O repositório `igorpaiva-ikaros/ikaros-vision`, branch `main`, permanece sincronizado com Lovable. Envie commits normais sem reescrever história publicada. Publique o projeto existente após aplicar e verificar o banco. O app mantém a identidade visual existente da IKAROS.
 
 ## Agenda e perfis

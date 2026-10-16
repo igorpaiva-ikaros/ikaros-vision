@@ -1,5 +1,5 @@
 IKAROS VISION — PLAYBOOK DE REPASSE DOS AGENTES CODEX
-Versão 1 — 07/10/2026
+Contrato de repasse v1 — 07/10/2026; fluxo de recebimento documentado em 16/10/2026
 
 COPIE ESTA INSTRUÇÃO PARA CADA AGENTE QUE ATENDEU DEMANDAS
 
@@ -93,3 +93,9 @@ REVISÃO ANTES DE IMPORTAR NO VISION
 
 COMO ENVIAR
 Envie o resumo + JSON + evidências/anexos disponíveis. Se houver várias sessões/agentes, mantenha um relatório por agente, identificando sobreposições. A revisão consolidará as mesmas demandas sem perder fontes divergentes. Você pode encaminhar os relatórios mesmo com campos null: a lista de pendências orientará o que confirmar antes de gravar.
+
+ENTRADA OPERACIONAL REUTILIZÁVEL
+Procedimento e envelope normalizado: docs/AGENT-REPORT-INTAKE.md; validação: src/lib/workspace/agent-report.ts; execução: scripts/agent-reports.mjs.
+O usuário pode enviar texto/PDF/TXT e anexos disponíveis; o agente estrutura somente os fatos comprovados, consulta cliente e duplicidade com sessão autorizada, recebe o relatório, envia e registra anexos privados e confere o card por leitura.
+Esta entrada registra demandas. Revisões complementam o mesmo card sem substituir movimentos manuais. Conclusão automática de orientação exige confirmação expressa do usuário, solução e data comprovada; a fonte da confirmação fica no histórico, sem inventar aceite direto da cliente. Sem deploy aplicável, registrar nao_se_aplica. Não agendar retorno implicitamente.
+Código/teste local não comprova disponibilidade: a migration deve ser aplicada no Vision, o aplicativo publicado e o acesso real conferido antes de anunciar automação ativa.

@@ -47,6 +47,7 @@ beforeAll(async () => {
     "20261015193000_independent_client_promise",
     "20261015210000_admin_controls",
     "20261016143000_general_system_demands",
+    "20261016200000_agent_report_intake",
   ])
     await db.exec(await readFile(`supabase/migrations/${file}.sql`, "utf8"));
   await db.exec(

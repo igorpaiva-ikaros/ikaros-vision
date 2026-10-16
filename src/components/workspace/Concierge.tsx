@@ -22,6 +22,8 @@ const FIELD_HELP: Record<string, string> = {
     "Previsão comunicada ao cliente. Registre a data e hora em São Paulo; a estimativa do CS não redefine a regra de SLA da empresa.",
   "Solução aplicada": "Explique o que foi feito e o resultado confirmado antes de concluir.",
   Contexto: "Registre cenário, evidências, impacto e passos para reproduzir. Não inclua senhas.",
+  "Relatório de atendimento":
+    "Envie o relato e os arquivos disponíveis ao agente. Ele confere cliente e duplicidade e registra o mesmo card com histórico e anexos privados, mediante acesso autorizado. Reenviar não cria outra demanda; conclusão exige fatos confirmados. Arquivos ausentes e informações desconhecidas continuam indicados.",
   "Testes realizados": "Informe os cenários verificados e os resultados observados.",
   "Resultado dos testes": "Explique o que passou, falhou e o que ainda depende de validação.",
   Cliente: "Empresa da carteira compartilhada relacionada ao atendimento.",

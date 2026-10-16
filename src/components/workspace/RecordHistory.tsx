@@ -26,6 +26,8 @@ const LABEL: Record<string, string> = {
   lost: "Oportunidade perdida",
   assign: "Carteira transferida",
   resolve_import: "Vínculo da importação confirmado",
+  agent_report_received: "Relatório de atendimento recebido",
+  agent_report_completed: "Conclusão confirmada pelo usuário",
 };
 export function RecordHistory({ id, kind }: { id: string; kind: Entity }) {
   const { session, profile } = useBi();
@@ -57,7 +59,25 @@ export function RecordHistory({ id, kind }: { id: string; kind: Entity }) {
                   {h.details?.reason ? ` · Motivo: ${h.details.reason}` : ""}
                 </p>
               )}
+              {h.action === "agent_report_received" && (
+                <p className="text-xs">
+                  {h.details?.external_id} · Origem: {h.details?.source?.reference}
+                  {h.details?.source?.documented_on
+                    ? ` · Data documentada: ${dateLabel(h.details.source.documented_on)}`
+                    : ""}
+                </p>
+              )}
+              {h.action === "agent_report_completed" && (
+                <p className="text-xs">
+                  {h.details?.source}
+                  {h.details?.precision === "date"
+                    ? ` · Data documentada: ${dateLabel(h.details.documented_on)}; horário não informado.`
+                    : ` · Conclusão documentada: ${dateLabel(h.details?.occurred_at)}`}{" "}
+                  Orientação sem publicação de software. Não comprova aceite separado da cliente.
+                </p>
+              )}
               <p className="text-xs text-muted-foreground">
+                {h.action?.startsWith("agent_report_") ? "Registrado em " : ""}
                 {dateLabel(h.at)} · {h.actor}
               </p>
             </div>
