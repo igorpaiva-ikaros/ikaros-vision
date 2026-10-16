@@ -181,6 +181,7 @@ export async function saveScheduledTask({ data }: any) {
     created_by: owner,
   };
   tasks = [...tasks.filter((t) => t.id !== task.id), task];
+  (window as any).qaSavedTask = structuredClone(task);
   return task;
 }
 export async function getAdminState() {

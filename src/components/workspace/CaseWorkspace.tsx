@@ -300,8 +300,8 @@ export function DeliveryControls({
           {request.rejection_reason && <p>Solicitação de ajuste: {request.rejection_reason}</p>}
           {request.approval_state === "publicada" && (
             <p className="text-primary sm:col-span-2">
-              Publicação registrada. CS: valide a entrega, avise o cliente e então conclua a
-              demanda.
+              Publicação registrada. Confirme a entrega e registre a solução antes de concluir. Em
+              demandas de clientes, confirme também o aviso ao cliente.
             </p>
           )}
         </div>

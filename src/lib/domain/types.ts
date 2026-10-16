@@ -54,6 +54,7 @@ export interface Demand {
   title: string | null;
   demandCode: string | null;
   clientIds: string[];
+  scope?: "client" | "system";
   responsaveis: Person[];
   createdAt: string | null;
   completedAt: string | null;

@@ -43,7 +43,7 @@ export function toUtc(value: string) {
   return new Date(`${value}:00-03:00`).toISOString();
 }
 export type TaskDraft = {
-  client: string;
+  client: string | null;
   kind?: Entity;
   record?: string;
   task?: ScheduledTask;
@@ -58,13 +58,14 @@ export function TaskDialog({
   ds: OperationState;
   close: () => void;
 }) {
-  const { reload } = useBi();
+  const { reload, profile, includeTests } = useBi();
   const save = useServerFn(saveScheduledTask);
   const [id] = useState(() => draft.task?.id ?? crypto.randomUUID());
   const [values, setValues] = useState({
     client: draft.client,
+    generalDemand: draft.client === null ? (draft.task?.record_id ?? draft.record ?? "") : "",
     title: draft.task?.title ?? "",
-    type: draft.task?.task_type ?? "Retorno",
+    type: draft.task?.task_type ?? (draft.client === null ? "Outro" : "Retorno"),
     due: toLocalTime(
       draft.task?.due_at ?? draft.due ?? new Date(Date.now() + 3600000).toISOString(),
     ),
@@ -83,11 +84,13 @@ export function TaskDialog({
       await save({
         data: {
           id,
-          ...values,
+          client: values.client,
+          title: values.title,
+          notes: values.notes,
           type: values.type as "Retorno",
           due: toUtc(values.due),
-          kind: draft.task?.record_kind ?? draft.kind,
-          record: draft.task?.record_id ?? draft.record,
+          kind: values.generalDemand ? "demands" : (draft.task?.record_kind ?? draft.kind),
+          record: values.generalDemand || draft.task?.record_id || draft.record,
           version: draft.task?.version,
           status,
         },
@@ -118,7 +121,7 @@ export function TaskDialog({
         <DialogHeader>
           <DialogTitle>{draft.task ? "Tarefa agendada" : "Agendar tarefa"}</DialogTitle>
           <DialogDescription>
-            Horário de São Paulo · lembrete interno para o responsável da carteira
+            Horário de São Paulo · lembrete interno para quem agendou a tarefa
           </DialogDescription>
         </DialogHeader>
         <form
@@ -129,22 +132,49 @@ export function TaskDialog({
           }}
         >
           <fieldset disabled={busy || !!closed} className="space-y-4">
-            <Field label="Cliente *">
+            <Field label="Cliente ou demanda geral *">
               <select
                 className={selectClass}
                 required
-                disabled={!!draft.client}
-                value={values.client}
-                onChange={(e) => setValues((v) => ({ ...v, client: e.target.value }))}
+                disabled={!!draft.client || !!draft.record || !!draft.task}
+                value={
+                  values.generalDemand ? `system:${values.generalDemand}` : (values.client ?? "")
+                }
+                onChange={(e) =>
+                  setValues((v) => ({
+                    ...v,
+                    client: e.target.value.startsWith("system:") ? null : e.target.value,
+                    generalDemand: e.target.value.startsWith("system:")
+                      ? e.target.value.slice(7)
+                      : "",
+                  }))
+                }
               >
-                <option value="">Selecione o cliente</option>
+                <option value="">Selecione o cliente ou a demanda geral</option>
                 {ds.clients
-                  .filter((c) => c.owner_id)
+                  .filter((c) => includeTests || !c.is_test)
                   .map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.code} · {c.name}
                     </option>
                   ))}
+                <optgroup label="Demandas gerais do Ikaros">
+                  {ds.demands
+                    .filter(
+                      (d) =>
+                        d.scope === "system" &&
+                        (includeTests || !d.is_test) &&
+                        (d.id === values.generalDemand ||
+                          ((profile?.role === "admin" || d.owner_id === profile?.id) &&
+                            !d.completed_at &&
+                            !d.canceled_at)),
+                    )
+                    .map((d) => (
+                      <option key={d.id} value={`system:${d.id}`}>
+                        {d.code} · {d.title}
+                      </option>
+                    ))}
+                </optgroup>
               </select>
             </Field>
             <Field label="Tarefa *">
@@ -260,18 +290,22 @@ export function Tasks({
     }
   }, [id, q.data]);
   const clients = new Map(ds.clients.map((c) => [c.id, c]));
+  const visibleTask = (t: ScheduledTask) =>
+    includeTests ||
+    (!clients.get(t.client_id ?? "")?.is_test &&
+      !(t.record_kind && ds[t.record_kind].find((r) => r.id === t.record_id)?.is_test));
   const rows =
     q.data?.filter(
       (t) =>
         (filter === "all" || t.status === filter) &&
-        (includeTests || !clients.get(t.client_id)?.is_test) &&
-        `${t.title} ${t.task_type} ${clients.get(t.client_id)?.name ?? ""}`
+        visibleTask(t) &&
+        `${t.title} ${t.task_type} ${t.client_id === null ? "Sistema geral Ikaros" : (clients.get(t.client_id)?.name ?? "")}`
           .toLowerCase()
           .includes(search.toLowerCase()),
     ) ?? [];
   const days = weekDays(day);
   const today = taskDay(new Date());
-  const all = q.data?.filter((t) => includeTests || !clients.get(t.client_id)?.is_test) ?? [];
+  const all = q.data?.filter(visibleTask) ?? [];
   const todayWeek = weekDays(today);
   const monthStart = today.slice(0, 7) + "-01";
   const monthEnd = addDays(
@@ -298,7 +332,8 @@ export function Tasks({
         {toLocalTime(t.due_at).slice(11)} · {t.title}
       </span>
       <span className="mt-1 block text-muted-foreground">
-        {clients.get(t.client_id)?.name} · {t.task_type}
+        {t.client_id === null ? "Sistema geral · Ikaros" : clients.get(t.client_id)?.name} ·{" "}
+        {t.task_type}
         {t.status === "completed" ? " · Concluída" : t.status === "canceled" ? " · Cancelada" : ""}
       </span>
     </button>
@@ -319,9 +354,7 @@ export function Tasks({
         ))}
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <Button onClick={() => open({ client: "" })} disabled={!ds.clients.some((c) => c.owner_id)}>
-          + Agendar tarefa
-        </Button>
+        <Button onClick={() => open({ client: "" })}>+ Agendar tarefa</Button>
         <Button
           variant="outline"
           aria-label="Semana anterior"

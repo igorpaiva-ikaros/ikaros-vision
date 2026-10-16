@@ -39,7 +39,9 @@ test("desktop drag and cached tab navigation use real UI and router", async ({ p
 test("schedule from card preserves client and appears in agenda", async ({ page }) => {
   await page.goto("/operacao?tab=demands");
   await page.getByRole("button", { name: "Agendar tarefa", exact: true }).click();
-  await expect(page.getByRole("combobox", { name: "Cliente *", exact: true })).toBeDisabled();
+  await expect(
+    page.getByRole("combobox", { name: "Cliente ou demanda geral *", exact: true }),
+  ).toBeDisabled();
   await page.getByLabel("Tarefa *", { exact: true }).fill("Retornar com correção");
   await page.getByRole("button", { name: "Agendar", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
@@ -121,7 +123,7 @@ test("CS menu includes Concierge and calendar slots create and complete tasks", 
     `${label!.split(" ")[1]}T10:00`,
   );
   await page
-    .getByRole("combobox", { name: "Cliente *", exact: true })
+    .getByRole("combobox", { name: "Cliente ou demanda geral *", exact: true })
     .selectOption("00000000-0000-4000-8000-000000000011");
   await page.getByLabel("Tarefa *", { exact: true }).fill("Revisar implantação no calendário");
   await page.getByRole("button", { name: "Agendar", exact: true }).click();
@@ -234,7 +236,9 @@ test("demanda abre perfil sem perder edição e agenda tarefa vinculada", async 
   const task = page
     .getByRole("dialog")
     .filter({ has: page.getByLabel("Tarefa *", { exact: true }) });
-  await expect(task.getByRole("combobox", { name: "Cliente *", exact: true })).toBeDisabled();
+  await expect(
+    task.getByRole("combobox", { name: "Cliente ou demanda geral *", exact: true }),
+  ).toBeDisabled();
   await task.getByLabel("Tarefa *", { exact: true }).fill("Retorno vinculado à demanda");
   await task.getByRole("button", { name: "Agendar", exact: true }).click();
   await expect(
@@ -426,4 +430,61 @@ test("líder acessa resultados e cadastro CS sem configuração administrativa",
   await expect(page.getByRole("tab", { name: "Prazos e SLA" })).toHaveCount(0);
   await expect(page.getByRole("option", { name: /Administrador/ })).toHaveCount(0);
   await page.screenshot({ path: "vision-qa/leadership.png", fullPage: true });
+});
+
+test("CS cria demanda geral, encontra em Minhas demandas e agenda tarefa sem cliente", async ({
+  page,
+}) => {
+  await page.goto("/operacao?tab=crm&pipeline=demands");
+  await page.getByRole("button", { name: "Nova demanda", exact: true }).click();
+  await page.getByRole("button", { name: /Sistema geral · Ikaros/ }).click();
+  let dialog = page.getByRole("dialog");
+  await expect(dialog.getByText(/Demanda interna, sem cliente específico/)).toBeVisible();
+  await dialog.getByLabel("Nome *", { exact: true }).fill("Otimizar consulta geral do ERP");
+  await dialog
+    .getByLabel("Demanda *", { exact: true })
+    .fill("Investigar consulta de relatórios para todas as empresas.");
+  await dialog.getByLabel("Classificação *", { exact: true }).selectOption("Pequena melhoria");
+  await dialog
+    .getByLabel("Prazo planejado de entrega (São Paulo)", { exact: true })
+    .fill(new Date(Date.now() + 86400000).toISOString().slice(0, 16));
+  await expect(dialog.getByText("Já alinhei este prazo com o cliente")).toHaveCount(0);
+  await dialog.getByRole("button", { name: "Criar registro", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  const saved = await page.evaluate(() => (window as any).qaSavedRecord);
+  expect(saved.scope).toBe("system");
+  expect(saved.client_id).toBeNull();
+  expect(saved.owner_id).toBe("00000000-0000-4000-8000-000000000001");
+  await page.getByLabel("Filtrar origem da demanda", { exact: true }).selectOption("system");
+  await expect(page.getByText("Proposta de consórcio não carrega", { exact: true })).toHaveCount(0);
+  await page.getByText("Otimizar consulta geral do ERP", { exact: true }).click();
+  dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("button", { name: "Ver cliente", exact: true })).toHaveCount(0);
+  await expect(
+    dialog.getByRole("button", { name: "Registrar 1ª resposta", exact: true }),
+  ).toHaveCount(0);
+  await expect(dialog.getByLabel("Cliente informado", { exact: true })).toHaveCount(0);
+  await page.screenshot({ path: "vision-qa/general-demand.png", fullPage: true });
+  await dialog.getByRole("button", { name: "Agendar tarefa", exact: true }).click();
+  const task = page
+    .getByRole("dialog")
+    .filter({ has: page.getByLabel("Tarefa *", { exact: true }) });
+  await expect(task.getByLabel("Cliente ou demanda geral *", { exact: true })).toBeDisabled();
+  await expect(task.getByLabel("Cliente ou demanda geral *", { exact: true })).toHaveValue(
+    `system:${saved.id}`,
+  );
+  await task.getByLabel("Tarefa *", { exact: true }).fill("Investigar índices do ERP");
+  await task.getByRole("button", { name: "Agendar", exact: true }).click();
+  await expect(
+    page
+      .getByRole("region", { name: "Tarefas desta demanda" })
+      .getByText("Investigar índices do ERP", { exact: false }),
+  ).toBeVisible();
+  const scheduled = await page.evaluate(() => (window as any).qaSavedTask);
+  expect(scheduled.client_id).toBeNull();
+  expect(scheduled.record_id).toBe(saved.id);
+  expect(scheduled.record_kind).toBe("demands");
+  await page.getByRole("dialog").getByRole("button", { name: "Fechar", exact: true }).click();
+  await page.getByRole("link", { name: "Tarefas", exact: true }).click();
+  await expect(page.getByRole("button", { name: /Investigar índices do ERP/ })).toBeVisible();
 });

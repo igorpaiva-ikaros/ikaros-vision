@@ -46,6 +46,7 @@ beforeAll(async () => {
     "20261015180000_restore_sla_policy_and_first_response_deadline",
     "20261015193000_independent_client_promise",
     "20261015210000_admin_controls",
+    "20261016143000_general_system_demands",
   ])
     await db.exec(await readFile(`supabase/migrations/${file}.sql`, "utf8"));
   await db.exec(
@@ -634,5 +635,208 @@ describe("Administração delegada e testes privados", () => {
     } finally {
       await db.exec("rollback");
     }
+  });
+});
+
+describe("Demandas gerais sem cliente", () => {
+  it("atribui ao criador, preserva SLA da categoria e limita edição ao responsável", async () => {
+    const d = await one(
+      `insert into demands(scope,title,description,classification,owner_id) values('system','Melhoria geral','Otimizar o ERP','Pequena melhoria','${other}') returning id,version`,
+    );
+    await user(other, async () => {
+      const created = await one(
+        `insert into demands(scope,title,description,classification) values('system','Demanda interna','Correção geral','Bug') returning id,owner_id,client_id,scope,first_response_due,resolution_due,received_at`,
+      );
+      expect(created.owner_id).toBe(other);
+      expect(created.client_id).toBeNull();
+      expect(created.first_response_due).toBeNull();
+      expect(
+        (
+          await one(
+            `select resolution_due=policy_due(received_at,classification,'resolution') valid from demands where id='${created.id}'`,
+          )
+        ).valid,
+      ).toBe(true);
+      expect(
+        (await one(`select count(*)::int n from workflow_history where entity_id='${created.id}'`))
+          .n,
+      ).toBeGreaterThan(0);
+      await expect(
+        db.exec(`update demands set scope='client',client_id='${client}' where id='${created.id}'`),
+      ).rejects.toThrow(/origem/);
+    });
+    await user(cs, async () => {
+      expect((await db.query(`select id from demands where id='${d.id}'`)).rows).toHaveLength(1);
+      expect(
+        (await db.query(`update demands set title='Outra pessoa' where id='${d.id}' returning id`))
+          .rows,
+      ).toHaveLength(0);
+    });
+    await user(tech, async () => {
+      expect((await one(`select can_read_case('${d.id}','${tech}') allowed`)).allowed).toBe(false);
+    });
+    await user(other, async () => {
+      await expect(
+        db.exec(`select transition_demand('${d.id}','first_response',${d.version})`),
+      ).rejects.toThrow(/interna/);
+    });
+  });
+  it("agenda no próprio card, gera lembrete uma vez e aparece na agenda sem cliente", async () => {
+    await db.exec("begin");
+    try {
+      await db.exec(
+        `set local role authenticated;select set_config('request.jwt.claim.sub','${other}',true)`,
+      );
+      const d = await one(
+        `insert into demands(scope,title,description,classification) values('system','Agenda interna','Investigar desempenho','Bug') returning id`,
+      );
+      const task = (
+        await one(
+          `select to_jsonb(save_scheduled_task(gen_random_uuid(),null,'Investigar módulo CRM','Outro',now()+interval '1 hour','','demands','${d.id}')) t`,
+        )
+      ).t;
+      expect(task.client_id).toBeNull();
+      expect(task.record_id).toBe(d.id);
+      expect(
+        (await db.query(`select id from scheduled_tasks where id='${task.id}'`)).rows,
+      ).toHaveLength(1);
+      await db.exec(
+        `set local role postgres;select set_config('request.jwt.claim.sub','',true);update scheduled_tasks set due_at=now()-interval '1 minute' where id='${task.id}'`,
+      );
+      expect((await one("select task_reminder_tick() n")).n).toBeGreaterThan(0);
+      await db.exec("select task_reminder_tick()");
+      expect(
+        (await one(`select count(*)::int n from notifications where entity_id='${task.id}'`)).n,
+      ).toBe(1);
+      await db.exec(
+        `set local role authenticated;select set_config('request.jwt.claim.sub','${other}',true)`,
+      );
+      expect(
+        (await one(`select title from notifications where entity_id='${task.id}'`)).title,
+      ).toContain("Sistema geral");
+      const done = (
+        await one(
+          `select to_jsonb(save_scheduled_task('${task.id}',null,'Investigar módulo CRM','Outro',now()-interval '1 minute','','demands','${d.id}',1,'completed')) t`,
+        )
+      ).t;
+      expect(done.status).toBe("completed");
+      await db.exec(`select set_config('request.jwt.claim.sub','${cs}',true)`);
+      await expect(
+        db.exec(
+          `select save_scheduled_task(gen_random_uuid(),null,'Outro responsável','Outro',now()+interval '1 hour','','demands','${d.id}')`,
+        ),
+      ).rejects.toThrow(/forbidden/);
+    } finally {
+      await db.exec("rollback");
+    }
+  });
+  it("encaminha, notifica Pedro, aparece na fila e conclui após aprovação sem aviso fictício a cliente", async () => {
+    await db.exec("begin");
+    try {
+      const d = await one(
+        `insert into demands(scope,title,description,classification,owner_id,received_at) values('system','Correção geral','Contexto técnico documentado','Bug','${other}',now()-interval '7 days') returning id,version`,
+      );
+      await db.exec("select sla_tick()");
+      expect(
+        (
+          await one(
+            `select count(*)::int n from notifications where entity_id='${d.id}' and obligation='resolution_or_forward' and recipient_id='${other}'`,
+          )
+        ).n,
+      ).toBeGreaterThan(0);
+      expect(
+        (
+          await one(
+            `select count(*)::int n from notifications where entity_id='${d.id}' and obligation='first_response'`,
+          )
+        ).n,
+      ).toBe(0);
+      await db.exec(
+        `set local role authenticated;select set_config('request.jwt.claim.sub','${other}',true)`,
+      );
+      let r = (
+        await one(
+          `select to_jsonb(delivery_action('${d.id}','forward',0,'{"context":"Reproduzido e investigado","next_update_at":"2099-01-01T12:00:00Z"}')) r`,
+        )
+      ).r;
+      await db.exec(`select set_config('request.jwt.claim.sub','${tech}',true)`);
+      expect(
+        (await one("select technical_queue() rows")).rows.find((x: any) => x.demand.id === d.id)
+          ?.client_name,
+      ).toBe("Sistema geral · Ikaros");
+      r = (
+        await one(
+          `select to_jsonb(delivery_action('${d.id}','technical_update',${r.version},'{"stage":"Pronta para validação","next_update_at":"2099-01-02T12:00:00Z","result":"Implementação validada","tests":"Regressões verificadas"}')) r`,
+        )
+      ).r;
+      await db.exec(`select set_config('request.jwt.claim.sub','${other}',true)`);
+      const v = (await one(`select version from demands where id='${d.id}'`)).version;
+      await db.exec(`select transition_demand('${d.id}','move',${v},'Aguardando validação')`);
+      await db.exec(`select set_config('request.jwt.claim.sub','${admin}',true)`);
+      expect(
+        (
+          await one(
+            `select count(*)::int n from notifications where entity_id='${d.id}' and obligation='delivery_event'`,
+          )
+        ).n,
+      ).toBeGreaterThan(0);
+      const queue = (await one("select technical_queue() rows")).rows.find(
+        (x: any) => x.demand.id === d.id,
+      );
+      expect(queue.request.approval_state).toBe("aguardando");
+      await db.exec(
+        `select delivery_action('${d.id}','validate_publish',${queue.request.version},'{"confirmed":true,"deployment_ref":"deployment-general-test"}')`,
+      );
+      await db.exec(
+        `select set_config('request.jwt.claim.sub','${other}',true); update demands set solution='Correção geral validada e publicada' where id='${d.id}'`,
+      );
+      const version = (await one(`select version from demands where id='${d.id}'`)).version;
+      const completed = (
+        await one(`select to_jsonb(transition_demand('${d.id}','complete',${version})) d`)
+      ).d;
+      expect(completed.stage).toBe("Concluída");
+      expect(completed.client_informed).toBe(false);
+    } finally {
+      await db.exec("rollback");
+    }
+  });
+  it("separa prazo planejado e SLA e mantém histórico de alterações", async () => {
+    await user(other, async () => {
+      const d = await one(
+        `insert into demands(scope,title,description,classification,due_date) values('system','Plano interno','Entrega interna','Pequena melhoria',now()+interval '1 hour') returning id,due_date,policy_delivery_due`,
+      );
+      const sla = await one(`select promise_due,delivery_due from demand_sla where id='${d.id}'`);
+      expect(sla.promise_due).toEqual(d.due_date);
+      expect(sla.delivery_due).toEqual(d.policy_delivery_due);
+      await db.exec(
+        `update demands set due_date=now()+interval '3 hours',promise_reason='Investigação adicional necessária' where id='${d.id}'`,
+      );
+      expect(
+        (await one(`select original_promise_due from demands where id='${d.id}'`))
+          .original_promise_due,
+      ).toEqual(d.due_date);
+      await expect(
+        db.exec(
+          `update demands set due_date=now()+interval '4 hours',promise_reason='' where id='${d.id}'`,
+        ),
+      ).rejects.toThrow(/justifique/);
+    });
+  });
+  it("não transforma registros sem vínculo em demandas gerais nem revela testes", async () => {
+    await user(other, async () => {
+      await expect(
+        db.exec("insert into demands(title,description) values('Sem origem','Sem cliente')"),
+      ).rejects.toThrow(/client_required/);
+    });
+    const d = await one(
+      "insert into demands(scope,title,description,is_test) values('system','Teste interno privado','Não pode aparecer ao CS',true) returning id,version",
+    );
+    await user(other, async () => {
+      expect((await db.query(`select id from demands where id='${d.id}'`)).rows).toHaveLength(0);
+      expect((await one(`select can_read_case('${d.id}','${other}') allowed`)).allowed).toBe(false);
+      await expect(
+        db.exec(`select claim_record('demands','${d.id}',${d.version})`),
+      ).rejects.toThrow(/forbidden/);
+    });
   });
 });

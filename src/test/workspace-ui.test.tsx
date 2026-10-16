@@ -263,6 +263,6 @@ describe("Fast operational funnels", () => {
     mount("clients");
     fireEvent.click(await screen.findByRole("button", { name: "Agendar tarefa" }));
     expect(screen.getByRole("dialog")).toHaveTextContent("Horário de São Paulo");
-    expect(screen.getByLabelText("Cliente *")).toBeDisabled();
+    expect(screen.getByLabelText("Cliente ou demanda geral *")).toBeDisabled();
   });
 });

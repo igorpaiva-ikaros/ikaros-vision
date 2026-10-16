@@ -1,4 +1,11 @@
 ## 2026-10-15 — Administração, liderança e personalização
+
+## 2026-10-16 — Demandas gerais do Ikaros
+- Origem Sistema geral no CRM, sem cliente fictício, com responsabilidade individual, filtro e identificação no BI.
+- Agenda, lembretes, anexos e fila de validação funcionam também sem cliente.
+- SLA de solução e entrega preservado; primeira resposta e comunicação ao cliente não se aplicam ao trabalho interno.
+- Corrigida a seleção de clientes da agenda para carteira compartilhada.
+- Lockfile npm alinhado à versão 2.26.5 já usada pelo Lovable.
 - Concierge após Tarefas; Mostrar testes exclusivo de administradores, com isolamento dos registros no banco.
 - Administração organizada por assunto, CRM no grupo Operação e relatórios no grupo Gestão.
 - Nomes de categorias/funis/etapas e ordem visual editáveis; rascunho privado, prévia e publicação explícita.

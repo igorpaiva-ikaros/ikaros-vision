@@ -89,3 +89,13 @@ Aplique `20261015210000_admin_controls.sql` antes de publicar o frontend. Não a
 Administração tem abas Equipe e acessos, CRM e linguagem, Produtos e planos, Prazos e SLA, Avançado. Migração fica em Avançado; notificações no sino. Concierge vem após Tarefas. Testes ficam visíveis apenas a administradores, também por RLS, histórico e casos técnicos. A prévia de configuração não é um ambiente isolado de código/produção: para simular dados, use registros marcados como teste.
 
 Liderança usa papel CS mais delegações separadas (`member_access`): visualizar indicadores operacionais, cadastrar CS, promover/remover líderes. Não concede BI financeiro, aprovação/publicação, conta administrativa nem repasse de delegações. Criar conta passa pelo servidor e a provisionamento validado no banco. Só administrador grava delegações. Promoção não ativa automaticamente permissões; o administrador as define. Atalhos visíveis organizam navegação; não são fronteira de confidencialidade entre colegas da carteira compartilhada. Nenhuma delegação é atribuída automaticamente nesta migration.
+
+## Demandas gerais do sistema (16/10/2026)
+
+CRM → Nova demanda → Sistema geral · Ikaros registra trabalho interno com `scope=system` e `client_id=NULL`, atribuído ao criador. Não cria cliente fictício nem reaproveita registros importados sem vínculo. A origem não pode ser alterada após o cadastro. O filtro de origem separa trabalho de cliente e trabalho geral, e o BI identifica a origem.
+
+Demandas gerais seguem os prazos de solução/encaminhamento e entrega da categoria. Primeira resposta, validação do cliente e aviso ao cliente não se aplicam. O prazo planejado individual continua separado do SLA oficial, com motivo e histórico ao reagendar. Aprovação, publicação, anexos e observações usam a mesma fila protegida. Concluir exige solução; quando existe solicitação de aprovação, exige publicação confirmada.
+
+Tarefas podem ser vinculadas à demanda geral, sem cliente, e aparecem no card e no calendário. O lembrete é enviado a quem agendou a tarefa. Demandas reais gerais entram nos indicadores operacionais, sem inflar a carteira ou vincular risco a um cliente. Testes continuam privados ao administrador.
+
+Aplicar `20261016143000_general_system_demands.sql` antes de publicar a interface. A migration não altera regras de SLA nem cria demandas, tarefas ou clientes reais.

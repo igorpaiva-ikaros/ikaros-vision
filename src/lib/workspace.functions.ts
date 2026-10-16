@@ -31,10 +31,17 @@ export const saveRecord = createServerFn({ method: "POST" })
     await assertOperator(context);
     const values = entityForms[data.kind].parse(data.values);
     const db = context.supabase as any;
-    const client = checkResult(
-      await db.from("clients").select("owner_id,is_test").eq("id", values.client_id).maybeSingle(),
-    );
-    if (!client) throw new Error("Cliente não encontrado.");
+    const general = data.kind === "demands" && "scope" in values && values.scope === "system";
+    const client = general
+      ? null
+      : checkResult(
+          await db
+            .from("clients")
+            .select("owner_id,is_test")
+            .eq("id", values.client_id)
+            .maybeSingle(),
+        );
+    if (!general && !client) throw new Error("Cliente não encontrado.");
     const { data: admin } = await db.rpc("is_admin", { _uid: context.userId });
     if (data.kind === "upgrades") {
       const plan = (values as any).new_plan;
@@ -64,8 +71,8 @@ export const saveRecord = createServerFn({ method: "POST" })
       if (!r) throw new Error("Outra pessoa alterou este registro. Recarregue e tente novamente.");
       return r;
     }
-    input.owner_id = admin ? null : context.userId;
-    input.is_test = client.is_test || !!values.is_test;
+    input.owner_id = admin && !general ? null : context.userId;
+    input.is_test = !!client?.is_test || (admin && !!values.is_test);
     if (data.kind === "demands") {
       input.stage = "Nova";
       input.received_at = new Date().toISOString();

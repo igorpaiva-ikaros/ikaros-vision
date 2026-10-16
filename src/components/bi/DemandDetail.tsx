@@ -124,8 +124,10 @@ export function DemandDetail({
                   <Row k="Complexidade" v={<Val v={d.complexity} />} />
                 </dl>
               </Block>
-              <Block title="Cliente">
-                {d.clientIds.length === 0 && <Val v={null} />}
+              <Block title={d.scope === "system" ? "Origem" : "Cliente"}>
+                {d.clientIds.length === 0 && (
+                  <Val v={d.scope === "system" ? "Sistema geral · Ikaros" : null} />
+                )}
                 {d.clientIds.map((id) => {
                   const c = clients.get(id);
                   return (
@@ -156,13 +158,18 @@ export function DemandDetail({
                   <Row k="Prazo final" v={formatDateTime(d.dueDate)} />
                   <Row k="Publicação" v={formatDateTime(d.publishedAt)} />
                   <Row k="Conclusão" v={formatDateTime(d.completedAt)} />
-                  <Row k="Cliente informado?" v={<Bool v={d.clientInformed} />} />
-                  <Row k="Cliente validou?" v={<Bool v={d.clientValidated} />} />
+                  {d.scope !== "system" && (
+                    <Row k="Cliente informado?" v={<Bool v={d.clientInformed} />} />
+                  )}
+                  {d.scope !== "system" && (
+                    <Row k="Cliente validou?" v={<Bool v={d.clientValidated} />} />
+                  )}
                 </dl>
                 {d.status === "Publicada" && (
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Publicada não significa concluída: a conclusão exige solução registrada e
-                    comunicação ao cliente.
+                    {d.scope === "system"
+                      ? "Publicada não significa concluída: confirme a entrega e registre a solução aplicada."
+                      : "Publicada não significa concluída: a conclusão exige solução registrada e comunicação ao cliente."}
                   </p>
                 )}
               </Block>
@@ -182,7 +189,9 @@ export function DemandDetail({
                   />
                   <Row k="Status SLA útil" v={<Val v={d.sla.statusUtil} />} />
                   <Row k="Status do SLA" v={<Val v={d.sla.statusSla} />} />
-                  <Row k="Prazo 1ª resposta" v={formatDateTime(d.sla.prazoPrimeiraResposta)} />
+                  {d.scope !== "system" && (
+                    <Row k="Prazo 1ª resposta" v={formatDateTime(d.sla.prazoPrimeiraResposta)} />
+                  )}
                   <Row k="Prazo solução" v={formatDateTime(d.sla.prazoSolucao)} />
                   <Row k="Prazo final efetivo" v={formatDateTime(d.sla.prazoFinalEfetivo)} />
                 </dl>

@@ -176,7 +176,7 @@ export function DemandTable({
                   </TableCell>
                   <TableCell className="max-w-[180px] truncate text-sm">
                     {d.clientIds.map((id) => clientName(clientsById.get(id))).join(", ") ||
-                      "Sem informação"}
+                      (d.scope === "system" ? "Sistema geral · Ikaros" : "Sem informação")}
                   </TableCell>
                   <TableCell className="text-sm">
                     {d.responsaveis.map((p) => p.name ?? "Sem nome").join(", ") || "Sem informação"}
