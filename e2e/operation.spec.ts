@@ -8,21 +8,23 @@ test("rolagem fica no topo de um Kanban longo, sincroniza nos dois sentidos e pr
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.addInitScript(() => sessionStorage.setItem("qa-kanban-dense", "true"));
   await page.goto("/operacao?tab=demands");
-  const scrollbar = page.getByRole("region", {
+  const scrollbar = page.getByRole("slider", {
     name: "Rolagem horizontal das etapas",
     exact: true,
   });
   const viewport = page.locator(".kanban-viewport");
   await expect(scrollbar).toBeVisible();
   await expect(page.getByRole("button", { name: "Próximas etapas", exact: true })).toBeEnabled();
-  await scrollbar.evaluate((el) => {
-    el.scrollLeft = 500;
-  });
-  await expect.poll(() => viewport.evaluate((el) => el.scrollLeft)).toBe(500);
+  const track = (await scrollbar.boundingBox())!;
+  await page.mouse.move(track.x + 28, track.y + track.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(track.x + track.width / 2, track.y + track.height / 2, { steps: 5 });
+  await page.mouse.up();
+  await expect.poll(() => viewport.evaluate((el) => el.scrollLeft)).toBeGreaterThan(500);
   await viewport.evaluate((el) => {
     el.scrollLeft = 250;
   });
-  await expect.poll(() => scrollbar.evaluate((el) => el.scrollLeft)).toBe(250);
+  await expect(scrollbar).toHaveValue("250");
   await page.evaluate(() => window.scrollTo(0, 1200));
   await expect
     .poll(async () => (await page.locator("[data-kanban-controls]").boundingBox())!.y)
@@ -32,9 +34,8 @@ test("rolagem fica no topo de um Kanban longo, sincroniza nos dois sentidos e pr
   await page.getByRole("button", { name: "Próximas etapas", exact: true }).click();
   await expect.poll(() => viewport.evaluate((el) => el.scrollLeft)).toBeGreaterThan(250);
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(1200);
-  await scrollbar.evaluate((el) => {
-    el.scrollLeft = el.scrollWidth;
-  });
+  await scrollbar.focus();
+  await scrollbar.press("End");
   await expect(page.getByRole("button", { name: "Próximas etapas", exact: true })).toBeDisabled();
   await expect
     .poll(() =>
@@ -42,9 +43,7 @@ test("rolagem fica no topo de um Kanban longo, sincroniza nos dois sentidos e pr
     )
     .toBeLessThan(2);
   await page.screenshot({ path: "vision-qa/kanban-sticky-scroll.png" });
-  await scrollbar.evaluate((el) => {
-    el.scrollLeft = 0;
-  });
+  await scrollbar.press("Home");
   await page.evaluate(() => window.scrollTo(0, 0));
   const card = page.locator('[data-card-id="00000000-0000-4000-8000-000000000021"]');
   await card.dragTo(page.locator('[data-stage="Em triagem"] h2'));
@@ -83,6 +82,7 @@ test("contadores separam SLA e promessa, atualizam sem clique e cabem no celular
   const badgeBox = (await card.locator('[data-deadline="sla"]').boundingBox())!;
   expect(badgeBox.x + badgeBox.width).toBeLessThanOrEqual(cardBox.x + cardBox.width);
   expect(badgeBox.y - cardBox.y).toBeLessThan(25);
+  await card.scrollIntoViewIfNeeded();
   await page.screenshot({ path: "vision-qa/kanban-countdowns-mobile.png", fullPage: false });
   await page.getByRole("button", { name: "Próximas etapas", exact: true }).click();
   await expect
