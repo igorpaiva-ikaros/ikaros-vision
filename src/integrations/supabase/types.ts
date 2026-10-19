@@ -529,6 +529,7 @@ export type Database = {
           published_at: string | null
           received_at: string | null
           resolution_due: string | null
+          scope: string
           sla_start_at: string | null
           solution: string | null
           source_date_precision: Json
@@ -577,6 +578,7 @@ export type Database = {
           published_at?: string | null
           received_at?: string | null
           resolution_due?: string | null
+          scope?: string
           sla_start_at?: string | null
           solution?: string | null
           source_date_precision?: Json
@@ -625,6 +627,7 @@ export type Database = {
           published_at?: string | null
           received_at?: string | null
           resolution_due?: string | null
+          scope?: string
           sla_start_at?: string | null
           solution?: string | null
           source_date_precision?: Json
@@ -1138,7 +1141,7 @@ export type Database = {
       }
       scheduled_tasks: {
         Row: {
-          client_id: string
+          client_id: string | null
           completed_at: string | null
           created_at: string
           created_by: string
@@ -1154,7 +1157,7 @@ export type Database = {
           version: number
         }
         Insert: {
-          client_id: string
+          client_id?: string | null
           completed_at?: string | null
           created_at?: string
           created_by: string
@@ -1170,7 +1173,7 @@ export type Database = {
           version?: number
         }
         Update: {
-          client_id?: string
+          client_id?: string | null
           completed_at?: string | null
           created_at?: string
           created_by?: string
@@ -1861,7 +1864,7 @@ export type Database = {
           _version?: number
         }
         Returns: {
-          client_id: string
+          client_id: string | null
           completed_at: string | null
           created_at: string
           created_by: string
@@ -1955,6 +1958,7 @@ export type Database = {
           published_at: string | null
           received_at: string | null
           resolution_due: string | null
+          scope: string
           sla_start_at: string | null
           solution: string | null
           source_date_precision: Json
@@ -2020,6 +2024,7 @@ export type Database = {
           published_at: string | null
           received_at: string | null
           resolution_due: string | null
+          scope: string
           sla_start_at: string | null
           solution: string | null
           source_date_precision: Json
@@ -2083,6 +2088,7 @@ export type Database = {
           published_at: string | null
           received_at: string | null
           resolution_due: string | null
+          scope: string
           sla_start_at: string | null
           solution: string | null
           source_date_precision: Json
