@@ -17,6 +17,9 @@ import { PipelineProgress } from "./PipelineProgress";
 import { CaseWorkspace } from "./CaseWorkspace";
 import { WhatsAppGroup } from "./WhatsAppGroup";
 import { RecordHistory } from "./RecordHistory";
+import { KanbanBoard } from "./KanbanBoard";
+import { CardDeadlines } from "./CardDeadlines";
+import { cardDeadlines } from "@/lib/workspace/card-deadlines";
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, Link } from "@tanstack/react-router";
@@ -187,6 +190,18 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
   const openedId = useRef<string | undefined>(undefined);
   const [taskDraft, setTaskDraft] = useState<TaskDraft | null>(null);
   const [stageLimit, setStageLimit] = useState<Record<string, number>>({});
+  const [clock, setClock] = useState(() => Date.now());
+  useEffect(() => {
+    const tick = () => setClock(Date.now());
+    const timer = window.setInterval(tick, 30_000);
+    window.addEventListener("focus", tick);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", tick);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, []);
   useEffect(() => {
     setSearch("");
     setOwnerFilter("mine");
@@ -349,6 +364,21 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
   }
   function card(row: RecordRow) {
     const client = clientById.get(row.client_id ?? "");
+    const indicators = cardDeadlines(
+      row,
+      tab as Entity,
+      ds.sla.find((s) => s.id === row.id),
+      ds.deliveries?.find((d) => d.demand_id === row.id),
+      ds.riskMinutes,
+      clock,
+    );
+    const tones = indicators.map((i) => i.tone);
+    const borderTone =
+      tones.includes("overdue") || riskFor(row, ds) === "atrasado"
+        ? "border-l-destructive"
+        : tones.includes("risk") || riskFor(row, ds) === "em_risco"
+          ? "border-l-warning"
+          : "border-l-primary/60";
     return (
       <article
         key={row.id}
@@ -372,18 +402,21 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
           setDragged(null);
           setDropStage(null);
         }}
-        className={`rounded-xl border border-l-4 bg-card p-3 shadow-sm space-y-2 transition-shadow hover:shadow-md ${dragged === row.id ? "opacity-40" : ""} ${riskFor(row, ds) === "atrasado" ? "border-l-destructive" : riskFor(row, ds) === "em_risco" ? "border-l-warning" : "border-l-primary/60"} ${!isClosed(row) ? "cursor-grab active:cursor-grabbing" : ""}`}
+        className={`rounded-xl border border-l-4 bg-card p-3 shadow-sm space-y-2 transition-shadow hover:shadow-md ${dragged === row.id ? "opacity-40" : ""} ${borderTone} ${!isClosed(row) ? "cursor-grab active:cursor-grabbing" : ""}`}
       >
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-            {ds.people?.find((p) => p.id === row.owner_id)?.full_name ?? profile?.full_name}
+        <div className="flex items-start justify-between gap-2">
+          <span className="min-w-0 break-words text-[10px] uppercase tracking-wider text-muted-foreground">
+            {ds.people?.find((p) => p.id === row.owner_id)?.full_name ?? "A assumir"}
           </span>
-          {!isClosed(row) && ["demands", "onboardings", "upgrades"].includes(tab) && (
-            <GripVertical
-              aria-label="Arraste o card para outra etapa"
-              className="h-4 w-4 text-muted-foreground"
-            />
-          )}
+          <div className="flex items-start gap-1">
+            {indicators.length > 0 && <CardDeadlines indicators={indicators} />}
+            {!isClosed(row) && ["demands", "onboardings", "upgrades"].includes(tab) && (
+              <GripVertical
+                aria-label="Arraste o card para outra etapa"
+                className="h-4 w-4 shrink-0 text-muted-foreground"
+              />
+            )}
+          </div>
         </div>
         <button
           className="w-full text-left"
@@ -417,7 +450,6 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
               : (client?.name ?? "Vínculo pendente")}
           </div>
         </button>
-        {(tab === "demands" || tab === "onboardings") && <SlaBadge row={row} ds={ds} />}
         <div className="text-xs text-muted-foreground">
           Responsável: {ds.people?.find((p) => p.id === row.owner_id)?.full_name ?? "A assumir"}
         </div>
@@ -791,9 +823,9 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
       ) : ["interactions", "changelog"].includes(tab) ? (
         <div className="grid gap-3 md:grid-cols-2">{rows.map(card)}</div>
       ) : (
-        <div
-          className="flex gap-3 overflow-x-auto pb-5 snap-x"
-          aria-label={`Kanban ${AREA_GUIDE[tab].label}`}
+        <KanbanBoard
+          key={`${tab}-${production}-${viewId}`}
+          label={`Kanban ${AREA_GUIDE[tab].label}`}
         >
           {stages.map((stage) => {
             const group = rows.filter(
@@ -866,7 +898,7 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
               </section>
             );
           })}
-        </div>
+        </KanbanBoard>
       )}
       {choosingClient && (
         <ClientDemandPicker

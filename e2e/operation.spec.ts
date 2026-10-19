@@ -1,4 +1,95 @@
 import { test, expect } from "@playwright/test";
+
+test("rolagem fica no topo de um Kanban longo, sincroniza nos dois sentidos e preserva arraste", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.addInitScript(() => sessionStorage.setItem("qa-kanban-dense", "true"));
+  await page.goto("/operacao?tab=demands");
+  const scrollbar = page.getByRole("region", {
+    name: "Rolagem horizontal das etapas",
+    exact: true,
+  });
+  const viewport = page.locator(".kanban-viewport");
+  await expect(scrollbar).toBeVisible();
+  await expect(page.getByRole("button", { name: "Próximas etapas", exact: true })).toBeEnabled();
+  await scrollbar.evaluate((el) => {
+    el.scrollLeft = 500;
+  });
+  await expect.poll(() => viewport.evaluate((el) => el.scrollLeft)).toBe(500);
+  await viewport.evaluate((el) => {
+    el.scrollLeft = 250;
+  });
+  await expect.poll(() => scrollbar.evaluate((el) => el.scrollLeft)).toBe(250);
+  await page.evaluate(() => window.scrollTo(0, 1200));
+  await expect
+    .poll(async () => (await page.locator("[data-kanban-controls]").boundingBox())!.y)
+    .toBe(0);
+  await expect(scrollbar).toBeInViewport();
+  expect(await viewport.evaluate((el) => el.getBoundingClientRect().bottom)).toBeGreaterThan(900);
+  await page.getByRole("button", { name: "Próximas etapas", exact: true }).click();
+  await expect.poll(() => viewport.evaluate((el) => el.scrollLeft)).toBeGreaterThan(250);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(1200);
+  await scrollbar.evaluate((el) => {
+    el.scrollLeft = el.scrollWidth;
+  });
+  await expect(page.getByRole("button", { name: "Próximas etapas", exact: true })).toBeDisabled();
+  await expect
+    .poll(() =>
+      viewport.evaluate((el) => Math.abs(el.scrollWidth - el.clientWidth - el.scrollLeft)),
+    )
+    .toBeLessThan(2);
+  await page.screenshot({ path: "vision-qa/kanban-sticky-scroll.png" });
+  await scrollbar.evaluate((el) => {
+    el.scrollLeft = 0;
+  });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  const card = page.locator('[data-card-id="00000000-0000-4000-8000-000000000021"]');
+  await card.dragTo(page.locator('[data-stage="Em triagem"] h2'));
+  await expect(page.locator('[data-stage="Em triagem"]')).toContainText(
+    "Proposta de consórcio não carrega",
+  );
+  await page.screenshot({ path: "vision-qa/kanban-countdowns-desktop.png" });
+  await page.getByRole("tab", { name: "Onboarding", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Etapas anteriores", exact: true })).toBeDisabled();
+  expect(errors).toEqual([]);
+});
+
+test("contadores separam SLA e promessa, atualizam sem clique e cabem no celular", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.clock.install({ time: new Date("2026-10-19T18:00:00Z") });
+  await page.addInitScript(() => sessionStorage.setItem("qa-kanban-dense", "true"));
+  await page.goto("/operacao?tab=demands");
+  const card = page.locator('[data-card-id="00000000-0000-4000-8000-000000000021"]');
+  await expect(card.locator('[data-deadline="sla"]')).toContainText("SLA · solução");
+  await expect(card.locator('[data-deadline="sla"]')).toHaveAttribute("data-tone", "ok");
+  await expect(card.locator('[data-deadline="promise"]')).toHaveAttribute("data-tone", "overdue");
+  await expect(card.locator('[data-deadline="promise"]')).toContainText("Atraso 1h 30min");
+  const urgent = page.locator(
+    '[data-card-id="00000000-0000-4000-8000-000000000070"] [data-deadline="sla"]',
+  );
+  await expect(urgent).toHaveAttribute("data-tone", "risk");
+  await page.clock.fastForward(61_000);
+  await expect(urgent).toHaveAttribute("data-tone", "overdue");
+  await expect(urgent).toContainText("Atraso");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
+  const cardBox = (await card.boundingBox())!;
+  const badgeBox = (await card.locator('[data-deadline="sla"]').boundingBox())!;
+  expect(badgeBox.x + badgeBox.width).toBeLessThanOrEqual(cardBox.x + cardBox.width);
+  expect(badgeBox.y - cardBox.y).toBeLessThan(25);
+  await page.screenshot({ path: "vision-qa/kanban-countdowns-mobile.png", fullPage: false });
+  await page.getByRole("button", { name: "Próximas etapas", exact: true }).click();
+  await expect
+    .poll(() => page.locator(".kanban-viewport").evaluate((el) => el.scrollLeft))
+    .toBeGreaterThan(0);
+});
+
 test("desktop drag and cached tab navigation use real UI and router", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));

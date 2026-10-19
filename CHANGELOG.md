@@ -1,3 +1,10 @@
+## 2026-10-19 — Kanban com rolagem no topo e contadores
+
+- Barra horizontal fixa no topo do quadro, sincronizada com toque/trackpad e setas; disponível sem descer a coluna mais longa.
+- Contadores no canto superior dos cards: próximo SLA pendente, prazo do cliente (ou planejamento interno) e retorno técnico, separados.
+- Tempo restante/atraso atualizado a cada 30 segundos; conclusão encerra a contagem e mantém o resultado. Datas finais e risco oficial vêm das regras vigentes, sem alterar SLA.
+- Interface conserva carteira, validação, arraste, permissões e identidade visual. Nenhuma migration ou alteração de dados reais.
+
 ## 2026-10-15 — Administração, liderança e personalização
 
 ## 2026-10-16 — Demandas gerais do Ikaros
