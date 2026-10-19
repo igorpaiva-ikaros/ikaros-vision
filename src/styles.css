@@ -132,3 +132,14 @@
 .bi-section-title { font-size: 1.5rem; font-weight: 400; }
 .bi-page-title { font-size: clamp(2.25rem, 3vw, 3rem); font-weight: 400; line-height: 1.08; }
 ::selection { background: #fd784940; color: #f4f0e6; }
+
+/* Keep the single visible horizontal scrollbar above the entire Kanban. */
+.kanban-scrollbar { appearance: none; background: transparent; accent-color: var(--primary); }
+.kanban-scrollbar::-webkit-slider-runnable-track { height: 8px; background: var(--muted); border-radius: 8px; }
+.kanban-scrollbar::-webkit-slider-thumb { appearance: none; margin-top: -2px; width: 56px; height: 12px; background: var(--primary); border: 1px solid var(--primary); border-radius: 8px; }
+.kanban-scrollbar::-moz-range-track { height: 8px; background: var(--muted); border-radius: 8px; }
+.kanban-scrollbar::-moz-range-thumb { width: 56px; height: 12px; background: var(--primary); border: 0; border-radius: 8px; }
+.kanban-scrollbar:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: 8px; }
+.kanban-scrollbar:disabled { opacity: 0.35; cursor: default; }
+.kanban-viewport { scrollbar-width: none; }
+.kanban-viewport::-webkit-scrollbar { display: none; }

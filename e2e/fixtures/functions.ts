@@ -102,6 +102,46 @@ export const ds: any = {
   riskMinutes: 60,
 };
 export const metrics = { reads: 0, moves: 0 };
+// Local browser fixture only: exercise a tall board without inserting production records.
+if (sessionStorage.getItem("qa-kanban-dense") === "true") {
+  const at = (minutes: number) => new Date(Date.now() + minutes * 60000).toISOString();
+  Object.assign(ds.demands[0], {
+    first_response_at: at(-60),
+    first_response_due: at(-30),
+    resolution_due: at(180),
+    policy_delivery_due: at(1440),
+    due_date: at(-90),
+  });
+  ds.sla.push({
+    id: ds.demands[0].id,
+    first_response_state: "cumprido",
+    resolution_state: "no_prazo",
+    delivery_state: "no_prazo",
+    promise_state: "atrasado",
+  });
+  ds.demands.push({
+    ...ds.demands[0],
+    id: "00000000-0000-4000-8000-000000000070",
+    code: "DEM-00070",
+    title: "Prazo prestes a vencer",
+    first_response_at: null,
+    first_response_due: at(0.5),
+    due_date: null,
+  });
+  ds.sla.push({
+    id: ds.demands[1].id,
+    first_response_state: "em_risco",
+    resolution_state: "no_prazo",
+    delivery_state: "no_prazo",
+  });
+  for (let index = 0; index < 12; index++)
+    ds.demands.push({
+      ...ds.demands[0],
+      id: `dense-${index}`,
+      code: `DEM-DENSE-${index}`,
+      title: `Atendimento de teste ${index + 1}`,
+    });
+}
 (window as any).qaMetrics = metrics;
 let tasks: any[] = [];
 export async function getOperationState() {

@@ -99,3 +99,7 @@ Demandas gerais seguem os prazos de solução/encaminhamento e entrega da catego
 Tarefas podem ser vinculadas à demanda geral, sem cliente, e aparecem no card e no calendário. O lembrete é enviado a quem agendou a tarefa. Demandas reais gerais entram nos indicadores operacionais, sem inflar a carteira ou vincular risco a um cliente. Testes continuam privados ao administrador.
 
 Aplicar `20261016143000_general_system_demands.sql` antes de publicar a interface. A migration não altera regras de SLA nem cria demandas, tarefas ou clientes reais.
+
+## Kanban e contadores
+
+A barra horizontal e as setas ficam no topo do quadro e acompanham a rolagem vertical. Toque e trackpad seguem sincronizados. Os cards mostram no canto superior direito o SLA pendente com vencimento mais antigo e, separadamente, o compromisso com o cliente ou o planejamento interno. Previsões técnicas aparecem quando há encaminhamento ativo. O contador mostra tempo corrido até a data final já calculada pela regra oficial (incluindo calendário útil quando configurado), com atualização a cada 30 segundos e ao voltar à aba. O alerta de risco oficial usa o estado do servidor; previsão individual nunca substitui SLA. Sem data cadastrada, não se presume que o caso está no prazo. Registros encerrados param a contagem.
