@@ -4,7 +4,11 @@
 import { beforeAll, afterAll, describe, it, expect } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { readFile } from "node:fs/promises";
-import { TRANSFER_MIGRATION, TRANSFER_GRANTS_MIGRATION } from "./transfer-migration-path";
+import {
+  TRANSFER_MIGRATION,
+  TRANSFER_GRANTS_MIGRATION,
+  TRANSFER_SLA_MIGRATION,
+} from "./transfer-migration-path";
 
 const admin = "2d31f8a5-afeb-4e12-9a64-a91432bdab61",
   seededCs = "041b0196-008a-4edc-ae60-cbb8aac105ca",
@@ -78,6 +82,7 @@ beforeAll(async () => {
     await db.exec(await readFile(`supabase/migrations/${file}.sql`, "utf8"));
   await db.exec(await readFile(TRANSFER_MIGRATION, "utf8"));
   await db.exec(await readFile(TRANSFER_GRANTS_MIGRATION, "utf8"));
+  await db.exec(await readFile(TRANSFER_SLA_MIGRATION, "utf8"));
   await db.exec(
     `insert into profiles(id,full_name,email,active) values
       ('${csA}','CS A','a@example.test',true),('${csB}','CS B','b@example.test',true),
@@ -440,5 +445,93 @@ describe("Liberar/assumir não burla o fluxo", () => {
     expect(names).not.toContain("Técnico");
     expect(names).not.toContain("Pedro Manhães");
     await fails(tech, `select demand_transfer_targets()`, /forbidden/);
+  });
+});
+
+describe("Prazos SLA preservados na troca de responsável", () => {
+  const SLA = "sla_start_at,first_response_due,resolution_due,policy_delivery_due";
+  const fields = (id: string) =>
+    one(
+      `select sla_start_at::text s,first_response_due::text r,resolution_due::text so,policy_delivery_due::text e from demands where id='${id}'`,
+    );
+  const recomputed = (id: string) =>
+    one(
+      `select sla_normalize(received_at)::text s,policy_due(received_at,classification,'response')::text r,policy_due(received_at,classification,'resolution')::text so,policy_due(received_at,classification,'delivery')::text e from demands where id='${id}'`,
+    );
+  it("política muda entre criação e transferência: aprovação, direta e liberação mantêm os quatro prazos", async () => {
+    const original = await one(`select * from sla_policies where category='Bug'`);
+    const approved = await demand(csA);
+    const direct = await demand(csA);
+    const released = await demand(csA);
+    const control = await demand(csA);
+    const before = {
+      approved: await fields(approved.id),
+      direct: await fields(direct.id),
+      released: await fields(released.id),
+      control: await fields(control.id),
+    };
+    expect(before.approved.r).not.toBeNull();
+    // Mudança real da política da categoria depois da criação (sem a função que recalcula em lote).
+    await db.exec(
+      `update sla_policies set response_value=30,response_unit='minutes',response_basis='calendar',resolution_value=5,resolution_unit='days',resolution_basis='calendar',delivery_value=2,delivery_unit='hours',delivery_basis='calendar' where category='Bug'`,
+    );
+    try {
+      // Controle: uma edição comum recalcula, então a política nova de fato produz outros prazos.
+      await as(csA, `update demands set priority='Alta' where id='${control.id}'`);
+      const controlAfter = await fields(control.id);
+      expect(controlAfter).toEqual(await recomputed(control.id));
+      expect(controlAfter.r).not.toBe(before.control.r);
+      expect(controlAfter.so).not.toBe(before.control.so);
+      expect(controlAfter.e).not.toBe(before.control.e);
+
+      const [{ r }] = await as(csA, request(approved.id, approved.version, csB));
+      await as(leader, `select decide_demand_transfer('${r.id}',true,${approved.version},null)`);
+      await as(
+        admin,
+        `select transfer_demand('${direct.id}',${direct.version},'${csB}','Redistribuição da carteira')`,
+      );
+      await as(leader, `select claim_record('demands','${released.id}',${released.version},true)`);
+      await as(
+        csB,
+        `select claim_record('demands','${released.id}',${released.version + 1},false)`,
+      );
+
+      for (const [key, id, owner_] of [
+        ["approved", approved.id, csB],
+        ["direct", direct.id, csB],
+        ["released", released.id, csB],
+      ] as const) {
+        expect(await owner(id)).toBe(owner_);
+        const after = await fields(id);
+        expect(after, key).toEqual(before[key]);
+        const fresh = await recomputed(id);
+        expect(after.r, key).not.toBe(fresh.r);
+        expect(after.so, key).not.toBe(fresh.so);
+        expect(after.e, key).not.toBe(fresh.e);
+      }
+      const sla = await one(
+        `select count(*)::int n from workflow_history where entity_id in ('${approved.id}','${direct.id}') and action='edited' and details->'fields' ?| array[${SLA.split(
+          ",",
+        )
+          .map((f) => `'${f}'`)
+          .join(",")}]`,
+      );
+      expect(sla.n).toBe(0);
+    } finally {
+      await db.query(
+        `update sla_policies set response_value=$1,response_unit=$2,response_basis=$3,resolution_value=$4,resolution_unit=$5,resolution_basis=$6,delivery_value=$7,delivery_unit=$8,delivery_basis=$9 where category='Bug'`,
+        [
+          original.response_value,
+          original.response_unit,
+          original.response_basis,
+          original.resolution_value,
+          original.resolution_unit,
+          original.resolution_basis,
+          original.delivery_value,
+          original.delivery_unit,
+          original.delivery_basis,
+        ],
+      );
+    }
   });
 });
