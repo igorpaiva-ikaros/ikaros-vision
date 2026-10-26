@@ -4,9 +4,7 @@ const CLOSED = ["Concluída", "Cancelada"];
 export const TRANSFER_DECIDERS_LABEL = "administrador ou líder autorizado";
 
 export function pendingTransfer(rowId: string, ds: Pick<OperationState, "transfers">) {
-  return (
-    (ds.transfers ?? []).find((t) => t.demand_id === rowId && t.status === "pendente") ?? null
-  );
+  return (ds.transfers ?? []).find((t) => t.demand_id === rowId && t.status === "pendente") ?? null;
 }
 
 /**
@@ -35,8 +33,7 @@ export function transferActions(
     /** Administrador ou líder delegado troca o responsável diretamente. */
     canTransfer: !closed && !pending && manager,
     /** Gestor decide; líder não decide a própria solicitação. */
-    canDecide:
-      !!pending && manager && (profile?.role === "admin" || pending.requested_by !== me),
+    canDecide: !!pending && manager && (profile?.role === "admin" || pending.requested_by !== me),
     /** Liberar para a equipe deixou de ser atalho do colaborador. */
     canRelease: !closed && !pending && !reviewLocked && manager && !!row.owner_id,
     /** Assumir demanda sem responsável continua aberto a qualquer CS. */

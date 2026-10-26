@@ -62,8 +62,7 @@ export const accessSchema = z
 export const can = (
   p: Profile | null,
   capability: "view_team" | "manage_cs" | "promote_cs" | "manage_demand_transfers",
-) =>
-  p?.role === "admin" || (p?.role === "cs" && !!p.access?.is_lead && !!p.access?.[capability]);
+) => p?.role === "admin" || (p?.role === "cs" && !!p.access?.is_lead && !!p.access?.[capability]);
 export const areaAllowed = (p: Profile | null, area: string) =>
   p?.role === "admin" ||
   (p?.role === "technical"

@@ -147,10 +147,12 @@ describe("Solicitação pelo colaborador", () => {
     expect(r).toMatchObject({ status: "pendente", from_owner_id: csA, to_owner_id: csB });
     expect(await owner(d.id)).toBe(csA);
     expect(await version(d.id)).toBe(d.version);
-    expect(await as(csA, `select status from demand_transfer_requests where demand_id='${d.id}'`))
-      .toHaveLength(1);
-    expect(await as(csB, `select status from demand_transfer_requests where demand_id='${d.id}'`))
-      .toHaveLength(1);
+    expect(
+      await as(csA, `select status from demand_transfer_requests where demand_id='${d.id}'`),
+    ).toHaveLength(1);
+    expect(
+      await as(csB, `select status from demand_transfer_requests where demand_id='${d.id}'`),
+    ).toHaveLength(1);
     expect(
       await as(leaderNo, `select status from demand_transfer_requests where demand_id='${d.id}'`),
     ).toHaveLength(0);
@@ -205,7 +207,11 @@ describe("Decisão por administrador e líder delegado", () => {
   it("líder delegado aprova: troca só o responsável e preserva etapa, SLA e conteúdo", async () => {
     const d = await demand(csA);
     const [{ r }] = await as(csA, request(d.id, d.version, csB));
-    await fails(csA, `select decide_demand_transfer('${r.id}',true,${d.version},null)`, /transfer_forbidden/);
+    await fails(
+      csA,
+      `select decide_demand_transfer('${r.id}',true,${d.version},null)`,
+      /transfer_forbidden/,
+    );
     await fails(
       leaderNo,
       `select decide_demand_transfer('${r.id}',true,${d.version},null)`,
@@ -261,7 +267,11 @@ describe("Decisão por administrador e líder delegado", () => {
     );
     const d = await demand(csA);
     const [{ r }] = await as(csA, request(d.id, d.version, csB));
-    await fails(admin, `select decide_demand_transfer('${r.id}',false,${d.version},'')`, /transfer_reason_required/);
+    await fails(
+      admin,
+      `select decide_demand_transfer('${r.id}',false,${d.version},'')`,
+      /transfer_reason_required/,
+    );
     const [{ x }] = await as(
       admin,
       `select decide_demand_transfer('${r.id}',false,${d.version},'CS B sem agenda nesta semana') as x`,
@@ -273,7 +283,9 @@ describe("Decisão por administrador e líder delegado", () => {
   it("revalida a delegação na decisão: revogada depois da solicitação, o líder é recusado", async () => {
     const d = await demand(csA);
     const [{ r }] = await as(csA, request(d.id, d.version, csB));
-    await db.exec(`update member_access set manage_demand_transfers=false where user_id='${leader}'`);
+    await db.exec(
+      `update member_access set manage_demand_transfers=false where user_id='${leader}'`,
+    );
     try {
       await fails(
         leader,
@@ -282,14 +294,20 @@ describe("Decisão por administrador e líder delegado", () => {
       );
       expect(await owner(d.id)).toBe(csA);
     } finally {
-      await db.exec(`update member_access set manage_demand_transfers=true where user_id='${leader}'`);
+      await db.exec(
+        `update member_access set manage_demand_transfers=true where user_id='${leader}'`,
+      );
     }
   });
   it("conflito de versão, responsável alterado e destino desativado não trocam nada", async () => {
     const d = await demand(csA);
     const [{ r }] = await as(csA, request(d.id, d.version, csB));
     await as(csA, `update demands set priority='Alta' where id='${d.id}'`);
-    await fails(admin, `select decide_demand_transfer('${r.id}',true,${d.version},null)`, /conflict/);
+    await fails(
+      admin,
+      `select decide_demand_transfer('${r.id}',true,${d.version},null)`,
+      /conflict/,
+    );
     expect(await owner(d.id)).toBe(csA);
     await db.exec(`update profiles set active=false where id='${csB}'`);
     try {
@@ -350,13 +368,21 @@ describe("Transferência direta", () => {
       approval_state: "aguardando",
       change_summary: "Resumo enviado",
     });
-    await fails(csB, `update demands set description='Alterada' where id='${d.id}'`, /validation_locked/);
+    await fails(
+      csB,
+      `update demands set description='Alterada' where id='${d.id}'`,
+      /validation_locked/,
+    );
   });
   it("demanda encerrada não é transferida", async () => {
     const d = await one(
       `insert into demands(client_id,owner_id,title,classification,completed_at,solution,client_informed,stage) values('${client}','${csA}','Encerrada','Bug',now(),'Resolvido',true,'Concluída') returning id,version`,
     );
-    await fails(admin, `select transfer_demand('${d.id}',${d.version},'${csB}','Motivo válido')`, /closed/);
+    await fails(
+      admin,
+      `select transfer_demand('${d.id}',${d.version},'${csB}','Motivo válido')`,
+      /closed/,
+    );
     await fails(csA, request(d.id, d.version, csB), /closed/);
   });
 });
@@ -364,10 +390,26 @@ describe("Transferência direta", () => {
 describe("Liberar/assumir não burla o fluxo", () => {
   it("colaborador não libera a própria nem a alheia; gestor libera; assumir sem responsável continua", async () => {
     const d = await demand(csA);
-    await fails(csA, `select claim_record('demands','${d.id}',${d.version},true)`, /transfer_required/);
-    await fails(csB, `select claim_record('demands','${d.id}',${d.version},true)`, /transfer_required/);
-    await fails(csB, `select claim_record('demands','${d.id}',${d.version},false)`, /already_assigned/);
-    await fails(leaderNo, `select claim_record('demands','${d.id}',${d.version},true)`, /transfer_required/);
+    await fails(
+      csA,
+      `select claim_record('demands','${d.id}',${d.version},true)`,
+      /transfer_required/,
+    );
+    await fails(
+      csB,
+      `select claim_record('demands','${d.id}',${d.version},true)`,
+      /transfer_required/,
+    );
+    await fails(
+      csB,
+      `select claim_record('demands','${d.id}',${d.version},false)`,
+      /already_assigned/,
+    );
+    await fails(
+      leaderNo,
+      `select claim_record('demands','${d.id}',${d.version},true)`,
+      /transfer_required/,
+    );
     await as(leader, `select claim_record('demands','${d.id}',${d.version},true)`);
     expect(await owner(d.id)).toBeNull();
     await as(csB, `select claim_record('demands','${d.id}',${await version(d.id)},false)`);
@@ -376,7 +418,11 @@ describe("Liberar/assumir não burla o fluxo", () => {
   it("pendência bloqueia liberação/assunção pelo administrador até a decisão", async () => {
     const d = await demand(csA);
     await as(csA, request(d.id, d.version, csB));
-    await fails(admin, `select claim_record('demands','${d.id}',${d.version},true)`, /transfer_pending/);
+    await fails(
+      admin,
+      `select claim_record('demands','${d.id}',${d.version},true)`,
+      /transfer_pending/,
+    );
     expect(await owner(d.id)).toBe(csA);
   });
   it("onboarding mantém a liberação pelo responsável", async () => {

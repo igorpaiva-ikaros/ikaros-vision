@@ -7,7 +7,14 @@ import type { RecordRow, TransferRequest } from "@/lib/workspace/types";
 const me = "00000000-0000-4000-8000-000000000001",
   other = "00000000-0000-4000-8000-000000000002";
 const row = (extra: Partial<RecordRow> = {}) =>
-  ({ id: "d1", code: "DEM-1", owner_id: me, stage: "Em execução", version: 3, ...extra }) as RecordRow;
+  ({
+    id: "d1",
+    code: "DEM-1",
+    owner_id: me,
+    stage: "Em execução",
+    version: 3,
+    ...extra,
+  }) as RecordRow;
 const pending = (by = me): TransferRequest => ({
   id: "t1",
   demand_id: "d1",

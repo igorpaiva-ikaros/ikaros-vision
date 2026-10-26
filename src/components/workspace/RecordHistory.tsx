@@ -62,12 +62,13 @@ export function RecordHistory({ id, kind }: { id: string; kind: Entity }) {
                     ? ` · ${h.to_value}`
                     : ""}
               </p>
-              {h.action.startsWith("transfer_") && (h.details?.reason || h.details?.decision_reason) && (
-                <p className="text-xs">
-                  {h.details?.reason ? `Motivo: ${h.details.reason}` : ""}
-                  {h.details?.decision_reason ? ` · Decisão: ${h.details.decision_reason}` : ""}
-                </p>
-              )}
+              {h.action.startsWith("transfer_") &&
+                (h.details?.reason || h.details?.decision_reason) && (
+                  <p className="text-xs">
+                    {h.details?.reason ? `Motivo: ${h.details.reason}` : ""}
+                    {h.details?.decision_reason ? ` · Decisão: ${h.details.decision_reason}` : ""}
+                  </p>
+                )}
               {h.action === "delivery_promise" && (
                 <p className="text-xs">
                   Anterior: {dateLabel(h.details?.before)} · Novo: {dateLabel(h.details?.after)}

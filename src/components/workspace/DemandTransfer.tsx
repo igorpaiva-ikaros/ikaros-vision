@@ -302,8 +302,7 @@ function QueueItem({ t, ds }: { t: TransferRequest; ds: OperationState }) {
             disabled={busy}
             onClick={() =>
               void run(
-                () =>
-                  decide({ data: { request: t.id, approve: true, version: demand.version } }),
+                () => decide({ data: { request: t.id, approve: true, version: demand.version } }),
                 `Transferência aprovada para ${nameOf(ds, t.to_owner_id)}.`,
               )
             }
@@ -395,7 +394,9 @@ export function TransferQueue({ ds }: { ds: OperationState }) {
     >
       <h2 className="mb-2 flex items-center gap-2 font-sans text-sm font-semibold">
         <ArrowRightLeft className="h-4 w-4" />
-        {ds.canManageTransfers ? "Solicitações de transferência" : "Minhas solicitações de transferência"}
+        {ds.canManageTransfers
+          ? "Solicitações de transferência"
+          : "Minhas solicitações de transferência"}
         <span className="rounded-full bg-background px-2 text-xs text-muted-foreground">
           {items.length}
         </span>
