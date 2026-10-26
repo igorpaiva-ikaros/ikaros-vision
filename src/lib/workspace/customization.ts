@@ -35,6 +35,8 @@ export interface MemberAccess {
   view_team: boolean;
   manage_cs: boolean;
   promote_cs: boolean;
+  /** Delegação concedida só pelo administrador; só vale com liderança ativa. */
+  manage_demand_transfers?: boolean;
   hidden_areas: string[];
 }
 export const DEFAULT_ACCESS: MemberAccess = {
@@ -42,6 +44,7 @@ export const DEFAULT_ACCESS: MemberAccess = {
   view_team: false,
   manage_cs: false,
   promote_cs: false,
+  manage_demand_transfers: false,
   hidden_areas: [],
 };
 export const accessSchema = z
@@ -50,12 +53,16 @@ export const accessSchema = z
     view_team: z.boolean(),
     manage_cs: z.boolean(),
     promote_cs: z.boolean(),
+    manage_demand_transfers: z.boolean().optional(),
     hidden_areas: z
       .array(z.enum(["crm", "clients", "tasks", "changelog", "interactions", "technical"]))
       .max(6),
   })
   .strict();
-export const can = (p: Profile | null, capability: "view_team" | "manage_cs" | "promote_cs") =>
+export const can = (
+  p: Profile | null,
+  capability: "view_team" | "manage_cs" | "promote_cs" | "manage_demand_transfers",
+) =>
   p?.role === "admin" || (p?.role === "cs" && !!p.access?.is_lead && !!p.access?.[capability]);
 export const areaAllowed = (p: Profile | null, area: string) =>
   p?.role === "admin" ||
