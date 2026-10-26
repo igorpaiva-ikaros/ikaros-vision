@@ -18,3 +18,5 @@
 
 - [x] Filtro por responsável na aba CRM
 - [x] Conta CS criada: eduardo.gomes@ikaros.com.br (Eduardo Gomes)
+- [x] Transferência de demandas com solicitação, aprovação e delegação a líderes (preview; publicação aguarda revisão)
+- [ ] Transferir as 5 demandas SA autorizadas — aguarda revisão e publicação desta mudança
