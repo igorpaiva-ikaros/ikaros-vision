@@ -4,7 +4,7 @@
 import { beforeAll, afterAll, describe, it, expect } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { readFile } from "node:fs/promises";
-import { TRANSFER_MIGRATION } from "./transfer-migration-path";
+import { TRANSFER_MIGRATION, TRANSFER_GRANTS_MIGRATION } from "./transfer-migration-path";
 
 const admin = "2d31f8a5-afeb-4e12-9a64-a91432bdab61",
   seededCs = "041b0196-008a-4edc-ae60-cbb8aac105ca",
@@ -77,6 +77,7 @@ beforeAll(async () => {
   ])
     await db.exec(await readFile(`supabase/migrations/${file}.sql`, "utf8"));
   await db.exec(await readFile(TRANSFER_MIGRATION, "utf8"));
+  await db.exec(await readFile(TRANSFER_GRANTS_MIGRATION, "utf8"));
   await db.exec(
     `insert into profiles(id,full_name,email,active) values
       ('${csA}','CS A','a@example.test',true),('${csB}','CS B','b@example.test',true),
