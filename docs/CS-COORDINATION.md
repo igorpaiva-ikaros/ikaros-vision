@@ -29,7 +29,7 @@ Campos opcionais, só quando comprovados: erpCompanyId (UUID), contactName, emai
 
 ## Carteira e responsabilidade
 
-Todos os CS ativos leem e cadastram clientes na mesma carteira. `clients.owner_id` é legado e fica nulo; cadastros de clientes não distribuem carteira. Registros novos feitos por CS pertencem ao criador; registros comerciais/admin sem responsável aguardam assunção. `claim_record` usa lock + versão e auditoria; dois CS não podem assumir o mesmo registro. CS edita/move apenas registro próprio, liberando-o quando precisar repassar. Administrador acompanha e pode intervir. Responsáveis de registros existentes e snapshots de comissão são preservados. Tarefas agendadas notificam quem as criou, sem depender de dono de carteira.
+Todos os CS ativos leem e cadastram clientes na mesma carteira. `clients.owner_id` é legado e fica nulo; cadastros de clientes não distribuem carteira. Registros novos feitos por CS pertencem ao criador; registros comerciais/admin sem responsável aguardam assunção. `claim_record` usa lock + versão e auditoria; dois CS não podem assumir o mesmo registro. CS edita/move apenas registro próprio. Para repassar uma demanda, o responsável usa Solicitar transferência (destino e motivo obrigatórios); a demanda continua com ele até o administrador ou um líder autorizado aprovar ou recusar. Administrador e líder com a delegação Gerenciar transferências de demandas transferem direto e são os únicos que liberam demandas para a equipe. Onboardings e upgrades continuam com assumir/liberar. Administrador acompanha e pode intervir. Responsáveis de registros existentes e snapshots de comissão são preservados. Tarefas agendadas notificam quem as criou, sem depender de dono de carteira.
 
 ## Equipe técnica e previsões
 

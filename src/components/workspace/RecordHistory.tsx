@@ -25,6 +25,13 @@ const LABEL: Record<string, string> = {
   effective: "Efetivação",
   lost: "Oportunidade perdida",
   assign: "Carteira transferida",
+  claim: "Atendimento assumido",
+  release: "Liberada para a equipe",
+  transfer_requested: "Transferência solicitada",
+  transfer_canceled: "Solicitação de transferência cancelada",
+  transfer_approved: "Transferência aprovada",
+  transfer_rejected: "Transferência recusada",
+  transfer_direct: "Demanda transferida",
   resolve_import: "Vínculo da importação confirmado",
 };
 export function RecordHistory({ id, kind }: { id: string; kind: Entity }) {
@@ -49,8 +56,19 @@ export function RecordHistory({ id, kind }: { id: string; kind: Entity }) {
             <div key={h.id} className="border-l pl-3">
               <p className="text-sm">
                 {LABEL[h.action] ?? h.action}
-                {h.to_value ? ` · ${h.to_value}` : ""}
+                {h.action.startsWith("transfer_") && h.from_value && h.to_value
+                  ? ` · ${h.from_value} → ${h.to_value}`
+                  : h.to_value && !["claim", "release"].includes(h.action)
+                    ? ` · ${h.to_value}`
+                    : ""}
               </p>
+              {h.action.startsWith("transfer_") &&
+                (h.details?.reason || h.details?.decision_reason) && (
+                  <p className="text-xs">
+                    {h.details?.reason ? `Motivo: ${h.details.reason}` : ""}
+                    {h.details?.decision_reason ? ` · Decisão: ${h.details.decision_reason}` : ""}
+                  </p>
+                )}
               {h.action === "delivery_promise" && (
                 <p className="text-xs">
                   Anterior: {dateLabel(h.details?.before)} · Novo: {dateLabel(h.details?.after)}

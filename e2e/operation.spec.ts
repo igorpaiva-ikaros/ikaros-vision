@@ -581,3 +581,72 @@ test("CS cria demanda geral, encontra em Minhas demandas e agenda tarefa sem cli
   await page.getByRole("link", { name: "Tarefas", exact: true }).click();
   await expect(page.getByRole("button", { name: /Investigar índices do ERP/ })).toBeVisible();
 });
+
+test("colaborador solicita transferência da própria demanda, vê a pendência e cancela", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto("/operacao?tab=demands");
+  const card = page.locator('[data-card-id="00000000-0000-4000-8000-000000000021"]');
+  await expect(card.getByRole("button", { name: "Liberar para equipe" })).toHaveCount(0);
+  await expect(card.getByRole("button", { name: "Transferir demanda" })).toHaveCount(0);
+  await card.getByRole("button", { name: "Solicitar transferência" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Novo responsável").selectOption({ label: "CS Colega" });
+  await dialog.getByRole("button", { name: "Enviar solicitação" }).click();
+  await expect(dialog.getByRole("alert")).toContainText("pelo menos 5 caracteres");
+  expect(await page.evaluate(() => (window as any).qaTransferCalls.length)).toBe(0);
+  await dialog.getByLabel("Motivo da transferência").fill("Férias na próxima semana");
+  await dialog.getByRole("button", { name: "Enviar solicitação" }).click();
+  await expect(dialog).toHaveCount(0);
+  const notice = card.locator("[data-transfer-pending]");
+  await expect(notice).toContainText("CS Exemplo → CS Colega");
+  await expect(notice).toContainText("Decide: administrador ou líder autorizado");
+  await expect(card).toContainText("Responsável: CS Exemplo");
+  await expect(card.getByRole("button", { name: "Solicitar transferência" })).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Solicitações de transferência" })).toContainText(
+    "Aguardando decisão",
+  );
+  await page.screenshot({ path: "vision-qa/transfer-request-pending.png" });
+  await notice.getByRole("button", { name: "Cancelar solicitação" }).click();
+  await expect(card.locator("[data-transfer-pending]")).toHaveCount(0);
+  await expect(card.getByRole("button", { name: "Solicitar transferência" })).toBeVisible();
+  const calls = await page.evaluate(() => (window as any).qaTransferCalls);
+  expect(calls.map((c: any) => c.fn)).toEqual(["request", "cancel"]);
+  expect(calls[0]).toMatchObject({ to: "00000000-0000-4000-8000-000000000002", version: 1 });
+  expect(calls[0]).not.toHaveProperty("actor_id");
+  expect(errors).toEqual([]);
+});
+
+test("gestor autorizado recusa com motivo, aprova da fila e transfere direto", async ({ page }) => {
+  await page.addInitScript(() => {
+    sessionStorage.setItem("qa-transfer-manager", "true");
+    sessionStorage.setItem("qa-transfer-seed", "true");
+  });
+  await page.goto("/operacao?tab=demands");
+  const queue = page.getByRole("region", { name: "Solicitações de transferência" });
+  await expect(queue).toContainText("CS Colega → CS Terceiro");
+  await expect(queue).toContainText("Colega em férias");
+  await queue.getByRole("button", { name: "Recusar" }).click();
+  await queue.getByRole("button", { name: "Confirmar recusa" }).click();
+  await expect(queue.getByRole("alert")).toContainText("motivo da recusa");
+  await queue.getByRole("button", { name: "Voltar" }).click();
+  await queue.getByRole("button", { name: "Aprovar" }).click();
+  await expect(queue).toContainText("Nenhuma solicitação pendente");
+  await page.getByRole("combobox", { name: "Filtrar por responsável" }).click();
+  await page.getByRole("option", { name: "Toda a equipe" }).click();
+  const card = page.locator('[data-card-id="00000000-0000-4000-8000-000000000021"]');
+  await expect(card).toContainText("Responsável: CS Terceiro");
+  await card.getByRole("button", { name: "Transferir demanda" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Novo responsável").selectOption({ label: "CS Colega" });
+  await dialog.getByLabel("Motivo da transferência").fill("Retorno da colega após férias");
+  await dialog.getByRole("button", { name: "Transferir agora" }).click();
+  await expect(card).toContainText("Responsável: CS Colega");
+  await page.screenshot({ path: "vision-qa/transfer-manager-direct.png" });
+  const calls = await page.evaluate(() => (window as any).qaTransferCalls);
+  expect(calls.map((c: any) => c.fn)).toEqual(["decide", "direct"]);
+  expect(calls[0]).toMatchObject({ approve: true, version: 1 });
+  expect(calls[1]).toMatchObject({ to: "00000000-0000-4000-8000-000000000002", version: 2 });
+});

@@ -78,6 +78,13 @@ const menus = [
     children: [],
   })),
   {
+    id: "transferencias",
+    title: "Transferência de demandas",
+    description:
+      "Para passar sua demanda a um colega, use Solicitar transferência no card, escolha o novo responsável e informe o motivo. A demanda continua com você até o administrador ou um líder autorizado aprovar ou recusar; enquanto isso, você pode cancelar. Gestores autorizados também transferem direto. Só o responsável muda: etapa, prazos, validação e anexos ficam como estão.",
+    children: [],
+  },
+  {
     id: "tecnico",
     title: "Equipe técnica",
     description:

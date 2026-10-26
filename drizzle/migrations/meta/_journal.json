@@ -22,6 +22,20 @@
       "when": 1791355186464,
       "tag": "0002_clickable_validation_pipeline",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793057798754,
+      "tag": "0003_demand_transfers",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793057827081,
+      "tag": "0004_demand_transfers_tighten_grants",
+      "breakpoints": true
     }
   ]
 }

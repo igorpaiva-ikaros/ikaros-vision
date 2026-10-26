@@ -140,9 +140,32 @@ export interface Notification {
   created_at: string;
   level: "risk" | "overdue" | "reminder";
 }
+export type TransferStatus = "pendente" | "aprovada" | "rejeitada" | "cancelada";
+export interface TransferRequest {
+  id: string;
+  demand_id: string;
+  kind: "request" | "direct";
+  status: TransferStatus;
+  from_owner_id: string | null;
+  to_owner_id: string;
+  requested_by: string;
+  reason: string;
+  decided_by: string | null;
+  decided_at: string | null;
+  decision_reason: string | null;
+  demand_version: number;
+  version: number;
+  created_at: string;
+}
 export interface OperationState {
   deliveries?: DeliveryRequest[];
   people?: { id: string; full_name: string }[];
+  /** Solicitações e transferências visíveis ao usuário (RLS: envolvidos e quem decide). */
+  transfers?: TransferRequest[];
+  /** Colaboradores CS ativos elegíveis como destino. */
+  transferTargets?: { id: string; full_name: string }[];
+  /** Administrador ou líder com delegação explícita (verificado no banco). */
+  canManageTransfers?: boolean;
   clients: NativeClient[];
   demands: RecordRow[];
   onboardings: RecordRow[];

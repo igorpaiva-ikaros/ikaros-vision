@@ -492,6 +492,103 @@ export type Database = {
           },
         ]
       }
+      demand_transfer_requests: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_reason: string | null
+          demand_id: string
+          demand_version: number
+          from_owner_id: string | null
+          id: string
+          kind: string
+          reason: string
+          requested_by: string
+          status: string
+          to_owner_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_reason?: string | null
+          demand_id: string
+          demand_version: number
+          from_owner_id?: string | null
+          id?: string
+          kind?: string
+          reason: string
+          requested_by: string
+          status?: string
+          to_owner_id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_reason?: string | null
+          demand_id?: string
+          demand_version?: number
+          from_owner_id?: string | null
+          id?: string
+          kind?: string
+          reason?: string
+          requested_by?: string
+          status?: string
+          to_owner_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demand_transfer_requests_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demand_transfer_requests_demand_id_fkey"
+            columns: ["demand_id"]
+            isOneToOne: false
+            referencedRelation: "demand_sla"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demand_transfer_requests_demand_id_fkey"
+            columns: ["demand_id"]
+            isOneToOne: false
+            referencedRelation: "demands"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demand_transfer_requests_from_owner_id_fkey"
+            columns: ["from_owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demand_transfer_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demand_transfer_requests_to_owner_id_fkey"
+            columns: ["to_owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       demands: {
         Row: {
           approval_repository_url: string | null
@@ -846,6 +943,7 @@ export type Database = {
           hidden_areas: string[]
           is_lead: boolean
           manage_cs: boolean
+          manage_demand_transfers: boolean
           promote_cs: boolean
           updated_at: string
           user_id: string
@@ -855,6 +953,7 @@ export type Database = {
           hidden_areas?: string[]
           is_lead?: boolean
           manage_cs?: boolean
+          manage_demand_transfers?: boolean
           promote_cs?: boolean
           updated_at?: string
           user_id: string
@@ -864,6 +963,7 @@ export type Database = {
           hidden_areas?: string[]
           is_lead?: boolean
           manage_cs?: boolean
+          manage_demand_transfers?: boolean
           promote_cs?: boolean
           updated_at?: string
           user_id?: string
@@ -1578,6 +1678,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      apply_demand_owner_transfer: {
+        Args: { _demand: string; _to: string }
+        Returns: number
+      }
       assign_client: {
         Args: { _id: string; _owner: string; _version: number }
         Returns: undefined
@@ -1586,10 +1690,12 @@ export type Database = {
         Args: { _demand: string; _uid: string }
         Returns: boolean
       }
+      can_manage_demand_transfers: { Args: { _uid: string }; Returns: boolean }
       can_read_case: {
         Args: { _demand: string; _uid: string }
         Returns: boolean
       }
+      cancel_demand_transfer: { Args: { _request: string }; Returns: Json }
       case_notice: {
         Args: { _demand: string; _message: string; _technical?: boolean }
         Returns: undefined
@@ -1611,6 +1717,15 @@ export type Database = {
       contract_calendar: { Args: never; Returns: Json }
       cs_team_members: { Args: never; Returns: Json }
       cs_team_stats: { Args: never; Returns: Json }
+      decide_demand_transfer: {
+        Args: {
+          _approve: boolean
+          _reason: string
+          _request: string
+          _version: number
+        }
+        Returns: Json
+      }
       delivery_action: {
         Args: {
           _action: string
@@ -1691,6 +1806,9 @@ export type Database = {
       }
       delivery_deadline_tick: { Args: never; Returns: number }
       demand_stage_trace: { Args: { _demand: string }; Returns: Json }
+      demand_transfer_deciders: { Args: never; Returns: string[] }
+      demand_transfer_target_ok: { Args: { _uid: string }; Returns: boolean }
+      demand_transfer_targets: { Args: never; Returns: Json }
       get_workspace_presentation: { Args: never; Returns: Json }
       has_cs_capability: {
         Args: { _cap: string; _uid: string }
@@ -1714,6 +1832,15 @@ export type Database = {
       is_operator: { Args: { _uid: string }; Returns: boolean }
       is_technical: { Args: { _uid: string }; Returns: boolean }
       is_workspace_user: { Args: { _uid: string }; Returns: boolean }
+      notify_demand_transfer: {
+        Args: {
+          _demand: string
+          _obligation: string
+          _recipients: string[]
+          _title: string
+        }
+        Returns: undefined
+      }
       policy_due: {
         Args: { _category: string; _obligation: string; _start: string }
         Returns: string
@@ -1814,6 +1941,15 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      request_demand_transfer: {
+        Args: {
+          _demand: string
+          _reason: string
+          _to: string
+          _version: number
+        }
+        Returns: Json
       }
       resolve_import_issue: {
         Args: { _client: string; _issue: string }
@@ -1980,6 +2116,15 @@ export type Database = {
       }
       task_reminder_tick: { Args: never; Returns: number }
       technical_queue: { Args: never; Returns: Json }
+      transfer_demand: {
+        Args: {
+          _demand: string
+          _reason: string
+          _to: string
+          _version: number
+        }
+        Returns: Json
+      }
       transition_demand: {
         Args: {
           _action: string

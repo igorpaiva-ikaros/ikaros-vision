@@ -45,16 +45,36 @@ export async function operationState(context: AuthContext): Promise<OperationSta
       await allRows(context.supabase, table, cols),
     ]),
   );
-  const [sla, commissions, notifications, settings, people, products, deliveries] =
-    await Promise.all([
-      allRows(context.supabase, "demand_sla", "*"),
-      allRows(context.supabase, "upgrade_commission", "*"),
-      readNotifications(context.supabase),
-      context.supabase.from("app_settings").select("value").eq("key", "sla_risk_minutes").single(),
-      context.supabase.from("profiles").select("id,full_name"),
-      (context.supabase as any).from("products").select("*").order("name"),
-      allRows(context.supabase, "delivery_requests", "*"),
-    ]);
+  const db = context.supabase as any;
+  const [
+    sla,
+    commissions,
+    notifications,
+    settings,
+    people,
+    products,
+    deliveries,
+    transfers,
+    targets,
+    manager,
+  ] = await Promise.all([
+    allRows(context.supabase, "demand_sla", "*"),
+    allRows(context.supabase, "upgrade_commission", "*"),
+    readNotifications(context.supabase),
+    context.supabase.from("app_settings").select("value").eq("key", "sla_risk_minutes").single(),
+    context.supabase.from("profiles").select("id,full_name"),
+    db.from("products").select("*").order("name"),
+    allRows(context.supabase, "delivery_requests", "*"),
+    db
+      .from("demand_transfer_requests")
+      .select(
+        "id,demand_id,kind,status,from_owner_id,to_owner_id,requested_by,reason,decided_by,decided_at,decision_reason,demand_version,version,created_at",
+      )
+      .order("created_at", { ascending: false })
+      .limit(500),
+    db.rpc("demand_transfer_targets"),
+    db.rpc("can_manage_demand_transfers", { _uid: context.userId }),
+  ]);
   const entries = await entriesPromise;
   return {
     ...Object.fromEntries(entries),
@@ -64,6 +84,9 @@ export async function operationState(context: AuthContext): Promise<OperationSta
     commissions,
     people: checkResult(people) ?? [],
     notifications,
+    transfers: checkResult(transfers) ?? [],
+    transferTargets: checkResult(targets) ?? [],
+    canManageTransfers: checkResult(manager) === true,
     riskMinutes: Number(checkResult(settings)?.value ?? 60),
   } as OperationState;
 }
