@@ -2,6 +2,7 @@
 import { beforeAll, afterAll, describe, it, expect } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { readFile } from "node:fs/promises";
+import { TRANSFER_MIGRATION } from "./transfer-migration-path";
 const admin = "2d31f8a5-afeb-4e12-9a64-a91432bdab61",
   cs = "041b0196-008a-4edc-ae60-cbb8aac105ca",
   other = "00000000-0000-4000-8000-000000000003",
@@ -49,6 +50,7 @@ beforeAll(async () => {
     "20261016143000_general_system_demands",
   ])
     await db.exec(await readFile(`supabase/migrations/${file}.sql`, "utf8"));
+  await db.exec(await readFile(TRANSFER_MIGRATION, "utf8"));
   await db.exec(
     `insert into profiles(id,full_name,email) values('${other}','Other CS','other@example.test'),('${tech}','Tech member','technical@example.test');insert into user_roles(user_id,role) values('${other}','cs'),('${tech}','technical');insert into clients(id,name,owner_id) values('${client}','Shared company','${cs}');`,
   );
@@ -230,11 +232,16 @@ describe("Shared CS, technical delivery and approvals", () => {
 });
 
 describe("Coordination regressions", () => {
-  it("releases an assigned demand through audited action and preserves onboarding progress", async () => {
+  it("releases an assigned demand only through an authorized manager and preserves onboarding progress", async () => {
     const d = await one(
       `insert into demands(client_id,owner_id,title) values('${client}','${cs}','Release case') returning id,version`,
     );
     await user(cs, async () => {
+      await expect(
+        db.query(`select claim_record('demands','${d.id}',${d.version},true)`),
+      ).rejects.toThrow(/transfer_required/);
+    });
+    await user(admin, async () => {
       await db.query(`select claim_record('demands','${d.id}',${d.version},true)`);
       expect((await one(`select owner_id from demands where id='${d.id}'`)).owner_id).toBeNull();
     });
