@@ -36,6 +36,13 @@
       "when": 1793057827081,
       "tag": "0004_demand_transfers_tighten_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793058707332,
+      "tag": "0005_transfer_preserve_sla_deadlines",
+      "breakpoints": true
     }
   ]
 }
