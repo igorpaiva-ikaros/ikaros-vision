@@ -5,7 +5,8 @@
 - Fila de solicitações no CRM, histórico com solicitante, decisor, origem, destino, data e motivo, e notificações internas.
 - Só o responsável muda; etapa, SLA, entrega, validação e anexos são preservados, inclusive com validação travada.
 - Liberar demanda para a equipe passa a ser exclusivo de quem gerencia transferências; assumir demanda sem responsável continua igual.
-- Migrações aditivas 0003/0004; nenhuma demanda, papel ou delegação existente alterada.
+- Prazos SLA (início, 1ª resposta, solução, entrega) preservados na transferência, assumir e liberar, mesmo após mudança da política da categoria (migração 0005).
+- Migrações aditivas 0003/0004/0005; nenhuma demanda, papel ou delegação existente alterada.
 
 ## 2026-10-19 — Kanban com rolagem no topo e contadores
 

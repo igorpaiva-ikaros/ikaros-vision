@@ -2,7 +2,11 @@
 import { beforeAll, afterAll, describe, it, expect } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { readFile } from "node:fs/promises";
-import { TRANSFER_MIGRATION, TRANSFER_GRANTS_MIGRATION } from "./transfer-migration-path";
+import {
+  TRANSFER_MIGRATION,
+  TRANSFER_GRANTS_MIGRATION,
+  TRANSFER_SLA_MIGRATION,
+} from "./transfer-migration-path";
 const admin = "2d31f8a5-afeb-4e12-9a64-a91432bdab61",
   cs = "041b0196-008a-4edc-ae60-cbb8aac105ca",
   other = "00000000-0000-4000-8000-000000000003",
@@ -52,6 +56,7 @@ beforeAll(async () => {
     await db.exec(await readFile(`supabase/migrations/${file}.sql`, "utf8"));
   await db.exec(await readFile(TRANSFER_MIGRATION, "utf8"));
   await db.exec(await readFile(TRANSFER_GRANTS_MIGRATION, "utf8"));
+  await db.exec(await readFile(TRANSFER_SLA_MIGRATION, "utf8"));
   await db.exec(
     `insert into profiles(id,full_name,email) values('${other}','Other CS','other@example.test'),('${tech}','Tech member','technical@example.test');insert into user_roles(user_id,role) values('${other}','cs'),('${tech}','technical');insert into clients(id,name,owner_id) values('${client}','Shared company','${cs}');`,
   );
