@@ -51,7 +51,18 @@ export const ds: any = {
       version: 1,
     },
   ],
-  people: [{ id: owner, full_name: "CS Exemplo" }],
+  people: [
+    { id: owner, full_name: "CS Exemplo" },
+    { id: "00000000-0000-4000-8000-000000000002", full_name: "CS Colega" },
+    { id: "00000000-0000-4000-8000-000000000003", full_name: "CS Terceiro" },
+  ],
+  transfers: [],
+  transferTargets: [
+    { id: owner, full_name: "CS Exemplo" },
+    { id: "00000000-0000-4000-8000-000000000002", full_name: "CS Colega" },
+    { id: "00000000-0000-4000-8000-000000000003", full_name: "CS Terceiro" },
+  ],
+  canManageTransfers: false,
   demands: [
     {
       id: "00000000-0000-4000-8000-000000000021",
@@ -409,4 +420,103 @@ export async function setCsLeader() {
 }
 export async function getLeadershipState() {
   return { members: [], stats: [] };
+}
+
+// Transferência de demandas (fixture local; a autorização real é testada no banco em memória).
+const colleague = "00000000-0000-4000-8000-000000000002";
+const third = "00000000-0000-4000-8000-000000000003";
+if (sessionStorage.getItem("qa-transfer-manager") === "true") ds.canManageTransfers = true;
+if (sessionStorage.getItem("qa-transfer-seed") === "true") {
+  ds.demands[0].owner_id = colleague;
+  ds.transfers.push({
+    id: "00000000-0000-4000-8000-0000000000f1",
+    demand_id: ds.demands[0].id,
+    kind: "request",
+    status: "pendente",
+    from_owner_id: colleague,
+    to_owner_id: third,
+    requested_by: colleague,
+    reason: "Colega em férias na próxima semana",
+    decided_by: null,
+    decided_at: null,
+    decision_reason: null,
+    demand_version: ds.demands[0].version,
+    version: 1,
+    created_at: new Date().toISOString(),
+  });
+}
+const transferCalls: any[] = [];
+(window as any).qaTransferCalls = transferCalls;
+function demandRow(id: string) {
+  return ds.demands.find((d: any) => d.id === id);
+}
+export async function requestDemandTransfer({ data }: any) {
+  transferCalls.push({ fn: "request", ...data });
+  if (ds.transfers.some((t: any) => t.demand_id === data.demand && t.status === "pendente"))
+    throw new Error("Já existe uma solicitação de transferência pendente para esta demanda.");
+  const t = {
+    id: crypto.randomUUID(),
+    demand_id: data.demand,
+    kind: "request",
+    status: "pendente",
+    from_owner_id: demandRow(data.demand).owner_id,
+    to_owner_id: data.to,
+    requested_by: owner,
+    reason: data.reason,
+    decided_by: null,
+    decided_at: null,
+    decision_reason: null,
+    demand_version: data.version,
+    version: 1,
+    created_at: new Date().toISOString(),
+  };
+  ds.transfers.push(t);
+  return t;
+}
+export async function cancelDemandTransfer({ data }: any) {
+  transferCalls.push({ fn: "cancel", ...data });
+  const t = ds.transfers.find((x: any) => x.id === data.request);
+  Object.assign(t, { status: "cancelada", decided_at: new Date().toISOString() });
+  return t;
+}
+export async function decideDemandTransfer({ data }: any) {
+  transferCalls.push({ fn: "decide", ...data });
+  const t = ds.transfers.find((x: any) => x.id === data.request);
+  if (data.approve) {
+    const d = demandRow(t.demand_id);
+    d.owner_id = t.to_owner_id;
+    d.version++;
+  }
+  Object.assign(t, {
+    status: data.approve ? "aprovada" : "rejeitada",
+    decided_by: owner,
+    decided_at: new Date().toISOString(),
+    decision_reason: data.reason ?? null,
+  });
+  return { request: t };
+}
+export async function transferDemand({ data }: any) {
+  transferCalls.push({ fn: "direct", ...data });
+  const d = demandRow(data.demand);
+  const from = d.owner_id;
+  d.owner_id = data.to;
+  d.version++;
+  const t = {
+    id: crypto.randomUUID(),
+    demand_id: d.id,
+    kind: "direct",
+    status: "aprovada",
+    from_owner_id: from,
+    to_owner_id: data.to,
+    requested_by: owner,
+    reason: data.reason,
+    decided_by: owner,
+    decided_at: new Date().toISOString(),
+    decision_reason: null,
+    demand_version: data.version,
+    version: 1,
+    created_at: new Date().toISOString(),
+  };
+  ds.transfers.push(t);
+  return { request: t };
 }
