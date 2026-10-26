@@ -30,6 +30,7 @@ export function AccessSettings({ member }: { member: any }) {
                   view_team: value.view_team,
                   manage_cs: value.manage_cs,
                   promote_cs: value.promote_cs,
+                  manage_demand_transfers: value.is_lead && !!value.manage_demand_transfers,
                   hidden_areas: value.hidden_areas,
                 },
               },
@@ -56,13 +57,14 @@ export function AccessSettings({ member }: { member: any }) {
               ["view_team", "Ver resultados operacionais do time"],
               ["manage_cs", "Cadastrar novos colaboradores CS"],
               ["promote_cs", "Promover e remover líderes CS"],
+              ["manage_demand_transfers", "Gerenciar transferências de demandas"],
             ] as const
           ).map(([key, label]) => (
             <label key={key} className="flex gap-2 text-sm">
               <input
                 type="checkbox"
                 disabled={!value.is_lead}
-                checked={value[key]}
+                checked={!!value[key]}
                 onChange={(e) => set((v) => ({ ...v, [key]: e.target.checked }))}
               />
               {label}
@@ -70,7 +72,8 @@ export function AccessSettings({ member }: { member: any }) {
           ))}
           <p className="text-xs text-muted-foreground">
             Só o administrador concede estas permissões. Líderes não criam administradores nem
-            repassam permissões de gestão. Desmarcar liderança suspende todas as delegações.
+            repassam permissões de gestão. Desmarcar liderança suspende todas as delegações e
+            cancela a de transferências, que precisa ser concedida de novo pelo administrador.
           </p>
           <p className="text-sm font-medium">Atalhos visíveis</p>
           <p className="text-xs text-muted-foreground">

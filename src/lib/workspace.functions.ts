@@ -745,3 +745,94 @@ export const getLeadershipState = createServerFn({ method: "POST" })
       stats,
     };
   });
+
+// Transferência de demandas: autorização real nas funções do banco (auth.uid()); nenhum actor_id vem do navegador.
+const transferReason = z.string().trim().min(5).max(2000);
+export const requestDemandTransfer = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        demand: z.string().uuid(),
+        version: z.number().int().positive(),
+        to: z.string().uuid(),
+        reason: transferReason,
+      })
+      .strict()
+      .parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    const { assertOperator, checkResult } = await import("./workspace/access.server");
+    await assertOperator(context);
+    return checkResult(
+      await (context.supabase as any).rpc("request_demand_transfer", {
+        _demand: data.demand,
+        _version: data.version,
+        _to: data.to,
+        _reason: data.reason,
+      }),
+    );
+  });
+export const cancelDemandTransfer = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ request: z.string().uuid() }).strict().parse(d))
+  .handler(async ({ context, data }) => {
+    const { assertOperator, checkResult } = await import("./workspace/access.server");
+    await assertOperator(context);
+    return checkResult(
+      await (context.supabase as any).rpc("cancel_demand_transfer", { _request: data.request }),
+    );
+  });
+export const decideDemandTransfer = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        request: z.string().uuid(),
+        approve: z.boolean(),
+        version: z.number().int().positive(),
+        reason: z.string().trim().max(2000).optional(),
+      })
+      .strict()
+      .refine((v) => v.approve || (v.reason ?? "").length >= 5, {
+        message: "Informe o motivo da recusa.",
+      })
+      .parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    const { assertOperator, checkResult } = await import("./workspace/access.server");
+    await assertOperator(context);
+    return checkResult(
+      await (context.supabase as any).rpc("decide_demand_transfer", {
+        _request: data.request,
+        _approve: data.approve,
+        _version: data.version,
+        _reason: data.reason ?? null,
+      }),
+    );
+  });
+export const transferDemand = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        demand: z.string().uuid(),
+        version: z.number().int().positive(),
+        to: z.string().uuid(),
+        reason: transferReason,
+      })
+      .strict()
+      .parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    const { assertOperator, checkResult } = await import("./workspace/access.server");
+    await assertOperator(context);
+    return checkResult(
+      await (context.supabase as any).rpc("transfer_demand", {
+        _demand: data.demand,
+        _version: data.version,
+        _to: data.to,
+        _reason: data.reason,
+      }),
+    );
+  });
