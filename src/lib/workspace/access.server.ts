@@ -36,7 +36,7 @@ export async function readProfile(context: AuthContext): Promise<Profile | null>
         : null;
   const { data: access, error: accessError } = await context.supabase
     .from("member_access")
-    .select("is_lead,view_team,manage_cs,promote_cs,hidden_areas")
+    .select("is_lead,view_team,manage_cs,promote_cs,manage_demand_transfers,hidden_areas")
     .eq("user_id", context.userId)
     .maybeSingle();
   if (accessError) throw new Error("Não foi possível verificar as permissões delegadas.");
@@ -46,7 +46,35 @@ export function checkResult(result: { error?: any; data?: any }) {
   if (result.error) throw new Error(safeDbMessage(result.error.message));
   return result.data;
 }
+const TRANSFER_MESSAGES: [RegExp, string][] = [
+  [
+    /transfer_pending/,
+    "Já existe uma solicitação de transferência pendente para esta demanda. Aguarde a decisão ou cancele a solicitação.",
+  ],
+  [
+    /transfer_required/,
+    "Para passar esta demanda a outra pessoa, use Solicitar transferência. A liberação direta é exclusiva do administrador ou líder autorizado.",
+  ],
+  [/transfer_not_owner/, "Só o responsável atual pode solicitar a transferência desta demanda."],
+  [/transfer_target_invalid/, "Selecione um colaborador de CS ativo como novo responsável."],
+  [/transfer_same_owner/, "O novo responsável precisa ser diferente do atual."],
+  [/transfer_reason_required/, "Informe o motivo com pelo menos 5 caracteres."],
+  [/transfer_not_pending/, "Esta solicitação já foi decidida ou cancelada. Recarregue a página."],
+  [
+    /transfer_owner_changed/,
+    "O responsável da demanda mudou depois da solicitação. Recuse esta solicitação e, se preciso, transfira de novo.",
+  ],
+  [
+    /transfer_self_decision/,
+    "Você não pode decidir a própria solicitação. Outro gestor ou o administrador decide.",
+  ],
+  [
+    /transfer_forbidden/,
+    "Sem permissão para esta transferência. Administrador ou líder autorizado decide.",
+  ],
+];
 export function safeDbMessage(message: string) {
+  for (const [pattern, text] of TRANSFER_MESSAGES) if (pattern.test(message)) return text;
   if (/validation_locked/.test(message))
     return "Aguarde a validação do administrador. A etapa e os dados enviados estão bloqueados.";
   if (/already_assigned/.test(message)) return "Outra pessoa já assumiu este atendimento.";
