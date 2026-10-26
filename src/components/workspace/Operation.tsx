@@ -17,6 +17,7 @@ import { PipelineProgress } from "./PipelineProgress";
 import { CaseWorkspace } from "./CaseWorkspace";
 import { WhatsAppGroup } from "./WhatsAppGroup";
 import { RecordHistory } from "./RecordHistory";
+import { DemandOwnerActions, TransferQueue } from "./DemandTransfer";
 import { KanbanBoard } from "./KanbanBoard";
 import { CardDeadlines } from "./CardDeadlines";
 import { cardDeadlines } from "@/lib/workspace/card-deadlines";
@@ -453,7 +454,10 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
         <div className="text-xs text-muted-foreground">
           Responsável: {ds.people?.find((p) => p.id === row.owner_id)?.full_name ?? "A assumir"}
         </div>
-        {["demands", "onboardings", "upgrades"].includes(tab) &&
+        {tab === "demands" && (
+          <DemandOwnerActions row={row} ds={ds} locked={reviewLocked(row, ds)} />
+        )}
+        {["onboardings", "upgrades"].includes(tab) &&
           !reviewLocked(row, ds) &&
           (!row.owner_id || row.owner_id === session?.user.id) &&
           !isClosed(row) && (
@@ -731,6 +735,7 @@ export function Operation({ tab, id }: { tab: OperationTab; id?: string | undefi
           Registro não encontrado na sua carteira.
         </p>
       )}
+      {tab === "demands" && <TransferQueue ds={ds} />}
       {empty && tab !== "tasks" && (
         <Section title="Nenhum registro nesta seleção">
           {profile?.role === "admin" && !includeTests && ds.clients.some((c) => c.is_test) && (
@@ -1348,6 +1353,12 @@ function RecordEditor({
             Aguardando validação do administrador. A etapa e os dados enviados estão bloqueados até
             a decisão. Observações e anexos continuam disponíveis.
           </p>
+        )}
+        {current && kind === "demands" && (
+          <div className="space-y-2 rounded-md border p-3">
+            <p className="text-xs font-medium text-muted-foreground">Responsável e transferência</p>
+            <DemandOwnerActions row={current} ds={ds} locked={reviewLocked(current, ds)} />
+          </div>
         )}
         {dirty && current && kind === "demands" && (
           <p className="text-xs text-muted-foreground">

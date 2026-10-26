@@ -17,6 +17,8 @@ export function transferActions(
   row: RecordRow,
   ds: Pick<OperationState, "transfers" | "canManageTransfers">,
   profile: Pick<Profile, "id" | "role"> | null,
+  /** Validação em andamento: assumir/liberar ficam travados; transferir continua permitido. */
+  reviewLocked = false,
 ) {
   const closed = !!(row.completed_at || row.canceled_at) || CLOSED.includes(row.stage ?? "");
   const pending = pendingTransfer(row.id, ds);
@@ -36,9 +38,9 @@ export function transferActions(
     canDecide:
       !!pending && manager && (profile?.role === "admin" || pending.requested_by !== me),
     /** Liberar para a equipe deixou de ser atalho do colaborador. */
-    canRelease: !closed && !pending && manager && !!row.owner_id,
+    canRelease: !closed && !pending && !reviewLocked && manager && !!row.owner_id,
     /** Assumir demanda sem responsável continua aberto a qualquer CS. */
-    canClaim: !closed && !row.owner_id && profile?.role !== "technical",
+    canClaim: !closed && !reviewLocked && !row.owner_id && profile?.role !== "technical",
   };
 }
 

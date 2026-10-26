@@ -198,12 +198,20 @@ export function TransferNotice({ row, ds }: { row: RecordRow; ds: OperationState
 }
 
 /** Botões de responsável no card de demanda (assumir, liberar, solicitar, transferir). */
-export function DemandOwnerActions({ row, ds }: { row: RecordRow; ds: OperationState }) {
+export function DemandOwnerActions({
+  row,
+  ds,
+  locked = false,
+}: {
+  row: RecordRow;
+  ds: OperationState;
+  locked?: boolean;
+}) {
   const { profile } = useBi();
   const claim = useServerFn(claimRecord);
   const { busy, run } = useRun();
   const [dialog, setDialog] = useState<"request" | "direct" | null>(null);
-  const a = transferActions(row, ds, profile);
+  const a = transferActions(row, ds, profile, locked);
   return (
     <>
       <TransferNotice row={row} ds={ds} />
