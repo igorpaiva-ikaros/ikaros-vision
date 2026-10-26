@@ -1,1 +1,1 @@
-export const TRANSFER_MIGRATION = "/tmp/mig/demand_transfers.sql";
+export const TRANSFER_MIGRATION = "drizzle/migrations/0003_demand_transfers.sql";
