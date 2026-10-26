@@ -1,3 +1,12 @@
+## 2026-10-26 — Transferência de demandas com aprovação
+
+- Colaborador responsável solicita transferência da própria demanda (destino CS ativo e motivo); a demanda segue com ele até a decisão, com pendência visível e cancelamento enquanto pendente.
+- Administrador e líderes com a nova delegação Gerenciar transferências de demandas (concedida só pelo administrador) aprovam, recusam com motivo e transferem direto.
+- Fila de solicitações no CRM, histórico com solicitante, decisor, origem, destino, data e motivo, e notificações internas.
+- Só o responsável muda; etapa, SLA, entrega, validação e anexos são preservados, inclusive com validação travada.
+- Liberar demanda para a equipe passa a ser exclusivo de quem gerencia transferências; assumir demanda sem responsável continua igual.
+- Migrações aditivas 0003/0004; nenhuma demanda, papel ou delegação existente alterada.
+
 ## 2026-10-19 — Kanban com rolagem no topo e contadores
 
 - Barra horizontal fixa no topo do quadro, sincronizada com toque/trackpad e setas; disponível sem descer a coluna mais longa.
