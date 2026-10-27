@@ -1377,6 +1377,245 @@ export type Database = {
         }
         Relationships: []
       }
+      team_project_activity: {
+        Row: {
+          actor_id: string
+          actor_name: string
+          body: string | null
+          created_at: string
+          file_id: string | null
+          id: string
+          kind: string
+          project_id: string
+        }
+        Insert: {
+          actor_id: string
+          actor_name: string
+          body?: string | null
+          created_at?: string
+          file_id?: string | null
+          id?: string
+          kind: string
+          project_id: string
+        }
+        Update: {
+          actor_id?: string
+          actor_name?: string
+          body?: string | null
+          created_at?: string
+          file_id?: string | null
+          id?: string
+          kind?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_project_activity_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_project_activity_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "team_project_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_project_activity_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "team_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_project_files: {
+        Row: {
+          created_at: string
+          filename: string
+          id: string
+          mime_type: string
+          path: string
+          project_id: string
+          size_bytes: number
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          filename: string
+          id?: string
+          mime_type: string
+          path: string
+          project_id: string
+          size_bytes: number
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          filename?: string
+          id?: string
+          mime_type?: string
+          path?: string
+          project_id?: string
+          size_bytes?: number
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_project_files_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "team_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_project_files_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_project_steps: {
+        Row: {
+          assignee_id: string | null
+          created_at: string
+          description: string | null
+          done_at: string | null
+          done_by: string | null
+          due_date: string | null
+          id: string
+          position: number
+          project_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assignee_id?: string | null
+          created_at?: string
+          description?: string | null
+          done_at?: string | null
+          done_by?: string | null
+          due_date?: string | null
+          id?: string
+          position: number
+          project_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assignee_id?: string | null
+          created_at?: string
+          description?: string | null
+          done_at?: string | null
+          done_by?: string | null
+          due_date?: string | null
+          id?: string
+          position?: number
+          project_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_project_steps_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_project_steps_done_by_fkey"
+            columns: ["done_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_project_steps_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "team_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_projects: {
+        Row: {
+          cancel_reason: string | null
+          canceled_at: string | null
+          code: string
+          completed_at: string | null
+          context: string | null
+          created_at: string
+          created_by: string
+          due_date: string | null
+          id: string
+          owner_id: string
+          priority: string
+          start_date: string | null
+          status: string
+          title: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          cancel_reason?: string | null
+          canceled_at?: string | null
+          code?: string
+          completed_at?: string | null
+          context?: string | null
+          created_at?: string
+          created_by: string
+          due_date?: string | null
+          id?: string
+          owner_id: string
+          priority?: string
+          start_date?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          cancel_reason?: string | null
+          canceled_at?: string | null
+          code?: string
+          completed_at?: string | null
+          context?: string | null
+          created_at?: string
+          created_by?: string
+          due_date?: string | null
+          id?: string
+          owner_id?: string
+          priority?: string
+          start_date?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_projects_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_projects_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       upgrades: {
         Row: {
           accepted_at: string | null
@@ -1710,6 +1949,69 @@ export type Database = {
         }
         Returns: Json
       }
+      complete_demand_confirmed: {
+        Args: {
+          _confirmation: string
+          _id: string
+          _solution: string
+          _version: number
+        }
+        Returns: {
+          approval_repository_url: string | null
+          cancel_reason: string | null
+          canceled_at: string | null
+          channel: string | null
+          classification: string | null
+          client_id: string | null
+          client_informed: boolean
+          client_validated: boolean
+          code: string
+          completed_at: string | null
+          complexity: string | null
+          context: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          first_response_at: string | null
+          first_response_due: string | null
+          forwarded_at: string | null
+          id: string
+          impact: string | null
+          is_test: boolean
+          notion_code: string | null
+          notion_id: string | null
+          notion_raw: Json | null
+          original_promise_due: string | null
+          owner_id: string | null
+          policy_delivery_due: string | null
+          priority: string
+          promise_aligned_at: string | null
+          promise_confirmed: boolean
+          promise_reason: string | null
+          promise_revision: number
+          published_at: string | null
+          received_at: string | null
+          resolution_due: string | null
+          scope: string
+          sla_start_at: string | null
+          solution: string | null
+          source_date_precision: Json
+          stage: string
+          technical_type: string | null
+          test_result: string | null
+          tests_run: string | null
+          title: string
+          updated_at: string
+          validated_at: string | null
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "demands"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       configured_due: {
         Args: { _basis: string; _start: string; _unit: string; _value: number }
         Returns: string
@@ -1832,6 +2134,38 @@ export type Database = {
       is_operator: { Args: { _uid: string }; Returns: boolean }
       is_technical: { Args: { _uid: string }; Returns: boolean }
       is_workspace_user: { Args: { _uid: string }; Returns: boolean }
+      move_team_project: {
+        Args: {
+          _id: string
+          _reason?: string
+          _status: string
+          _version: number
+        }
+        Returns: {
+          cancel_reason: string | null
+          canceled_at: string | null
+          code: string
+          completed_at: string | null
+          context: string | null
+          created_at: string
+          created_by: string
+          due_date: string | null
+          id: string
+          owner_id: string
+          priority: string
+          start_date: string | null
+          status: string
+          title: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "team_projects"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       notify_demand_transfer: {
         Args: {
           _demand: string
@@ -1872,6 +2206,25 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "case_messages"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      post_team_project_message: {
+        Args: { _body: string; _project: string }
+        Returns: {
+          actor_id: string
+          actor_name: string
+          body: string | null
+          created_at: string
+          file_id: string | null
+          id: string
+          kind: string
+          project_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "team_project_activity"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -1938,6 +2291,86 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "case_attachments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      register_team_project_file: {
+        Args: {
+          _filename: string
+          _mime: string
+          _note?: string
+          _path: string
+          _project: string
+          _size: number
+        }
+        Returns: {
+          created_at: string
+          filename: string
+          id: string
+          mime_type: string
+          path: string
+          project_id: string
+          size_bytes: number
+          uploaded_by: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "team_project_files"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      remove_team_project_step: {
+        Args: { _project: string; _step: string; _version: number }
+        Returns: {
+          cancel_reason: string | null
+          canceled_at: string | null
+          code: string
+          completed_at: string | null
+          context: string | null
+          created_at: string
+          created_by: string
+          due_date: string | null
+          id: string
+          owner_id: string
+          priority: string
+          start_date: string | null
+          status: string
+          title: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "team_projects"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      reorder_team_project_steps: {
+        Args: { _order: string[]; _project: string; _version: number }
+        Returns: {
+          cancel_reason: string | null
+          canceled_at: string | null
+          code: string
+          completed_at: string | null
+          context: string | null
+          created_at: string
+          created_by: string
+          due_date: string | null
+          id: string
+          owner_id: string
+          priority: string
+          start_date: string | null
+          status: string
+          title: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "team_projects"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -2026,6 +2459,60 @@ export type Database = {
         Args: { _category: string; _rules: Json; _version: number }
         Returns: Json
       }
+      save_team_project: {
+        Args: { _data: Json; _id: string; _version: number }
+        Returns: {
+          cancel_reason: string | null
+          canceled_at: string | null
+          code: string
+          completed_at: string | null
+          context: string | null
+          created_at: string
+          created_by: string
+          due_date: string | null
+          id: string
+          owner_id: string
+          priority: string
+          start_date: string | null
+          status: string
+          title: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "team_projects"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      save_team_project_step: {
+        Args: { _data: Json; _project: string; _step: string; _version: number }
+        Returns: {
+          cancel_reason: string | null
+          canceled_at: string | null
+          code: string
+          completed_at: string | null
+          context: string | null
+          created_at: string
+          created_by: string
+          due_date: string | null
+          id: string
+          owner_id: string
+          priority: string
+          start_date: string | null
+          status: string
+          title: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "team_projects"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       save_workspace_presentation: {
         Args: { _config: Json; _publish?: boolean; _version: number }
         Returns: Json
@@ -2035,6 +2522,38 @@ export type Database = {
         Returns: undefined
       }
       set_sla_risk_window: { Args: { _minutes: number }; Returns: undefined }
+      set_team_project_step_done: {
+        Args: {
+          _done: boolean
+          _project: string
+          _step: string
+          _version: number
+        }
+        Returns: {
+          cancel_reason: string | null
+          canceled_at: string | null
+          code: string
+          completed_at: string | null
+          context: string | null
+          created_at: string
+          created_by: string
+          due_date: string | null
+          id: string
+          owner_id: string
+          priority: string
+          start_date: string | null
+          status: string
+          title: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "team_projects"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       sla_add_business_minutes: {
         Args: { mins: number; ts: string }
         Returns: string
@@ -2115,6 +2634,58 @@ export type Database = {
         }
       }
       task_reminder_tick: { Args: never; Returns: number }
+      team_project_can_manage: {
+        Args: { _project: string; _uid: string }
+        Returns: boolean
+      }
+      team_project_lock: {
+        Args: { _id: string; _manage: boolean; _version: number }
+        Returns: {
+          cancel_reason: string | null
+          canceled_at: string | null
+          code: string
+          completed_at: string | null
+          context: string | null
+          created_at: string
+          created_by: string
+          due_date: string | null
+          id: string
+          owner_id: string
+          priority: string
+          start_date: string | null
+          status: string
+          title: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "team_projects"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      team_project_log: {
+        Args: { _body: string; _file?: string; _kind: string; _project: string }
+        Returns: undefined
+      }
+      team_project_members: { Args: never; Returns: Json }
+      team_project_notice: {
+        Args: { _project: string; _recipients: string[]; _title: string }
+        Returns: undefined
+      }
+      team_project_of_path: { Args: { _path: string }; Returns: string }
+      team_project_people: { Args: { _project: string }; Returns: string[] }
+      team_project_status_label: { Args: { _status: string }; Returns: string }
+      team_project_step_values: {
+        Args: { _data: Json }
+        Returns: {
+          assignee: string
+          description: string
+          due: string
+          title: string
+        }[]
+      }
       technical_queue: { Args: never; Returns: Json }
       transfer_demand: {
         Args: {
