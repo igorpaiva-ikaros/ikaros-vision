@@ -51,33 +51,46 @@ function Page() {
                     <p className="text-sm font-semibold">{n.title}</p>
                     <p className="text-xs text-muted-foreground">
                       {dateLabel(n.created_at)} ·{" "}
-                      {n.level === "reminder"
-                        ? "Tarefa agendada"
-                        : n.level === "overdue"
-                          ? "Atraso"
-                          : "Risco"}
+                      {String(n.link ?? "").startsWith("/projetos")
+                        ? "Projeto da equipe"
+                        : n.level === "reminder"
+                          ? "Tarefa agendada"
+                          : n.level === "overdue"
+                            ? "Atraso"
+                            : "Risco"}
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <Button asChild variant="outline" size="sm">
-                      <Link
-                        to="/operacao"
-                        search={
-                          /^\/operacao\?tab=(demands|onboardings|tasks)&id=[a-f\d-]{36}$/.test(
-                            n.link,
-                          )
-                            ? {
-                                tab: new URLSearchParams(n.link.split("?")[1]).get(
-                                  "tab",
-                                ) as "tasks",
-                                id: new URLSearchParams(n.link.split("?")[1]).get("id")!,
-                              }
-                            : { tab: "clients" }
-                        }
-                      >
-                        Abrir registro
-                      </Link>
-                    </Button>
+                    {/^\/projetos\?id=[a-f\d-]{36}$/.test(n.link) ? (
+                      <Button asChild variant="outline" size="sm">
+                        <Link
+                          to="/projetos"
+                          search={{ id: new URLSearchParams(n.link.split("?")[1]).get("id")! }}
+                        >
+                          Abrir projeto
+                        </Link>
+                      </Button>
+                    ) : (
+                      <Button asChild variant="outline" size="sm">
+                        <Link
+                          to="/operacao"
+                          search={
+                            /^\/operacao\?tab=(demands|onboardings|tasks)&id=[a-f\d-]{36}$/.test(
+                              n.link,
+                            )
+                              ? {
+                                  tab: new URLSearchParams(n.link.split("?")[1]).get(
+                                    "tab",
+                                  ) as "tasks",
+                                  id: new URLSearchParams(n.link.split("?")[1]).get("id")!,
+                                }
+                              : { tab: "clients" }
+                          }
+                        >
+                          Abrir registro
+                        </Link>
+                      </Button>
+                    )}
                     {!n.read_at && (
                       <Button
                         size="sm"

@@ -85,6 +85,11 @@ export function safeDbMessage(message: string) {
   if (/shared_portfolio/.test(message))
     return "A carteira é compartilhada. Assuma a demanda para atendê-la.";
   if (/invalid_file/.test(message)) return "Não foi possível confirmar o arquivo enviado.";
+  if (/project_member_required/.test(message))
+    return "Escolha uma pessoa ativa da equipe (CS ou administrador).";
+  if (/project_closed/.test(message))
+    return "Projeto encerrado. Reabra o projeto para alterar dados ou etapas.";
+  if (/invalid_project_data/.test(message)) return "Confira os dados do projeto e tente novamente.";
   if (/inactive_product|product_required|catalog_required/.test(message))
     return "Selecione um plano ativo do catálogo.";
   if (/products_unique_name/.test(message)) return "Já existe um produto ou plano com este nome.";

@@ -100,6 +100,7 @@ describe("Entrada interna", () => {
       "Administração",
       "CRM",
       "Concierge",
+      "Projetos",
     ])
       expect(screen.getAllByRole("link", { name }).length).toBeGreaterThan(0);
     fireEvent.click(screen.getAllByRole("button", { name: "Sair" })[0]!);
@@ -134,7 +135,29 @@ describe("Entrada interna", () => {
     expect(screen.getByText("Minha produção")).toBeVisible();
     expect(screen.queryByLabelText("Mostrar testes")).not.toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: "Carteira" })).not.toHaveLength(0);
+    expect(screen.getAllByRole("link", { name: "Projetos" })).not.toHaveLength(0);
     expect(screen.queryByRole("link", { name: "Administração" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Visão geral" })).not.toBeInTheDocument();
+  });
+  it("CS abre Projetos da equipe; equipe técnica não", () => {
+    mocks.path = "/projetos";
+    mocks.bi["session"] = { user: { id: "cs" } };
+    mocks.bi["profile"] = { role: "cs", full_name: "Colaborador" };
+    mocks.bi["state"] = { status: "operator" };
+    const view = render(
+      <AppShell>
+        <div>Quadro de projetos</div>
+      </AppShell>,
+    );
+    expect(screen.getByText("Quadro de projetos")).toBeVisible();
+    view.unmount();
+    mocks.bi["profile"] = { role: "technical", full_name: "Técnico" };
+    render(
+      <AppShell>
+        <div>Quadro técnico proibido</div>
+      </AppShell>,
+    );
+    expect(screen.queryByText("Quadro técnico proibido")).not.toBeInTheDocument();
+    expect(mocks.nav).toHaveBeenCalledWith({ to: "/tecnico", replace: true });
   });
 });

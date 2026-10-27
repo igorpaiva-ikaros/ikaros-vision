@@ -108,6 +108,19 @@ Aplicar `20261016143000_general_system_demands.sql` antes de publicar a interfac
 
 A barra horizontal e as setas ficam no topo do quadro e acompanham a rolagem vertical. Toque e trackpad seguem sincronizados. Os cards mostram no canto superior direito o SLA pendente com vencimento mais antigo e, separadamente, o compromisso com o cliente ou o planejamento interno. Previsões técnicas aparecem quando há encaminhamento ativo. O contador mostra tempo corrido até a data final já calculada pela regra oficial (incluindo calendário útil quando configurado), com atualização a cada 30 segundos e ao voltar à aba. O alerta de risco oficial usa o estado do servidor; previsão individual nunca substitui SLA. Sem data cadastrada, não se presume que o caso está no prazo. Registros encerrados param a contagem.
 
+## Equipe → Projetos (27/10/2026)
+
+Área interna do time (administradores e CS ativos) para pautas, implementações e ideias, em `/projetos`. A equipe técnica não acessa.
+
+- **Projeto:** título, contexto, responsável, prioridade, início e prazo de entrega. Código `PRJ-00001`. Situações do quadro: Ideias, Planejado, Em andamento, Em revisão, Concluído e Cancelado (oculto por padrão).
+- **Etapas:** desenhadas por quem cria o projeto, na ordem do pipeline; cada uma pode ter responsável e prazo próprios. A etapa atual é a primeira ainda não concluída.
+- **Quem faz o quê:** administrador, quem criou e o responsável editam dados, etapas e situação. O responsável por uma etapa a conclui e move o projeto entre situações abertas. Etapa sem responsável pode ser concluída por qualquer pessoa do time. Concluir o projeto exige todas as etapas concluídas; cancelar exige motivo. Projeto encerrado só aceita conversa até ser reaberto por quem gerencia.
+- **Conversa e linha do tempo:** mensagens, anexos (imagem, PDF, Word, Excel, vídeo e áudio, até 50 MB, bucket privado `team-projects`) e gravação de áudio pelo navegador, junto com os eventos (criação, etapas, prazo, responsável e situação), com autor, data e hora.
+- **Farol:** atrasado, vence hoje, vence em até 3 dias, no prazo ou sem prazo; etapa atrasada também sinaliza o projeto. A faixa "Pedem atenção" lista os projetos abertos nessas condições.
+- **Avisos:** quem recebe projeto ou etapa, e os envolvidos (quem criou, responsável e responsáveis por etapas) em mudança de situação, mensagem e anexo, sem avisar quem agiu. Abrem o projeto pela página de notificações.
+
+Tabelas `team_projects`, `team_project_steps`, `team_project_files` e `team_project_activity` são só de leitura para a API; toda gravação passa pelas funções `save_team_project`, `move_team_project`, `save_team_project_step`, `remove_team_project_step`, `reorder_team_project_steps`, `set_team_project_step_done`, `post_team_project_message` e `register_team_project_file` (auth.uid(), bloqueio, versão e registro na linha do tempo). Migration `20261027120000_team_projects.sql`, aditiva: aplicar no banco do Vision antes de publicar a interface. Ela também acrescenta o ramo `project` à `real_operation_record`, para que os avisos de projeto passem pela trava de dados de teste das notificações.
+
 ## Conclusão com confirmação do cliente (27/10/2026)
 
 O responsável pela demanda conclui sem depender do administrador quando o cliente confirma que está funcionando: no card, **Concluir com confirmação do cliente** (aparece quando há entrega aguardando validação, encaminhada ao técnico, com ajustes pedidos ou sem publicação registrada). Exige a solução aplicada e o registro de como o cliente confirmou; marca cliente informado e validado, conclui a demanda, retira a entrega das filas (`confirmada_cliente`), registra no histórico e avisa o administrador. O mesmo caminho vale para o agente de IA que atua com a conta do responsável (função `completeDemandConfirmed` / RPC `complete_demand_confirmed`). Migration `20261027150000_client_confirmed_completion.sql`, aditiva.

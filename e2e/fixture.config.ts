@@ -15,6 +15,10 @@ export default defineConfig({
       { find: "@/lib/bi-context", replacement: path.resolve("e2e/fixtures/context.tsx") },
       { find: "@/lib/workspace.functions", replacement: path.resolve("e2e/fixtures/functions.ts") },
       {
+        find: "@/lib/team-projects.functions",
+        replacement: path.resolve("e2e/fixtures/team-projects.ts"),
+      },
+      {
         find: "@/components/bi/NewClientDialog",
         replacement: path.resolve("e2e/fixtures/new-client.tsx"),
       },

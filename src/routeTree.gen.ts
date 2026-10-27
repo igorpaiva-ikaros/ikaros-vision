@@ -20,6 +20,7 @@ import { Route as EquipeRouteImport } from './routes/equipe'
 import { Route as IntegracaoRouteImport } from './routes/integracao'
 import { Route as NotificacoesRouteImport } from './routes/notificacoes'
 import { Route as OperacaoRouteImport } from './routes/operacao'
+import { Route as ProjetosRouteImport } from './routes/projetos'
 import { Route as TecnicoRouteImport } from './routes/tecnico'
 import { Route as ApiSalesRouteImport } from './routes/api.sales'
 
@@ -78,6 +79,11 @@ const OperacaoRoute = OperacaoRouteImport.update({
   path: '/operacao',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjetosRoute = ProjetosRouteImport.update({
+  id: '/projetos',
+  path: '/projetos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TecnicoRoute = TecnicoRouteImport.update({
   id: '/tecnico',
   path: '/tecnico',
@@ -101,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/integracao': typeof IntegracaoRoute
   '/notificacoes': typeof NotificacoesRoute
   '/operacao': typeof OperacaoRoute
+  '/projetos': typeof ProjetosRoute
   '/tecnico': typeof TecnicoRoute
   '/api/sales': typeof ApiSalesRoute
 }
@@ -116,6 +123,7 @@ export interface FileRoutesByTo {
   '/integracao': typeof IntegracaoRoute
   '/notificacoes': typeof NotificacoesRoute
   '/operacao': typeof OperacaoRoute
+  '/projetos': typeof ProjetosRoute
   '/tecnico': typeof TecnicoRoute
   '/api/sales': typeof ApiSalesRoute
 }
@@ -132,6 +140,7 @@ export interface FileRoutesById {
   '/integracao': typeof IntegracaoRoute
   '/notificacoes': typeof NotificacoesRoute
   '/operacao': typeof OperacaoRoute
+  '/projetos': typeof ProjetosRoute
   '/tecnico': typeof TecnicoRoute
   '/api/sales': typeof ApiSalesRoute
 }
@@ -149,6 +158,7 @@ export interface FileRouteTypes {
     | '/integracao'
     | '/notificacoes'
     | '/operacao'
+    | '/projetos'
     | '/tecnico'
     | '/api/sales'
   fileRoutesByTo: FileRoutesByTo
@@ -164,6 +174,7 @@ export interface FileRouteTypes {
     | '/integracao'
     | '/notificacoes'
     | '/operacao'
+    | '/projetos'
     | '/tecnico'
     | '/api/sales'
   id:
@@ -179,6 +190,7 @@ export interface FileRouteTypes {
     | '/integracao'
     | '/notificacoes'
     | '/operacao'
+    | '/projetos'
     | '/tecnico'
     | '/api/sales'
   fileRoutesById: FileRoutesById
@@ -195,6 +207,7 @@ export interface RootRouteChildren {
   IntegracaoRoute: typeof IntegracaoRoute
   NotificacoesRoute: typeof NotificacoesRoute
   OperacaoRoute: typeof OperacaoRoute
+  ProjetosRoute: typeof ProjetosRoute
   TecnicoRoute: typeof TecnicoRoute
   ApiSalesRoute: typeof ApiSalesRoute
 }
@@ -278,6 +291,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OperacaoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projetos': {
+      id: '/projetos'
+      path: '/projetos'
+      fullPath: '/projetos'
+      preLoaderRoute: typeof ProjetosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tecnico': {
       id: '/tecnico'
       path: '/tecnico'
@@ -307,6 +327,7 @@ const rootRouteChildren: RootRouteChildren = {
   IntegracaoRoute: IntegracaoRoute,
   NotificacoesRoute: NotificacoesRoute,
   OperacaoRoute: OperacaoRoute,
+  ProjetosRoute: ProjetosRoute,
   TecnicoRoute: TecnicoRoute,
   ApiSalesRoute: ApiSalesRoute,
 }
