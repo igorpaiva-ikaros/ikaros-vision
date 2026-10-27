@@ -85,6 +85,13 @@ const menus = [
     children: [],
   },
   {
+    id: "projetos",
+    title: "Projetos",
+    description:
+      "Área da equipe para pautas, implementações e ideias internas. Quem cria define título, contexto, responsável, prazo de entrega e as etapas que o time vai percorrer; cada etapa pode ter responsável e prazo próprios. O farol mostra atraso e vencimento próximo. No projeto, o time conversa, anexa imagens, documentos e grava áudios, tudo com data e autor na linha do tempo. Concluir exige todas as etapas entregues; cancelar exige motivo.",
+    children: [],
+  },
+  {
     id: "tecnico",
     title: "Equipe técnica",
     description:

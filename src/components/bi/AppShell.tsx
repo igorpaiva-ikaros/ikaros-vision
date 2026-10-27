@@ -18,6 +18,7 @@ import {
   History,
   UserPlus,
   CalendarClock,
+  FolderKanban,
 } from "lucide-react";
 import { MemberAvatar } from "@/components/workspace/AvatarPicker";
 import { NotificationBell } from "@/components/workspace/NotificationBell";
@@ -38,6 +39,7 @@ const ADMIN_NAV = [
   { href: "/operacao?tab=interactions", label: "Conversas e decisões", icon: MessagesSquare },
   { href: "/operacao?tab=tasks", label: "Tarefas", icon: CalendarClock },
   { href: "/ajuda", label: "Concierge", icon: BookOpen },
+  { href: "/projetos", label: "Projetos", icon: FolderKanban, group: "Equipe" },
   { href: "/aprovacoes", label: "Aprovações e publicações", icon: ListChecks, group: "Gestão" },
   { href: "/tecnico", label: "Equipe técnica", icon: PanelsTopLeft },
   { href: "/", label: "Visão geral", icon: BarChart3 },
@@ -51,12 +53,13 @@ const TECH_NAV = [
   { href: "/notificacoes", label: "Notificações", icon: Bell },
 ];
 const CS_NAV = [
-  { href: "/operacao?tab=crm", label: "CRM", icon: PanelsTopLeft },
+  { href: "/operacao?tab=crm", label: "CRM", icon: PanelsTopLeft, group: "Operação" },
   { href: "/operacao?tab=clients", label: "Carteira", icon: Building2 },
   { href: "/operacao?tab=changelog", label: "Histórico de entregas", icon: History },
   { href: "/operacao?tab=interactions", label: "Conversas e decisões", icon: MessagesSquare },
   { href: "/operacao?tab=tasks", label: "Tarefas", icon: CalendarClock },
   { href: "/ajuda", label: "Concierge", icon: BookOpen },
+  { href: "/projetos", label: "Projetos", icon: FolderKanban, group: "Equipe" },
 ];
 export function AppShell({ children }: { children: ReactNode }) {
   const location = useRouterState({ select: (s) => s.location });
@@ -82,7 +85,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const permitted = isTech
     ? ["/tecnico", "/notificacoes"].includes(path)
     : !isCs ||
-      ["/operacao", "/notificacoes", "/ajuda", "/tecnico"].includes(path) ||
+      ["/operacao", "/notificacoes", "/ajuda", "/tecnico", "/projetos"].includes(path) ||
       (leadership && path === "/administracao");
   useEffect(() => {
     if (authReady && !session && path !== "/auth") void nav({ to: "/auth", replace: true });

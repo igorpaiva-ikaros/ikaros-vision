@@ -1,3 +1,11 @@
+## 2026-10-27 — Equipe → Projetos
+
+- Nova área Equipe → Projetos para administradores e CS: quadro por situação (Ideias, Planejado, Em andamento, Em revisão, Concluído; Cancelado sob demanda), busca, filtro por pessoa e faixa "Pedem atenção".
+- Projeto com título, contexto, responsável, prioridade, início e prazo de entrega; etapas desenhadas por quem cria, com responsável e prazo próprios, reordenáveis, e farol de prazo por projeto e por etapa.
+- Conversa e linha do tempo por projeto: mensagens, anexos privados (imagem, PDF, Word, Excel, vídeo, áudio) e gravação de áudio pelo navegador, junto com os eventos do projeto, com autor e horário.
+- Regras no banco: gerência por administrador, criador ou responsável; responsável pela etapa conclui a própria etapa; concluir exige etapas concluídas; cancelar exige motivo; controle de versão e registro de cada ação. Avisos aos envolvidos e link direto da página de notificações.
+- Migration aditiva `20261027120000_team_projects.sql`; nenhuma demanda, cliente, SLA ou permissão existente alterada. Equipe técnica sem acesso.
+
 ## 2026-10-26 — Transferência de demandas com aprovação
 
 - Colaborador responsável solicita transferência da própria demanda (destino CS ativo e motivo); a demanda segue com ele até a decisão, com pendência visível e cancelamento enquanto pendente.
