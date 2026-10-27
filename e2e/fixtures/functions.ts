@@ -189,6 +189,22 @@ export async function transitionRecord({ data }: any) {
   persistReview();
   return structuredClone(row);
 }
+export async function completeDemandConfirmed({ data }: any) {
+  const row = ds.demands.find((r: any) => r.id === data.id);
+  const r = deliveries.find((x) => x.demand_id === row.id);
+  if (r && r.approval_state !== "publicada") r.approval_state = "confirmada_cliente";
+  Object.assign(row, {
+    solution: data.solution,
+    client_informed: true,
+    client_validated: true,
+    completed_at: new Date().toISOString(),
+    stage: "Concluída",
+  });
+  row.version++;
+  (window as any).qaConfirmedCompletion = structuredClone(data);
+  persistReview();
+  return structuredClone(row);
+}
 export async function saveRecord({ data }: any) {
   const row = {
     ...data.values,

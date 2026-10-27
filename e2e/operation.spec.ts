@@ -446,6 +446,38 @@ test("arrastar para Aguardando validação faz o mesmo envio automático", async
   await expect(card).toHaveAttribute("draggable", "false");
 });
 
+test("CS conclui com confirmação do cliente enquanto a entrega aguarda validação", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 2200, height: 1000 });
+  await page.goto("/operacao?tab=demands");
+  const card = page.locator('[data-card-id="00000000-0000-4000-8000-000000000021"]');
+  await card.dragTo(page.locator('[data-stage="Aguardando validação"]'));
+  await expect(card).toHaveAttribute("draggable", "false");
+  await page.getByText("Proposta de consórcio não carrega", { exact: true }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Concluir com confirmação do cliente", exact: true })
+    .click();
+  const confirm = page
+    .getByRole("dialog")
+    .filter({ hasText: "Concluir DEM-00001 com confirmação do cliente" })
+    .last();
+  await confirm
+    .getByLabel("Solução aplicada *", { exact: true })
+    .fill("Corrigido o carregamento da proposta");
+  await confirm
+    .getByLabel("Como o cliente confirmou *", { exact: true })
+    .fill("Cliente confirmou no grupo em 27/10");
+  await confirm.getByRole("button", { name: "Concluir demanda", exact: true }).click();
+  await expect
+    .poll(() => page.evaluate(() => (window as any).qaConfirmedCompletion?.confirmation))
+    .toBe("Cliente confirmou no grupo em 27/10");
+  await expect(page.locator('[data-stage="Concluída"]')).toContainText(
+    "Proposta de consórcio não carrega",
+  );
+});
+
 test("categoria filtra sem mover cards e Concierge explica por toque", async ({ page }) => {
   await page.goto("/operacao?tab=demands");
   const filters = page.getByRole("group", { name: "Filtrar demandas por categoria" });

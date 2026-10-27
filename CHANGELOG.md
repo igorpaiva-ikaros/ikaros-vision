@@ -6,6 +6,13 @@
 - Regras no banco: gerência por administrador, criador ou responsável; responsável pela etapa conclui a própria etapa; concluir exige etapas concluídas; cancelar exige motivo; controle de versão e registro de cada ação. Avisos aos envolvidos e link direto da página de notificações.
 - Migration aditiva `20261027120000_team_projects.sql`; nenhuma demanda, cliente, SLA ou permissão existente alterada. Equipe técnica sem acesso.
 
+## 2026-10-27 — Conclusão com confirmação do cliente
+
+- O responsável pela demanda conclui sem precisar do administrador quando o cliente confirma que está funcionando: botão Concluir com confirmação do cliente no card, com solução aplicada e registro de como o cliente confirmou.
+- Vale com entrega aguardando validação, encaminhada à equipe técnica, com ajustes pedidos ou sem publicação registrada; a entrega sai das filas como "confirmada pelo cliente" e o administrador recebe aviso.
+- Histórico registra a confirmação e o estado anterior da entrega. Demandas internas e demandas de outra pessoa seguem as regras anteriores.
+- Migration aditiva `20261027150000_client_confirmed_completion.sql`.
+
 ## 2026-10-26 — Transferência de demandas com aprovação
 
 - Colaborador responsável solicita transferência da própria demanda (destino CS ativo e motivo); a demanda segue com ele até a decisão, com pendência visível e cancelamento enquanto pendente.
