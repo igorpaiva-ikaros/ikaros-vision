@@ -1949,6 +1949,69 @@ export type Database = {
         }
         Returns: Json
       }
+      complete_demand_confirmed: {
+        Args: {
+          _confirmation: string
+          _id: string
+          _solution: string
+          _version: number
+        }
+        Returns: {
+          approval_repository_url: string | null
+          cancel_reason: string | null
+          canceled_at: string | null
+          channel: string | null
+          classification: string | null
+          client_id: string | null
+          client_informed: boolean
+          client_validated: boolean
+          code: string
+          completed_at: string | null
+          complexity: string | null
+          context: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          first_response_at: string | null
+          first_response_due: string | null
+          forwarded_at: string | null
+          id: string
+          impact: string | null
+          is_test: boolean
+          notion_code: string | null
+          notion_id: string | null
+          notion_raw: Json | null
+          original_promise_due: string | null
+          owner_id: string | null
+          policy_delivery_due: string | null
+          priority: string
+          promise_aligned_at: string | null
+          promise_confirmed: boolean
+          promise_reason: string | null
+          promise_revision: number
+          published_at: string | null
+          received_at: string | null
+          resolution_due: string | null
+          scope: string
+          sla_start_at: string | null
+          solution: string | null
+          source_date_precision: Json
+          stage: string
+          technical_type: string | null
+          test_result: string | null
+          tests_run: string | null
+          title: string
+          updated_at: string
+          validated_at: string | null
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "demands"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       configured_due: {
         Args: { _basis: string; _start: string; _unit: string; _value: number }
         Returns: string
