@@ -51,7 +51,7 @@ function Page() {
                     <p className="text-sm font-semibold">{n.title}</p>
                     <p className="text-xs text-muted-foreground">
                       {dateLabel(n.created_at)} ·{" "}
-                      {n.link.startsWith("/projetos")
+                      {String(n.link ?? "").startsWith("/projetos")
                         ? "Projeto da equipe"
                         : n.level === "reminder"
                           ? "Tarefa agendada"

@@ -15,6 +15,7 @@ import { Operation } from "@/components/workspace/Operation";
 import { DeliveryQueue } from "@/components/workspace/DeliveryQueue";
 import { Admin } from "@/components/workspace/Admin";
 import { AppShell } from "@/components/bi/AppShell";
+import { TeamProjects } from "@/components/workspace/TeamProjects";
 import "@/styles.css";
 const qc = new QueryClient();
 const root = createRootRoute({
@@ -52,5 +53,13 @@ const approvals = createRoute({
   component: () => <DeliveryQueue approvals />,
 });
 const help = createRoute({ getParentRoute: () => root, path: "/ajuda", component: Concierge });
-const router = createRouter({ routeTree: root.addChildren([operation, admin, tech, approvals, help]) });
+const projects = createRoute({
+  getParentRoute: () => root,
+  path: "/projetos",
+  validateSearch: (s: any) => ({ id: s.id }),
+  component: () => <TeamProjects selected={projects.useSearch().id} />,
+});
+const router = createRouter({
+  routeTree: root.addChildren([operation, admin, tech, approvals, help, projects]),
+});
 createRoot(document.getElementById("root")!).render(<RouterProvider router={router} />);

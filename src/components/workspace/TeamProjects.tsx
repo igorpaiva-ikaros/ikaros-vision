@@ -89,7 +89,11 @@ export function TeamProjects({ selected }: { selected?: string | undefined }) {
   const attention = attentionList(visible, steps, today);
   const columns = PROJECT_STATUSES.filter((s) => showCanceled || s.key !== "cancelado");
   const open = projects.find((p) => p.id === selected) ?? null;
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ["team-projects"] });
+  const refresh = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["team-projects"] }),
+      queryClient.invalidateQueries({ queryKey: ["team-project"] }),
+    ]);
   function select(id: string | null) {
     void navigate({ to: "/projetos", search: id ? { id } : {} });
   }

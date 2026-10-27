@@ -197,8 +197,9 @@ test("CS menu includes Concierge and calendar slots create and complete tasks", 
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto("/operacao?tab=tasks");
   const menu = page.locator("aside").first().getByRole("navigation");
-  await expect(menu.getByRole("link")).toHaveCount(6);
-  await expect(menu.getByRole("link").last()).toHaveText("Concierge");
+  await expect(menu.getByRole("link")).toHaveCount(7);
+  await expect(menu.getByRole("link", { name: "Concierge", exact: true })).toBeVisible();
+  await expect(menu.getByRole("link").last()).toHaveText("Projetos");
   await expect(page.getByLabel("Mostrar testes")).toHaveCount(0);
   await expect(menu.getByRole("link", { name: "CRM", exact: true })).toBeVisible();
   await expect(
@@ -649,4 +650,44 @@ test("gestor autorizado recusa com motivo, aprova da fila e transfere direto", a
   expect(calls.map((c: any) => c.fn)).toEqual(["decide", "direct"]);
   expect(calls[0]).toMatchObject({ approve: true, version: 1 });
   expect(calls[1]).toMatchObject({ to: "00000000-0000-4000-8000-000000000002", version: 2 });
+});
+
+test("Equipe → Projetos: cria com etapas, conclui etapa e conversa na linha do tempo", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto("/projetos");
+  await expect(page.getByRole("heading", { name: "Projetos da equipe" })).toBeVisible();
+  await expect(
+    page.locator("aside").getByRole("link", { name: "Projetos", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Novo projeto" }).click();
+  const form = page.getByRole("dialog");
+  await form.getByLabel("Título *", { exact: true }).fill("Integração do CRM com o onboarding");
+  await form.getByLabel("Prazo de entrega", { exact: true }).fill("2026-12-15");
+  await form.getByLabel("Nome da etapa 1", { exact: true }).fill("Mapear campos");
+  await form.getByRole("button", { name: "Adicionar etapa" }).click();
+  await form.getByLabel("Nome da etapa 2", { exact: true }).fill("Implementar envio");
+  await form
+    .getByLabel("Responsável pela etapa 2", { exact: true })
+    .selectOption({ label: "CS Colega" });
+  await form.getByRole("button", { name: "Criar projeto", exact: true }).click();
+  const detail = page.getByRole("dialog");
+  await expect(
+    detail.getByRole("heading", { name: "Integração do CRM com o onboarding" }),
+  ).toBeVisible();
+  await expect(detail.getByRole("list", { name: "Pipeline do projeto" })).toContainText(
+    "2. Implementar envio",
+  );
+  await detail.getByRole("button", { name: "Concluir etapa Mapear campos" }).click();
+  await expect(detail.getByRole("button", { name: "Reabrir etapa Mapear campos" })).toBeVisible();
+  await detail.getByLabel("Mensagem para o time").fill("Campos mapeados, seguindo para o envio.");
+  await detail.getByRole("button", { name: "Enviar mensagem" }).click();
+  await expect(detail.getByText("Campos mapeados, seguindo para o envio.")).toBeVisible();
+  await expect(detail.getByText(/Etapa concluída: Mapear campos/)).toBeVisible();
+  await page.keyboard.press("Escape");
+  const column = page.getByRole("region", { name: "Ideias" });
+  await expect(column).toContainText("Integração do CRM com o onboarding");
+  await expect(column).toContainText("1/2 etapas");
+  await expect(column).toContainText("Agora: Implementar envio · CS Colega");
 });
