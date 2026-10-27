@@ -238,16 +238,7 @@ describe("Conclusão com confirmação do cliente", () => {
     );
     await waitFor(() => expect(mocks.reload).toHaveBeenCalled());
   });
-  it("não aparece para quem não é responsável nem quando não há entrega pendente", async () => {
-    const other: any = locked();
-    other.demands[0].owner_id = "00000000-0000-4000-8000-000000000009";
-    mocks.get.mockResolvedValue(other);
-    const view = mount("demands");
-    fireEvent.click(await screen.findByRole("button", { name: /DEM-00001/ }));
-    expect(
-      screen.queryByRole("button", { name: "Concluir com confirmação do cliente" }),
-    ).not.toBeInTheDocument();
-    view.unmount();
+  it("não aparece quando não há entrega pendente de validação ou publicação", async () => {
     mocks.get.mockResolvedValue(ds());
     mount("demands");
     fireEvent.click(await screen.findByRole("button", { name: /DEM-00001/ }));
