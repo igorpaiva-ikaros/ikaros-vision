@@ -1,11 +1,12 @@
 import { beforeEach, describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Operation } from "@/components/workspace/Operation";
 const mocks = vi.hoisted(() => ({
   get: vi.fn(),
   save: vi.fn(),
   transition: vi.fn(),
+  confirm: vi.fn(),
   reload: vi.fn(),
   includeTests: false,
 }));
@@ -33,6 +34,7 @@ vi.mock("@/lib/workspace.functions", () => ({
   getOperationState: mocks.get,
   saveRecord: mocks.save,
   transitionRecord: mocks.transition,
+  completeDemandConfirmed: mocks.confirm,
   updateClientContact: vi.fn(),
   getScheduledTasks: async () => [],
   saveScheduledTask: vi.fn(),
@@ -183,6 +185,74 @@ describe("Client-first operation", () => {
     expect(screen.queryByRole("button", { name: /DEM-00001/ })).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Mostrar carteira de teste" }),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("Conclusão com confirmação do cliente", () => {
+  const locked = () => {
+    const data: any = ds();
+    data.demands[0].stage = "Aguardando validação";
+    data.demands[0].solution = "Corrigido o carregamento da proposta";
+    data.deliveries = [
+      {
+        id: "00000000-0000-4000-8000-000000000031",
+        demand_id: demand,
+        technical: false,
+        technical_stage: "Recebida",
+        approval_state: "aguardando",
+        version: 1,
+      },
+    ];
+    return data;
+  };
+  it("responsável conclui mesmo aguardando validação, informando como o cliente confirmou", async () => {
+    mocks.get.mockResolvedValue(locked());
+    mocks.confirm.mockResolvedValue({});
+    mount("demands");
+    fireEvent.click(await screen.findByRole("button", { name: /DEM-00001/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Concluir com confirmação do cliente" }));
+    const dialogs = screen.getAllByRole("dialog");
+    const confirm = dialogs[dialogs.length - 1]!;
+    expect(within(confirm).getByLabelText("Solução aplicada *")).toHaveValue(
+      "Corrigido o carregamento da proposta",
+    );
+    fireEvent.click(within(confirm).getByRole("button", { name: "Concluir demanda" }));
+    expect(
+      await within(confirm).findByText("Informe como o cliente confirmou que está funcionando."),
+    ).toBeVisible();
+    expect(mocks.confirm).not.toHaveBeenCalled();
+    fireEvent.change(within(confirm).getByLabelText("Como o cliente confirmou *"), {
+      target: { value: "Cliente confirmou no grupo em 27/10" },
+    });
+    fireEvent.click(within(confirm).getByRole("button", { name: "Concluir demanda" }));
+    await waitFor(() =>
+      expect(mocks.confirm).toHaveBeenCalledWith({
+        data: {
+          id: demand,
+          version: 1,
+          solution: "Corrigido o carregamento da proposta",
+          confirmation: "Cliente confirmou no grupo em 27/10",
+        },
+      }),
+    );
+    await waitFor(() => expect(mocks.reload).toHaveBeenCalled());
+  });
+  it("não aparece para quem não é responsável nem quando não há entrega pendente", async () => {
+    const other: any = locked();
+    other.demands[0].owner_id = "00000000-0000-4000-8000-000000000009";
+    mocks.get.mockResolvedValue(other);
+    const view = mount("demands");
+    fireEvent.click(await screen.findByRole("button", { name: /DEM-00001/ }));
+    expect(
+      screen.queryByRole("button", { name: "Concluir com confirmação do cliente" }),
+    ).not.toBeInTheDocument();
+    view.unmount();
+    mocks.get.mockResolvedValue(ds());
+    mount("demands");
+    fireEvent.click(await screen.findByRole("button", { name: /DEM-00001/ }));
+    expect(
+      screen.queryByRole("button", { name: "Concluir com confirmação do cliente" }),
     ).not.toBeInTheDocument();
   });
 });

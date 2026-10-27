@@ -105,6 +105,33 @@ export const transitionRecord = createServerFn({ method: "POST" })
     };
     return checkResult(await (context.supabase as any).rpc(names[data.kind], params));
   });
+/** Conclusão pelo responsável (ou administrador) quando o cliente confirmou que está funcionando,
+ * mesmo com entrega aguardando validação ou sem publicação registrada. Regras em complete_demand_confirmed. */
+export const completeDemandConfirmed = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        version: z.number().int().positive(),
+        solution: z.string().trim().min(2).max(10000),
+        confirmation: z.string().trim().min(5).max(2000),
+      })
+      .strict()
+      .parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    const { assertOperator, checkResult } = await import("./workspace/access.server");
+    await assertOperator(context);
+    return checkResult(
+      await (context.supabase as any).rpc("complete_demand_confirmed", {
+        _id: data.id,
+        _version: data.version,
+        _solution: data.solution,
+        _confirmation: data.confirmation,
+      }),
+    );
+  });
 export const markNotificationRead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
