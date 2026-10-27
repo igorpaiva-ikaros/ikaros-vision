@@ -18,6 +18,7 @@ import { CaseWorkspace } from "./CaseWorkspace";
 import { WhatsAppGroup } from "./WhatsAppGroup";
 import { RecordHistory } from "./RecordHistory";
 import { DemandOwnerActions, TransferQueue } from "./DemandTransfer";
+import { ConfirmedCompletion } from "./ConfirmedCompletion";
 import { KanbanBoard } from "./KanbanBoard";
 import { CardDeadlines } from "./CardDeadlines";
 import { cardDeadlines } from "@/lib/workspace/card-deadlines";
@@ -1753,6 +1754,21 @@ function RecordEditor({
 
                     {!general && eventButton("Cliente validou", "validate", !!current.validated_at)}
                     {eventButton("Concluir demanda", "complete")}
+                    {!general &&
+                      (profile?.role === "admin" || current.owner_id === profile?.id) &&
+                      (ds.deliveries ?? []).some(
+                        (r) => r.demand_id === current.id && r.approval_state !== "publicada",
+                      ) && (
+                        <ConfirmedCompletion
+                          row={current}
+                          solution={values["solution"] ?? current.solution ?? ""}
+                          disabled={busy || dirty}
+                          done={() => {
+                            reload();
+                            close();
+                          }}
+                        />
+                      )}
                   </>
                 )}
                 {kind === "onboardings" && (
