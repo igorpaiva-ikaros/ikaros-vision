@@ -65,13 +65,11 @@ export async function operationState(context: AuthContext): Promise<OperationSta
     context.supabase.from("profiles").select("id,full_name"),
     db.from("products").select("*").order("name"),
     allRows(context.supabase, "delivery_requests", "*"),
-    db
-      .from("demand_transfer_requests")
-      .select(
-        "id,demand_id,kind,status,from_owner_id,to_owner_id,requested_by,reason,decided_by,decided_at,decision_reason,demand_version,version,created_at",
-      )
-      .order("created_at", { ascending: false })
-      .limit(500),
+    allRows(
+      db,
+      "demand_transfer_requests",
+      "id,demand_id,kind,status,from_owner_id,to_owner_id,requested_by,reason,decided_by,decided_at,decision_reason,demand_version,version,created_at",
+    ),
     db.rpc("demand_transfer_targets"),
     db.rpc("can_manage_demand_transfers", { _uid: context.userId }),
   ]);
@@ -84,7 +82,7 @@ export async function operationState(context: AuthContext): Promise<OperationSta
     commissions,
     people: checkResult(people) ?? [],
     notifications,
-    transfers: checkResult(transfers) ?? [],
+    transfers,
     transferTargets: checkResult(targets) ?? [],
     canManageTransfers: checkResult(manager) === true,
     riskMinutes: Number(checkResult(settings)?.value ?? 60),
