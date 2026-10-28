@@ -217,6 +217,7 @@ export function ProjectForm({
             <legend className="px-1 text-sm font-medium">Quem vê e participa</legend>
             <ProjectField label="Quem vê o projeto">
               <select
+                aria-label="Quem vê o projeto"
                 className={projectSelectClass}
                 value={visibility}
                 onChange={(e) => setVisibility(e.target.value as ProjectVisibility)}

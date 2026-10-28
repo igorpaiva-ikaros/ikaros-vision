@@ -758,8 +758,8 @@ test("Equipe → Projetos: escolhe quem vê e os participantes", async ({ page }
     .check();
   await form.getByRole("button", { name: "Criar projeto", exact: true }).click();
   const detail = page.getByRole("dialog");
-  await expect(detail.getByLabel("Quem vê o projeto")).toContainText("Quem vê: Só participantes");
-  await expect(detail.getByLabel("Quem vê o projeto")).toContainText("CS Colega");
+  await expect(detail.getByText("Quem vê: Só participantes")).toBeVisible();
+  await expect(detail.getByText(/Participantes: .*CS Colega/)).toBeVisible();
   expect(await page.evaluate(() => (window as any).qaSavedProject)).toMatchObject({
     visibility: "participants",
     participants: ["00000000-0000-4000-8000-000000000002"],
@@ -775,9 +775,7 @@ test("Equipe → Projetos: escolhe quem vê e os participantes", async ({ page }
     .getByLabel("Quem vê o projeto", { exact: true })
     .selectOption({ label: "Toda a equipe" });
   await edit.getByRole("button", { name: "Salvar alterações", exact: true }).click();
-  await expect(page.getByLabel("Quem vê o projeto").first()).toContainText(
-    "Quem vê: Toda a equipe",
-  );
+  await expect(page.getByRole("dialog").getByText("Quem vê: Toda a equipe")).toBeVisible();
   expect(await page.evaluate(() => (window as any).qaSavedProject)).toMatchObject({
     visibility: "team",
     participants: ["00000000-0000-4000-8000-000000000002"],
