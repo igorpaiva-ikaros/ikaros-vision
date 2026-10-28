@@ -191,6 +191,21 @@ test("administrator can create accounts with profile photo", async ({ page }) =>
   await expect(page.getByText(/Conta criada/)).toBeVisible();
 });
 
+test("administrator resets a member password with confirmation", async ({ page }) => {
+  await page.goto("/administracao");
+  await page.getByRole("button", { name: "Redefinir senha de CS Exemplo", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Redefinir senha de CS Exemplo" });
+  await expect(dialog.getByText(/example@example\.test/)).toBeVisible();
+  await dialog.getByLabel("Nova senha", { exact: true }).fill("fixture-pass-456");
+  await dialog.getByLabel("Confirme a nova senha", { exact: true }).fill("fixture-pass-789");
+  await dialog.getByRole("button", { name: "Redefinir senha", exact: true }).click();
+  await expect(dialog.getByRole("alert")).toHaveText("As duas senhas não são iguais.");
+  await dialog.getByLabel("Confirme a nova senha", { exact: true }).fill("fixture-pass-456");
+  await dialog.getByRole("button", { name: "Redefinir senha", exact: true }).click();
+  await expect(page.getByText(/Senha de CS Exemplo redefinida/)).toBeVisible();
+  await expect(dialog).toHaveCount(0);
+});
+
 test("CS menu includes Concierge and calendar slots create and complete tasks", async ({
   page,
 }) => {
