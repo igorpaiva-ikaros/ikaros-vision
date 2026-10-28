@@ -139,7 +139,7 @@ describe("Entrada interna", () => {
     expect(screen.queryByRole("link", { name: "Administração" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Visão geral" })).not.toBeInTheDocument();
   });
-  it("CS abre Projetos da equipe; equipe técnica não", () => {
+  it("CS e equipe técnica abrem Projetos da equipe", () => {
     mocks.path = "/projetos";
     mocks.bi["session"] = { user: { id: "cs" } };
     mocks.bi["profile"] = { role: "cs", full_name: "Colaborador" };
@@ -154,10 +154,29 @@ describe("Entrada interna", () => {
     mocks.bi["profile"] = { role: "technical", full_name: "Técnico" };
     render(
       <AppShell>
-        <div>Quadro técnico proibido</div>
+        <div>Quadro de projetos do técnico</div>
       </AppShell>,
     );
-    expect(screen.queryByText("Quadro técnico proibido")).not.toBeInTheDocument();
-    expect(mocks.nav).toHaveBeenCalledWith({ to: "/tecnico", replace: true });
+    expect(screen.getByText("Quadro de projetos do técnico")).toBeVisible();
+    expect(screen.getAllByRole("link", { name: "Projetos" })).not.toHaveLength(0);
+    expect(screen.getAllByRole("link", { name: "Equipe técnica" })).not.toHaveLength(0);
+    expect(mocks.nav).not.toHaveBeenCalled();
+  });
+  it("equipe técnica continua fora do CRM, da carteira e da administração", () => {
+    mocks.bi["session"] = { user: { id: "tech" } };
+    mocks.bi["profile"] = { role: "technical", full_name: "Técnico" };
+    mocks.bi["state"] = { status: "operator" };
+    for (const path of ["/operacao", "/administracao", "/"]) {
+      mocks.path = path;
+      const view = render(
+        <AppShell>
+          <div>Área proibida</div>
+        </AppShell>,
+      );
+      expect(screen.queryByText("Área proibida")).not.toBeInTheDocument();
+      expect(mocks.nav).toHaveBeenLastCalledWith({ to: "/tecnico", replace: true });
+      expect(screen.queryByRole("link", { name: "Carteira" })).not.toBeInTheDocument();
+      view.unmount();
+    }
   });
 });
