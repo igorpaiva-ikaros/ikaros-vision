@@ -3,6 +3,7 @@ import { AccessSettings } from "./AccessSettings";
 import { Link } from "@tanstack/react-router";
 import { Configuration } from "./Configuration";
 import { AvatarPicker } from "./AvatarPicker";
+import { ResetMemberPassword } from "./ResetMemberPassword";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -236,6 +237,7 @@ export function Admin() {
                     key={`${m.id}-${m.role}-${m.active}-${m.commission_eligible}-${JSON.stringify(m.access)}`}
                     member={m}
                   />
+                  <ResetMemberPassword member={m} />
                   {m.role === "cs" && <AccessSettings member={m} />}
                 </div>
               ))}
