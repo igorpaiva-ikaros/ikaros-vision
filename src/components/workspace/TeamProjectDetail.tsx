@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Circle,
   Download,
+  Lock,
   Mic,
   Paperclip,
   Pencil,
@@ -37,15 +38,19 @@ import {
   initials,
   isClosedProject,
   memberName,
+  participantsOf,
   progress,
+  projectPeople,
   projectSignal,
   saoPauloToday,
   statusLabel,
+  visibilityLabel,
   type ProjectStatus,
   type TeamMember,
   type TeamProject,
   type TeamProjectActivity,
   type TeamProjectFile,
+  type TeamProjectParticipant,
   type TeamProjectStep,
 } from "@/lib/workspace/team-projects";
 import { Button } from "@/components/ui/button";
@@ -83,6 +88,7 @@ export function TeamProjectDetail({
   project,
   steps,
   allSteps,
+  participants,
   members,
   today,
   close,
@@ -92,6 +98,7 @@ export function TeamProjectDetail({
   project: TeamProject;
   steps: TeamProjectStep[];
   allSteps: TeamProjectStep[];
+  participants: TeamProjectParticipant[];
   members: TeamMember[];
   today: string;
   close: () => void;
@@ -121,6 +128,17 @@ export function TeamProjectDetail({
             {memberName(members, project.created_by)}
           </DialogDescription>
         </DialogHeader>
+        <p aria-label="Quem vê o projeto" className="flex flex-wrap items-center gap-1 text-xs">
+          {project.visibility === "participants" && <Lock className="h-3.5 w-3.5" />}
+          <span className="font-medium">Quem vê: {visibilityLabel(project.visibility)}</span>
+          <span className="text-muted-foreground">
+            · Participantes:{" "}
+            {projectPeople(project, allSteps, participants)
+              .map((id) => memberName(members, id))
+              .join(", ")}
+            {project.visibility === "participants" && " · administradores também veem"}
+          </span>
+        </p>
         <div className="flex flex-wrap items-center gap-2">
           <SignalPill signal={signal} />
           <span className="text-xs text-muted-foreground">
@@ -178,6 +196,7 @@ export function TeamProjectDetail({
             members={members}
             defaultOwner={project.owner_id}
             project={project}
+            participants={participantsOf(participants, project.id)}
             close={() => setEditing(false)}
             saved={() => {
               setEditing(false);

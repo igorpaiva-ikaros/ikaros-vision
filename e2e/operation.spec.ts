@@ -741,3 +741,45 @@ test("Equipe → Projetos: cria com etapas, conclui etapa e conversa na linha do
   await expect(column).toContainText("1/2 etapas");
   await expect(column).toContainText("Agora: Implementar envio · CS Colega");
 });
+
+test("Equipe → Projetos: escolhe quem vê e os participantes", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto("/projetos");
+  await page.getByRole("button", { name: "Novo projeto" }).click();
+  const form = page.getByRole("dialog");
+  await form.getByLabel("Título *", { exact: true }).fill("Pauta restrita do time técnico");
+  await form
+    .getByLabel("Quem vê o projeto", { exact: true })
+    .selectOption({ label: "Só participantes" });
+  await expect(form.getByText(/Administradores sempre veem/)).toBeVisible();
+  await form
+    .getByRole("group", { name: "Participantes do projeto" })
+    .getByLabel("CS Colega", { exact: true })
+    .check();
+  await form.getByRole("button", { name: "Criar projeto", exact: true }).click();
+  const detail = page.getByRole("dialog");
+  await expect(detail.getByLabel("Quem vê o projeto")).toContainText("Quem vê: Só participantes");
+  await expect(detail.getByLabel("Quem vê o projeto")).toContainText("CS Colega");
+  expect(await page.evaluate(() => (window as any).qaSavedProject)).toMatchObject({
+    visibility: "participants",
+    participants: ["00000000-0000-4000-8000-000000000002"],
+  });
+  await detail.getByRole("button", { name: "Editar dados" }).click();
+  const edit = page.getByRole("dialog").filter({ hasText: "Editar PRJ-" });
+  await expect(
+    edit
+      .getByRole("group", { name: "Participantes do projeto" })
+      .getByLabel("CS Colega", { exact: true }),
+  ).toBeChecked();
+  await edit
+    .getByLabel("Quem vê o projeto", { exact: true })
+    .selectOption({ label: "Toda a equipe" });
+  await edit.getByRole("button", { name: "Salvar alterações", exact: true }).click();
+  await expect(page.getByLabel("Quem vê o projeto").first()).toContainText(
+    "Quem vê: Toda a equipe",
+  );
+  expect(await page.evaluate(() => (window as any).qaSavedProject)).toMatchObject({
+    visibility: "team",
+    participants: ["00000000-0000-4000-8000-000000000002"],
+  });
+});

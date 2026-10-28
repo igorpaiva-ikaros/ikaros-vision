@@ -73,11 +73,13 @@ const state = (): TeamProjectsState => ({
       completed_at: null,
       canceled_at: null,
       cancel_reason: null,
+      visibility: "team",
       version: 4,
       created_at: "2026-10-01T12:00:00Z",
       updated_at: "2026-10-02T12:00:00Z",
     },
   ],
+  participants: [],
   steps: [
     {
       id: "00000000-0000-4000-8000-000000000201",
@@ -208,6 +210,68 @@ describe("Equipe → Projetos", () => {
       to: "/projetos",
       search: { id: "00000000-0000-4000-8000-000000000199" },
     });
+  });
+
+  it("cria projeto visível só para participantes, com participante escolhido", async () => {
+    mount();
+    fireEvent.click(await screen.findByRole("button", { name: /Novo projeto/ }));
+    const dialog = screen.getByRole("dialog");
+    fireEvent.change(within(dialog).getByLabelText("Título *"), {
+      target: { value: "Pauta restrita" },
+    });
+    fireEvent.change(within(dialog).getByLabelText("Quem vê o projeto"), {
+      target: { value: "participants" },
+    });
+    expect(within(dialog).getByText(/Administradores sempre veem/)).toBeVisible();
+    const group = within(dialog).getByRole("group", { name: "Participantes do projeto" });
+    fireEvent.click(within(group).getByLabelText("Eduardo CS"));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Criar projeto" }));
+    await waitFor(() =>
+      expect(mocks.save).toHaveBeenCalledWith({
+        data: {
+          id: null,
+          version: 0,
+          values: expect.objectContaining({
+            title: "Pauta restrita",
+            visibility: "participants",
+            participants: [helper],
+          }),
+        },
+      }),
+    );
+  });
+
+  it("detalhe mostra quem vê e os participantes; edição envia visibilidade e participantes", async () => {
+    mocks.get.mockResolvedValue({
+      ...state(),
+      projects: [{ ...state().projects[0]!, visibility: "participants" }],
+      participants: [{ project_id: project, user_id: helper }],
+      steps: [],
+    });
+    mount(project);
+    const dialog = await screen.findByRole("dialog");
+    const who = within(dialog).getByLabelText("Quem vê o projeto");
+    expect(who).toHaveTextContent("Quem vê: Só participantes");
+    expect(who).toHaveTextContent("Participantes: Igor CS, Eduardo CS");
+    expect(who).toHaveTextContent("administradores também veem");
+    fireEvent.click(within(dialog).getByRole("button", { name: /Editar dados/ }));
+    const edit = screen.getByRole("dialog", { name: "Editar PRJ-00001" });
+    const group = within(edit).getByRole("group", { name: "Participantes do projeto" });
+    expect(within(group).getByLabelText("Eduardo CS")).toBeChecked();
+    fireEvent.click(within(group).getByLabelText("Eduardo CS"));
+    fireEvent.change(within(edit).getByLabelText("Quem vê o projeto"), {
+      target: { value: "team" },
+    });
+    fireEvent.click(within(edit).getByRole("button", { name: "Salvar alterações" }));
+    await waitFor(() =>
+      expect(mocks.save).toHaveBeenCalledWith({
+        data: {
+          id: project,
+          version: 4,
+          values: expect.objectContaining({ visibility: "team", participants: [] }),
+        },
+      }),
+    );
   });
 
   it("não envia projeto sem título", async () => {

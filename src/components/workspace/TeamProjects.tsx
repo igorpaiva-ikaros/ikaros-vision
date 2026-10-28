@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { FolderKanban, GripVertical, Plus } from "lucide-react";
+import { FolderKanban, GripVertical, Lock, Plus } from "lucide-react";
 import { useBi } from "@/lib/bi-context";
 import { getTeamProjects, moveTeamProject } from "@/lib/team-projects.functions";
 import {
@@ -14,6 +14,7 @@ import {
   formatDay,
   memberName,
   progress,
+  projectPeople,
   projectSignal,
   saoPauloToday,
   stepsOf,
@@ -68,6 +69,7 @@ export function TeamProjects({ selected }: { selected?: string | undefined }) {
   const data = q.data;
   const projects = data?.projects ?? [];
   const steps = data?.steps ?? [];
+  const participants = data?.participants ?? [];
   const members = data?.members ?? [];
   const visible = useMemo(() => {
     const term = search.trim().toLocaleLowerCase("pt-BR");
@@ -79,13 +81,9 @@ export function TeamProjects({ selected }: { selected?: string | undefined }) {
         return false;
       if (person === "all") return true;
       const who = person === "mine" ? (profile?.id ?? "") : person;
-      return (
-        p.owner_id === who ||
-        p.created_by === who ||
-        steps.some((s) => s.project_id === p.id && s.assignee_id === who)
-      );
+      return projectPeople(p, steps, participants).includes(who);
     });
-  }, [projects, steps, search, person, profile?.id]);
+  }, [projects, steps, participants, search, person, profile?.id]);
   const attention = attentionList(visible, steps, today);
   const columns = PROJECT_STATUSES.filter((s) => showCanceled || s.key !== "cancelado");
   const open = projects.find((p) => p.id === selected) ?? null;
@@ -305,6 +303,7 @@ export function TeamProjects({ selected }: { selected?: string | undefined }) {
           project={open}
           steps={stepsOf(steps, open.id)}
           allSteps={steps}
+          participants={participants}
           members={members}
           today={today}
           close={() => select(null)}
@@ -373,7 +372,10 @@ function ProjectCard({
       className={`space-y-2 rounded-xl border border-l-4 bg-card p-3 shadow-sm transition-shadow hover:shadow-md ${dragged ? "opacity-40" : ""} ${signal.tone === "bad" ? "border-l-destructive" : signal.tone === "warn" ? "border-l-warning" : "border-l-primary/60"} ${movable ? "cursor-grab active:cursor-grabbing" : ""}`}
     >
       <div className="flex items-start justify-between gap-2">
-        <span className="font-mono text-xs text-muted-foreground">
+        <span className="flex items-center gap-1 font-mono text-xs text-muted-foreground">
+          {project.visibility === "participants" && (
+            <Lock aria-label="Só participantes veem" className="h-3 w-3" />
+          )}
           {project.code} · {project.priority}
         </span>
         {movable && (

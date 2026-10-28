@@ -5,8 +5,10 @@ import { Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import { saveTeamProject } from "@/lib/team-projects.functions";
 import {
   PROJECT_PRIORITIES,
+  PROJECT_VISIBILITIES,
   type DeadlineSignal,
   type ProjectPriority,
+  type ProjectVisibility,
   type TeamMember,
   type TeamProject,
 } from "@/lib/workspace/team-projects";
@@ -60,17 +62,20 @@ const emptyStep = (): StepDraft => ({
   due_date: "",
 });
 
-/** Criação (com etapas) ou edição dos dados do projeto. */
+/** Criação (com etapas) ou edição dos dados do projeto, inclusive quem vê e os participantes. */
 export function ProjectForm({
   members,
   defaultOwner,
   project,
+  participants = [],
   close,
   saved,
 }: {
   members: TeamMember[];
   defaultOwner: string;
   project?: TeamProject;
+  /** Participantes já adicionados ao projeto em edição. */
+  participants?: string[];
   close: () => void;
   saved: (project: TeamProject) => void;
 }) {
@@ -82,6 +87,10 @@ export function ProjectForm({
   const [start, setStart] = useState(project?.start_date ?? "");
   const [due, setDue] = useState(project?.due_date ?? "");
   const [steps, setSteps] = useState<StepDraft[]>(project ? [] : [emptyStep()]);
+  const [visibility, setVisibility] = useState<ProjectVisibility>(project?.visibility ?? "team");
+  const [chosen, setChosen] = useState<string[]>(participants);
+  const toggle = (id: string, on: boolean) =>
+    setChosen((list) => (on ? [...new Set([...list, id])] : list.filter((x) => x !== id)));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const update = (key: string, patch: Partial<StepDraft>) =>
@@ -114,6 +123,8 @@ export function ProjectForm({
         owner_id: owner,
         start_date: start || null,
         due_date: due || null,
+        visibility,
+        participants: chosen.filter((id) => members.some((m) => m.id === id)),
         ...(project
           ? {}
           : {
@@ -142,7 +153,7 @@ export function ProjectForm({
           <DialogTitle>{project ? `Editar ${project.code}` : "Novo projeto"}</DialogTitle>
           <DialogDescription>
             {project
-              ? "Ajuste título, contexto, responsável, prioridade e prazos. Etapas são editadas no projeto."
+              ? "Ajuste título, contexto, responsável, prioridade, prazos, quem vê e os participantes. Etapas são editadas no projeto."
               : "Descreva a pauta, defina quem conduz, o prazo de entrega e desenhe as etapas que o time vai percorrer."}
           </DialogDescription>
         </DialogHeader>
@@ -202,6 +213,44 @@ export function ProjectForm({
               <Input type="date" value={due} onChange={(e) => setDue(e.target.value)} />
             </ProjectField>
           </div>
+          <fieldset className="space-y-2 rounded-lg border p-3">
+            <legend className="px-1 text-sm font-medium">Quem vê e participa</legend>
+            <ProjectField label="Quem vê o projeto">
+              <select
+                className={projectSelectClass}
+                value={visibility}
+                onChange={(e) => setVisibility(e.target.value as ProjectVisibility)}
+              >
+                {PROJECT_VISIBILITIES.map((v) => (
+                  <option key={v.key} value={v.key}>
+                    {v.label}
+                  </option>
+                ))}
+              </select>
+            </ProjectField>
+            <p className="text-xs text-muted-foreground">
+              {PROJECT_VISIBILITIES.find((v) => v.key === visibility)?.guide}
+            </p>
+            <div role="group" aria-label="Participantes do projeto" className="space-y-1">
+              <p className="text-sm font-medium">Participantes</p>
+              <p className="text-xs text-muted-foreground">
+                Quem criou, o responsável e os responsáveis por etapa já participam. Participantes
+                recebem os avisos do projeto.
+              </p>
+              <div className="grid gap-1 sm:grid-cols-2">
+                {members.map((m) => (
+                  <label key={m.id} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={chosen.includes(m.id)}
+                      onChange={(e) => toggle(m.id, e.target.checked)}
+                    />
+                    {m.full_name}
+                  </label>
+                ))}
+              </div>
+            </div>
+          </fieldset>
           {!project && (
             <fieldset className="space-y-2 rounded-lg border p-3">
               <legend className="px-1 text-sm font-medium">Etapas do projeto</legend>
