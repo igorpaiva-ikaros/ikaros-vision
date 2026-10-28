@@ -382,9 +382,12 @@ test("CS encaminha a mesma demanda, anexa evidência e comunica sem concluir", a
   await expect(page.getByText("Proposta de consórcio não carrega", { exact: true })).toBeVisible();
 });
 
-test("interface técnica oferece apenas fila encaminhada e notificações", async ({ page }) => {
+test("interface técnica oferece fila encaminhada, projetos e notificações", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/tecnico");
   await expect(page.getByRole("heading", { name: "Equipe técnica", exact: true })).toBeVisible();
+  const menu = page.locator("aside").first().getByRole("navigation");
+  await expect(menu.getByRole("link")).toHaveText(["Equipe técnica", "Projetos", "Notificações"]);
   await expect(page.getByRole("link", { name: "Carteira", exact: true })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Administração", exact: true })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "CRM", exact: true })).toHaveCount(0);

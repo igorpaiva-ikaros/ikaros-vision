@@ -59,8 +59,8 @@ export const getTeamProjectDetail = createServerFn({ method: "POST" })
   });
 
 async function rpc<T>(context: { supabase: any; userId: string }, fn: string, args: object) {
-  const { assertOperator, checkResult } = await import("./workspace/access.server");
-  await assertOperator(context);
+  const { assertWorkspace, checkResult } = await import("./workspace/access.server");
+  await assertWorkspace(context);
   return checkResult(await context.supabase.rpc(fn, args)) as T;
 }
 

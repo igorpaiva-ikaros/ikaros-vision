@@ -161,7 +161,7 @@ export function Admin() {
                     <option value="cs">CS · carteira e produção</option>
                     <option value="admin">Administrador · gestão e contas</option>
                     <option value="technical">
-                      Equipe técnica · somente demandas encaminhadas
+                      Equipe técnica · demandas encaminhadas e projetos
                     </option>
                   </select>
                 </Field>

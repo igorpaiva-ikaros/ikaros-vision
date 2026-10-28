@@ -75,6 +75,9 @@ beforeAll(async () => {
   await db.exec(await readFile(TRANSFER_SLA_MIGRATION, "utf8"));
   await db.exec(await readFile("supabase/migrations/20261027120000_team_projects.sql", "utf8"));
   await db.exec(
+    await readFile("supabase/migrations/20261028140000_team_projects_technical.sql", "utf8"),
+  );
+  await db.exec(
     `insert into profiles(id,full_name,email,active) values
       ('${creator}','Criadora','c@example.test',true),('${helper}','Apoio','h@example.test',true),
       ('${outsider}','Outra CS','o@example.test',true),('${inactive}','CS inativa','i@example.test',false),
@@ -87,32 +90,32 @@ afterAll(async () => {
 });
 
 describe("Projetos da equipe — acesso", () => {
-  it("só administrador e CS ativos leem e criam; técnico, inativo e anônimo ficam de fora", async () => {
+  it("administrador, CS e equipe técnica ativos leem e criam; inativo e anônimo ficam de fora", async () => {
     const p = await create(creator, { title: "Acesso ao quadro", owner_id: creator });
     expect(p.code).toMatch(/^PRJ-\d{5}$/);
     expect(
       await one(outsider, `select count(*)::int n from team_projects where id='${p.id}'`),
     ).toEqual({ n: 1 });
-    expect(await one(tech, `select count(*)::int n from team_projects`)).toEqual({ n: 0 });
+    expect(await one(tech, `select count(*)::int n from team_projects where id='${p.id}'`)).toEqual(
+      { n: 1 },
+    );
     expect(await one(inactive, `select count(*)::int n from team_projects`)).toEqual({ n: 0 });
     await fails(null, `select count(*) from team_projects`, /permission denied/);
-    await fails(
-      tech,
-      `select * from save_team_project(null,0,'{"title":"Técnico cria"}')`,
-      /forbidden/,
-    );
+    const own = await create(tech, { title: "Técnico cria" });
+    expect({ owner: own.owner_id, by: own.created_by }).toEqual({ owner: tech, by: tech });
     await fails(
       inactive,
       `select * from save_team_project(null,0,'{"title":"Inativa cria"}')`,
       /forbidden/,
     );
-    expect(await one(tech, `select team_project_members() m`)).toEqual({ m: [] });
-    const members = (await one(outsider, `select team_project_members() m`)).m as { id: string }[];
-    expect(members.map((m) => m.id)).toEqual(
-      expect.arrayContaining([creator, helper, outsider, admin]),
-    );
-    expect(members.map((m) => m.id)).not.toContain(tech);
-    expect(members.map((m) => m.id)).not.toContain(inactive);
+    expect(await one(inactive, `select team_project_members() m`)).toEqual({ m: [] });
+    for (const who of [outsider, tech]) {
+      const members = (await one(who, `select team_project_members() m`)).m as { id: string }[];
+      expect(members.map((m) => m.id)).toEqual(
+        expect.arrayContaining([creator, helper, outsider, admin, tech]),
+      );
+      expect(members.map((m) => m.id)).not.toContain(inactive);
+    }
   });
   it("não aceita gravação direta nas tabelas", async () => {
     await fails(
@@ -127,12 +130,21 @@ describe("Projetos da equipe — acesso", () => {
       /permission denied/,
     );
   });
-  it("responsável precisa ser pessoa ativa da equipe", async () => {
+  it("responsável precisa ser pessoa ativa da equipe (CS, administrador ou equipe técnica)", async () => {
     await fails(
       creator,
-      `select * from save_team_project(null,0,'{"title":"Dono técnico","owner_id":"${tech}"}')`,
+      `select * from save_team_project(null,0,'{"title":"Dono inativo","owner_id":"${inactive}"}')`,
       /project_member_required/,
     );
+    expect(
+      (
+        await create(creator, {
+          title: "Dono técnico",
+          owner_id: tech,
+          steps: [{ title: "Etapa", assignee_id: tech }],
+        })
+      ).owner_id,
+    ).toBe(tech);
     await fails(
       creator,
       `select * from save_team_project(null,0,'{"title":"Etapa inativa","owner_id":"${creator}","steps":[{"title":"Etapa","assignee_id":"${inactive}"}]}')`,
@@ -409,9 +421,97 @@ describe("Projetos da equipe — etapas, situação e linha do tempo", () => {
         `select kind,body,file_id is not null anexo from team_project_activity where project_id='${p.id}' and kind='file'`,
       ),
     ).toEqual({ kind: "file", body: "Tela de exemplo", anexo: true });
-    expect(await one(tech, `select count(*)::int n from team_project_files`)).toEqual({ n: 0 });
+    expect(
+      await one(tech, `select count(*)::int n from team_project_files where project_id='${p.id}'`),
+    ).toEqual({ n: 1 });
+    expect(await one(inactive, `select count(*)::int n from team_project_files`)).toEqual({ n: 0 });
     expect(await as(creator, `select title from notifications where entity_id='${p.id}'`)).toEqual([
       { title: `Novo anexo · ${p.code} · Anexos privados` },
     ]);
+  });
+});
+
+describe("Projetos da equipe — equipe técnica", () => {
+  it("técnico responsável pela etapa conclui a etapa e recebe e lê os avisos do projeto", async () => {
+    const p = await create(creator, {
+      title: "Integração com o ERP",
+      owner_id: creator,
+      steps: [{ title: "Endpoint", assignee_id: tech }, { title: "Revisão" }],
+    });
+    expect(
+      await as(tech, `select title,link from notifications where entity_id='${p.id}'`),
+    ).toEqual([
+      {
+        title: `Novo projeto com você · ${p.code} · Integração com o ERP`,
+        link: `/projetos?id=${p.id}`,
+      },
+    ]);
+    await fails(
+      tech,
+      `select * from save_team_project('${p.id}',${await version(p.id)},'{"title":"Outro nome"}')`,
+      /forbidden/,
+    );
+    const step = (
+      await db.query<any>(
+        `select id from team_project_steps where project_id='${p.id}' and title='Endpoint'`,
+      )
+    ).rows[0].id;
+    await as(
+      tech,
+      `select * from set_team_project_step_done('${p.id}',${await version(p.id)},'${step}',true)`,
+    );
+    expect(
+      await one(
+        tech,
+        `select status from move_team_project('${p.id}',${await version(p.id)},'em_andamento')`,
+      ),
+    ).toEqual({ status: "em_andamento" });
+    await as(
+      tech,
+      `select * from post_team_project_message('${p.id}','Endpoint publicado em homologação')`,
+    );
+    expect(
+      await as(
+        tech,
+        `select kind,actor_name,body from team_project_activity where project_id='${p.id}' and kind='message'`,
+      ),
+    ).toEqual([
+      { kind: "message", actor_name: "Técnico", body: "Endpoint publicado em homologação" },
+    ]);
+    expect(
+      await one(creator, `select count(*)::int n from notifications where entity_id='${p.id}'`),
+    ).toEqual({ n: 3 });
+  });
+
+  it("técnico anexa arquivo do próprio envio; conta técnica inativa perde o acesso", async () => {
+    const p = await create(tech, { title: "Anexo técnico", owner_id: tech });
+    const path = `${p.id}/t1/log.txt`;
+    await as(
+      tech,
+      `insert into storage.objects(bucket_id,name,owner_id,metadata) values('team-projects','${path}','${tech}','{"size":10,"mimetype":"text/plain"}')`,
+    );
+    expect(
+      await one(
+        tech,
+        `select filename from register_team_project_file('${p.id}','${path}','log.txt','text/plain',10)`,
+      ),
+    ).toEqual({ filename: "log.txt" });
+    expect(
+      await one(tech, `select count(*)::int n from storage.objects where name='${path}'`),
+    ).toEqual({ n: 1 });
+    await db.exec(`update profiles set active=false where id='${tech}'`);
+    try {
+      expect(await one(tech, `select count(*)::int n from team_projects`)).toEqual({ n: 0 });
+      expect(
+        await one(tech, `select count(*)::int n from storage.objects where name='${path}'`),
+      ).toEqual({ n: 0 });
+      await fails(
+        tech,
+        `select * from save_team_project(null,0,'{"title":"Inativo cria"}')`,
+        /forbidden/,
+      );
+    } finally {
+      await db.exec(`update profiles set active=true where id='${tech}'`);
+    }
   });
 });

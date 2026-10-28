@@ -110,7 +110,7 @@ A barra horizontal e as setas ficam no topo do quadro e acompanham a rolagem ver
 
 ## Equipe → Projetos (27/10/2026)
 
-Área interna do time (administradores e CS ativos) para pautas, implementações e ideias, em `/projetos`. A equipe técnica não acessa.
+Área interna do time (administradores, CS e equipe técnica ativos) para pautas, implementações e ideias, em `/projetos`. Desde 28/10/2026 a equipe técnica também acessa: lê, cria, comenta, anexa, pode ser responsável por projeto ou etapa e recebe os avisos de projeto; demandas, carteira, BI e administração continuam fora do alcance dela. Quem participa é decidido num lugar só, `team_project_member(uid)` (migration `20261028140000_team_projects_technical.sql`).
 
 - **Projeto:** título, contexto, responsável, prioridade, início e prazo de entrega. Código `PRJ-00001`. Situações do quadro: Ideias, Planejado, Em andamento, Em revisão, Concluído e Cancelado (oculto por padrão).
 - **Etapas:** desenhadas por quem cria o projeto, na ordem do pipeline; cada uma pode ter responsável e prazo próprios. A etapa atual é a primeira ainda não concluída.

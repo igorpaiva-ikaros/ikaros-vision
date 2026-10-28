@@ -1,5 +1,5 @@
 import type { AuthContext } from "./access.server";
-import { assertOperator, checkResult } from "./access.server";
+import { assertWorkspace, checkResult } from "./access.server";
 import {
   ACTIVITY_COLUMNS,
   FILE_COLUMNS,
@@ -28,7 +28,7 @@ async function pages<T>(
 }
 
 export async function teamProjectsState(context: AuthContext): Promise<TeamProjectsState> {
-  await assertOperator(context);
+  await assertWorkspace(context);
   const db = context.supabase;
   const [projects, steps, members] = await Promise.all([
     pages<TeamProject>((from, to) =>
@@ -50,7 +50,7 @@ export async function teamProjectDetail(
   context: AuthContext,
   project: string,
 ): Promise<TeamProjectDetail> {
-  await assertOperator(context);
+  await assertWorkspace(context);
   const db = context.supabase;
   const [activity, files] = await Promise.all([
     pages<TeamProjectActivity>((from, to) =>

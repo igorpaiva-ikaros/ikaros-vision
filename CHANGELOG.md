@@ -1,3 +1,10 @@
+## 2026-10-28 — Projetos para a equipe técnica
+
+- A equipe técnica passa a ver Projetos no menu, ao lado da fila encaminhada e das notificações: lê todos os projetos, cria, comenta, anexa, pode ser responsável por projeto ou etapa e recebe os avisos de projeto.
+- Regras de gerência inalteradas: administrador, quem criou ou o responsável gerenciam; responsável pela etapa conclui a própria etapa e move o projeto só entre situações abertas. Contas inativas continuam fora.
+- Demandas, carteira, CRM, BI e administração seguem fechados para a equipe técnica.
+- Migration `20261028140000_team_projects_technical.sql`: helper único `team_project_member` usado em políticas, funções, anexos e avisos de projeto; nenhuma linha de dado alterada.
+
 ## 2026-10-27 — Equipe → Projetos
 
 - Nova área Equipe → Projetos para administradores e CS: quadro por situação (Ideias, Planejado, Em andamento, Em revisão, Concluído; Cancelado sob demanda), busca, filtro por pessoa e faixa "Pedem atenção".

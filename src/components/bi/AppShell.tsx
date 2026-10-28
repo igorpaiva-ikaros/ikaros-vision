@@ -50,6 +50,7 @@ const ADMIN_NAV = [
 ];
 const TECH_NAV = [
   { href: "/tecnico", label: "Equipe técnica", icon: PanelsTopLeft },
+  { href: "/projetos", label: "Projetos", icon: FolderKanban },
   { href: "/notificacoes", label: "Notificações", icon: Bell },
 ];
 const CS_NAV = [
@@ -83,7 +84,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const isCs = profile?.role === "cs";
   const isTech = profile?.role === "technical";
   const permitted = isTech
-    ? ["/tecnico", "/notificacoes"].includes(path)
+    ? ["/tecnico", "/projetos", "/notificacoes"].includes(path)
     : !isCs ||
       ["/operacao", "/notificacoes", "/ajuda", "/tecnico", "/projetos"].includes(path) ||
       (leadership && path === "/administracao");

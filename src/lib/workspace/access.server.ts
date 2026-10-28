@@ -86,7 +86,7 @@ export function safeDbMessage(message: string) {
     return "A carteira é compartilhada. Assuma a demanda para atendê-la.";
   if (/invalid_file/.test(message)) return "Não foi possível confirmar o arquivo enviado.";
   if (/project_member_required/.test(message))
-    return "Escolha uma pessoa ativa da equipe (CS ou administrador).";
+    return "Escolha uma pessoa ativa da equipe (CS, administrador ou equipe técnica).";
   if (/project_closed/.test(message))
     return "Projeto encerrado. Reabra o projeto para alterar dados ou etapas.";
   if (/invalid_project_data/.test(message)) return "Confira os dados do projeto e tente novamente.";
