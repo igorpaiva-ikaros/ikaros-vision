@@ -279,6 +279,9 @@ export async function createMember() {
 export async function updateMember() {
   return { ok: true };
 }
+export async function resetMemberPassword() {
+  return { ok: true, audited: true };
+}
 export async function assignClient() {
   return { ok: true };
 }

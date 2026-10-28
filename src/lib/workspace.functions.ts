@@ -8,6 +8,7 @@ import {
   transitionInput,
   createUserInput,
   memberInput,
+  memberPasswordInput,
   scheduledTaskInput,
 } from "./workspace/validation";
 import { clientRegistrationSchema } from "./domain/client-registration";
@@ -268,6 +269,42 @@ export const updateMember = createServerFn({ method: "POST" })
       ),
     );
     return { ok: true };
+  });
+/**
+ * Administrador define nova senha para um usuário cadastrado (CS, administrador ou equipe técnica).
+ * A senha vai direto ao Supabase Auth e não é gravada nem registrada; o histórico guarda só quem
+ * redefiniu e quando. O e-mail da conta fica confirmado, como na criação pelo administrador.
+ */
+export const resetMemberPassword = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => memberPasswordInput.parse(d))
+  .handler(async ({ context, data }) => {
+    const { assertAdmin, checkResult } = await import("./workspace/access.server");
+    await assertAdmin(context);
+    const target = checkResult(
+      await (context.supabase as any).from("profiles").select("id").eq("id", data.id).maybeSingle(),
+    );
+    if (!target) throw new Error("Usuário não encontrado. Recarregue a página.");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const db = supabaseAdmin as any;
+    const { error } = await db.auth.admin.updateUserById(data.id, {
+      password: data.password,
+      email_confirm: true,
+    });
+    if (error)
+      throw new Error(
+        error.code === "weak_password"
+          ? "Senha recusada pelo servidor por ser fraca ou já ter aparecido em vazamentos. Escolha outra."
+          : "Não foi possível redefinir a senha. Tente novamente.",
+      );
+    const audit = await db.from("workflow_history").insert({
+      entity_type: "member",
+      entity_id: data.id,
+      action: "password_reset",
+      actor_id: context.userId,
+      details: {},
+    });
+    return { ok: true, audited: !audit.error };
   });
 export const assignClient = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

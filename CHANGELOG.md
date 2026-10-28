@@ -5,6 +5,12 @@
 - Demandas, carteira, CRM, BI e administração seguem fechados para a equipe técnica.
 - Migration `20261028140000_team_projects_technical.sql`: helper único `team_project_member` usado em políticas, funções, anexos e avisos de projeto; nenhuma linha de dado alterada.
 
+## 2026-10-28 — Redefinir senha pelo administrador
+
+- Administração → Equipe: botão Redefinir senha em cada usuário (CS, administrador ou equipe técnica), com confirmação da nova senha e aviso quando a conta está inativa.
+- A senha vai direto ao Supabase Auth depois de validar o administrador; não é gravada nem registrada. O histórico guarda quem redefiniu e quando. Senha recusada pelo servidor (fraca ou vazada) mostra o motivo.
+- Sem migration; nenhuma conta, papel ou permissão alterada pela publicação.
+
 ## 2026-10-27 — Equipe → Projetos
 
 - Nova área Equipe → Projetos para administradores e CS: quadro por situação (Ideias, Planejado, Em andamento, Em revisão, Concluído; Cancelado sob demanda), busca, filtro por pessoa e faixa "Pedem atenção".

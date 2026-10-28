@@ -180,3 +180,10 @@ export const memberInput = z
     avatar: avatarInput,
   })
   .strict();
+/** Nova senha definida pelo administrador para um usuário (mesma régua da senha inicial). */
+export const memberPasswordInput = z
+  .object({
+    id: z.string().uuid(),
+    password: z.string().min(8).max(128),
+  })
+  .strict();
