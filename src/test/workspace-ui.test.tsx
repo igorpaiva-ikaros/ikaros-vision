@@ -39,6 +39,9 @@ vi.mock("@/lib/workspace.functions", () => ({
   getScheduledTasks: async () => [],
   saveScheduledTask: vi.fn(),
 }));
+vi.mock("@/lib/team-projects.functions", () => ({
+  getTeamProjects: async () => ({ projects: [], steps: [], members: [] }),
+}));
 vi.mock("@/lib/bi-context", () => ({
   useBi: () => ({
     session: { user: { id: "00000000-0000-4000-8000-000000000001" } },
