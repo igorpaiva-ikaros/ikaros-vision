@@ -782,4 +782,35 @@ test("Equipe → Projetos: escolhe quem vê e os participantes", async ({ page }
     visibility: "team",
     participants: ["00000000-0000-4000-8000-000000000002"],
   });
+
+test("Agenda: prazo de projeto aparece no dia, na aba do time, e abre o projeto", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const today = new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Sao_Paulo" }).format(
+    new Date(),
+  );
+  const label = `${today.slice(8, 10)}/${today.slice(5, 7)}`;
+  await page.goto("/projetos");
+  await page.getByRole("button", { name: "Novo projeto" }).click();
+  const form = page.getByRole("dialog");
+  await form.getByLabel("Título *", { exact: true }).fill("Projeto com entrega hoje");
+  await form.getByLabel("Prazo de entrega", { exact: true }).fill(today);
+  await form.getByRole("button", { name: "Criar projeto", exact: true }).click();
+  await expect(
+    page.getByRole("dialog").getByRole("heading", { name: "Projeto com entrega hoje" }),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.locator("aside").getByRole("link", { name: "Tarefas", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Calendário semanal de tarefas" })).toBeVisible();
+  await page.getByRole("button", { name: new RegExp(`^Prazos de ${label}:`) }).click();
+  const agenda = page.getByRole("dialog");
+  await expect(agenda.getByRole("heading", { name: /Agenda de/ })).toBeVisible();
+  await agenda.getByRole("tab", { name: /Time e projetos/ }).click();
+  await expect(agenda.getByRole("tabpanel")).toContainText("Entrega do projeto");
+  await agenda.getByRole("button", { name: /Projeto com entrega hoje/ }).click();
+  await expect(page).toHaveURL(/\/projetos\?id=/);
+  await expect(
+    page.getByRole("dialog").getByRole("heading", { name: "Projeto com entrega hoje" }),
+  ).toBeVisible();
 });

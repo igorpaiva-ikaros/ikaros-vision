@@ -1,3 +1,9 @@
+## 2026-10-29 — Prazos de demandas e projetos na agenda
+
+- Operação → Tarefas: faixa "Prazos" na semana e dias sublinhados no mini calendário onde há prazo de demanda ou de projeto.
+- Clicar no dia abre a Agenda do dia, com as abas Demandas de clientes e Time e projetos (projetos, etapas e demandas internas); cada item abre a demanda ou o projeto.
+- Datas lidas dos próprios registros (entrega combinada ou SLA de entrega da demanda; início, entrega e etapas do projeto), sem cópia nem migration. Canceladas fora; testes só com Mostrar testes.
+
 ## 2026-10-28 — Projetos: quem vê e participantes
 
 - Ao criar ou em Editar dados, quem gerencia escolhe quem vê o projeto: Todo o time (padrão, como antes) ou Só quem eu escolher; e marca na lista de usuários do Vision os participantes (CS, administradores ou equipe técnica).
