@@ -1,7 +1,8 @@
 ## 2026-10-28 — Projetos: quem vê e participantes
 
-- Ao criar ou em Editar dados, quem gerencia escolhe quem vê o projeto: Toda a equipe (padrão, como antes) ou Só participantes; e marca os participantes (CS, administradores ou equipe técnica).
-- Só participantes: veem quem criou, o responsável, os responsáveis por etapa, os participantes marcados e os administradores. Quem não participa não vê o projeto, as etapas, a conversa, os anexos nem os avisos dele.
+- Ao criar ou em Editar dados, quem gerencia escolhe quem vê o projeto: Todo o time (padrão, como antes) ou Só quem eu escolher; e marca na lista de usuários do Vision os participantes (CS, administradores ou equipe técnica).
+- Botão "Alterar quem vê" no detalhe do projeto.
+- Só quem eu escolher: veem quem criou, o responsável, os responsáveis por etapa, os participantes marcados e os administradores. Quem não participa não vê o projeto, as etapas, a conversa, os anexos nem os avisos dele.
 - Participantes recebem os avisos do projeto; quem é incluído recebe "Você foi incluído no projeto". Cadeado no card e linha "Quem vê" no detalhe. Linha do tempo registra mudanças de visibilidade e de participantes.
 - Migration `20261028180000_team_project_visibility.sql` (coluna `visibility`, tabela `team_project_participants`, regra `team_project_can_view`); projetos existentes continuam visíveis para toda a equipe.
 

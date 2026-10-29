@@ -219,10 +219,11 @@ describe("Equipe → Projetos", () => {
     fireEvent.change(within(dialog).getByLabelText("Título *"), {
       target: { value: "Pauta restrita" },
     });
-    fireEvent.change(within(dialog).getByLabelText("Quem vê o projeto"), {
-      target: { value: "participants" },
-    });
+    const who = within(dialog).getByRole("radiogroup", { name: "Quem vê o projeto" });
+    expect(within(who).getByLabelText("Todo o time")).toBeChecked();
+    fireEvent.click(within(who).getByLabelText("Só quem eu escolher"));
     expect(within(dialog).getByText(/Administradores sempre veem/)).toBeVisible();
+    expect(within(dialog).getByText("Quem pode ver")).toBeVisible();
     const group = within(dialog).getByRole("group", { name: "Participantes do projeto" });
     fireEvent.click(within(group).getByLabelText("Eduardo CS"));
     fireEvent.click(within(dialog).getByRole("button", { name: "Criar projeto" }));
@@ -251,17 +252,18 @@ describe("Equipe → Projetos", () => {
     mount(project);
     const dialog = await screen.findByRole("dialog");
     const who = within(dialog).getByLabelText("Quem vê o projeto");
-    expect(who).toHaveTextContent("Quem vê: Só participantes");
+    expect(who).toHaveTextContent("Quem vê: Só quem eu escolher");
     expect(who).toHaveTextContent("Participantes: Igor CS, Eduardo CS");
     expect(who).toHaveTextContent("administradores também veem");
-    fireEvent.click(within(dialog).getByRole("button", { name: /Editar dados/ }));
+    fireEvent.click(within(who).getByRole("button", { name: "Alterar quem vê" }));
     const edit = screen.getByRole("dialog", { name: "Editar PRJ-00001" });
     const group = within(edit).getByRole("group", { name: "Participantes do projeto" });
     expect(within(group).getByLabelText("Eduardo CS")).toBeChecked();
-    fireEvent.click(within(group).getByLabelText("Eduardo CS"));
-    fireEvent.change(within(edit).getByLabelText("Quem vê o projeto"), {
-      target: { value: "team" },
-    });
+    fireEvent.click(within(group).getByRole("button", { name: "Marcar todos" }));
+    expect(within(group).getByLabelText("Igor CS")).toBeChecked();
+    fireEvent.click(within(group).getByRole("button", { name: "Limpar" }));
+    expect(within(group).getByLabelText("Eduardo CS")).not.toBeChecked();
+    fireEvent.click(within(edit).getByLabelText("Todo o time"));
     fireEvent.click(within(edit).getByRole("button", { name: "Salvar alterações" }));
     await waitFor(() =>
       expect(mocks.save).toHaveBeenCalledWith({

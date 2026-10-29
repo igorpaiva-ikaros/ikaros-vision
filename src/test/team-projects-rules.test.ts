@@ -175,7 +175,7 @@ describe("Projetos — quem vê e participantes", () => {
     ]);
   });
   it("rótulos de visibilidade", () => {
-    expect(visibilityLabel("team")).toBe("Toda a equipe");
-    expect(visibilityLabel("participants")).toBe("Só participantes");
+    expect(visibilityLabel("team")).toBe("Todo o time");
+    expect(visibilityLabel("participants")).toBe("Só quem eu escolher");
   });
 });

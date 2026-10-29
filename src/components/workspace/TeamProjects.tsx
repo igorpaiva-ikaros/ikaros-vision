@@ -374,7 +374,7 @@ function ProjectCard({
       <div className="flex items-start justify-between gap-2">
         <span className="flex items-center gap-1 font-mono text-xs text-muted-foreground">
           {project.visibility === "participants" && (
-            <Lock aria-label="Só participantes veem" className="h-3 w-3" />
+            <Lock aria-label="Só pessoas escolhidas veem" className="h-3 w-3" />
           )}
           {project.code} · {project.priority}
         </span>

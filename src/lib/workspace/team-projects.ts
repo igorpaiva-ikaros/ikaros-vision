@@ -44,14 +44,14 @@ export type ProjectPriority = (typeof PROJECT_PRIORITIES)[number];
 export const PROJECT_VISIBILITIES = [
   {
     key: "team",
-    label: "Toda a equipe",
-    guide: "Administradores, CS e equipe técnica veem o projeto.",
+    label: "Todo o time",
+    guide: "Todo o time vê o projeto: administradores, CS e equipe técnica.",
   },
   {
     key: "participants",
-    label: "Só participantes",
+    label: "Só quem eu escolher",
     guide:
-      "Só quem criou, o responsável, os responsáveis por etapa e os participantes marcados. Administradores sempre veem.",
+      "Só as pessoas marcadas abaixo, quem criou, o responsável e os responsáveis por etapa. Administradores sempre veem.",
   },
 ] as const;
 export type ProjectVisibility = (typeof PROJECT_VISIBILITIES)[number]["key"];

@@ -215,28 +215,48 @@ export function ProjectForm({
           </div>
           <fieldset className="space-y-2 rounded-lg border p-3">
             <legend className="px-1 text-sm font-medium">Quem vê e participa</legend>
-            <ProjectField label="Quem vê o projeto">
-              <select
-                aria-label="Quem vê o projeto"
-                className={projectSelectClass}
-                value={visibility}
-                onChange={(e) => setVisibility(e.target.value as ProjectVisibility)}
-              >
-                {PROJECT_VISIBILITIES.map((v) => (
-                  <option key={v.key} value={v.key}>
-                    {v.label}
-                  </option>
-                ))}
-              </select>
-            </ProjectField>
+            <div role="radiogroup" aria-label="Quem vê o projeto" className="flex flex-wrap gap-2">
+              {PROJECT_VISIBILITIES.map((v) => (
+                <label
+                  key={v.key}
+                  className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm ${visibility === v.key ? "border-primary bg-primary/10 font-medium" : ""}`}
+                >
+                  <input
+                    type="radio"
+                    name="project-visibility"
+                    value={v.key}
+                    checked={visibility === v.key}
+                    onChange={() => setVisibility(v.key as ProjectVisibility)}
+                  />
+                  {v.label}
+                </label>
+              ))}
+            </div>
             <p className="text-xs text-muted-foreground">
               {PROJECT_VISIBILITIES.find((v) => v.key === visibility)?.guide}
             </p>
             <div role="group" aria-label="Participantes do projeto" className="space-y-1">
-              <p className="text-sm font-medium">Participantes</p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-medium">
+                  {visibility === "participants" ? "Quem pode ver" : "Participantes"}
+                </p>
+                <div className="flex gap-1">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setChosen(members.map((m) => m.id))}
+                  >
+                    Marcar todos
+                  </Button>
+                  <Button type="button" size="sm" variant="ghost" onClick={() => setChosen([])}>
+                    Limpar
+                  </Button>
+                </div>
+              </div>
               <p className="text-xs text-muted-foreground">
-                Quem criou, o responsável e os responsáveis por etapa já participam. Participantes
-                recebem os avisos do projeto.
+                Todos os usuários ativos do Vision. Quem criou, o responsável e os responsáveis por
+                etapa já participam. Participantes recebem os avisos do projeto.
               </p>
               <div className="grid gap-1 sm:grid-cols-2">
                 {members.map((m) => (

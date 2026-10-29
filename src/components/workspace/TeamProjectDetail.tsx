@@ -128,7 +128,7 @@ export function TeamProjectDetail({
             {memberName(members, project.created_by)}
           </DialogDescription>
         </DialogHeader>
-        <p aria-label="Quem vê o projeto" className="flex flex-wrap items-center gap-1 text-xs">
+        <div aria-label="Quem vê o projeto" className="flex flex-wrap items-center gap-1 text-xs">
           {project.visibility === "participants" && <Lock className="h-3.5 w-3.5" />}
           <span className="font-medium">Quem vê: {visibilityLabel(project.visibility)}</span>
           <span className="text-muted-foreground">
@@ -138,7 +138,12 @@ export function TeamProjectDetail({
               .join(", ")}
             {project.visibility === "participants" && " · administradores também veem"}
           </span>
-        </p>
+          {manager && !closed && (
+            <Button size="sm" variant="ghost" className="h-7" onClick={() => setEditing(true)}>
+              Alterar quem vê
+            </Button>
+          )}
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <SignalPill signal={signal} />
           <span className="text-xs text-muted-foreground">
