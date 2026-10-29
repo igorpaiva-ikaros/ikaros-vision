@@ -1480,6 +1480,49 @@ export type Database = {
           },
         ]
       }
+      team_project_participants: {
+        Row: {
+          added_by: string
+          created_at: string
+          project_id: string
+          user_id: string
+        }
+        Insert: {
+          added_by: string
+          created_at?: string
+          project_id: string
+          user_id: string
+        }
+        Update: {
+          added_by?: string
+          created_at?: string
+          project_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_project_participants_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_project_participants_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "team_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_project_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_project_steps: {
         Row: {
           assignee_id: string | null
@@ -1562,6 +1605,7 @@ export type Database = {
           title: string
           updated_at: string
           version: number
+          visibility: string
         }
         Insert: {
           cancel_reason?: string | null
@@ -1580,6 +1624,7 @@ export type Database = {
           title: string
           updated_at?: string
           version?: number
+          visibility?: string
         }
         Update: {
           cancel_reason?: string | null
@@ -1598,6 +1643,7 @@ export type Database = {
           title?: string
           updated_at?: string
           version?: number
+          visibility?: string
         }
         Relationships: [
           {
@@ -2158,6 +2204,7 @@ export type Database = {
           title: string
           updated_at: string
           version: number
+          visibility: string
         }
         SetofOptions: {
           from: "*"
@@ -2340,6 +2387,7 @@ export type Database = {
           title: string
           updated_at: string
           version: number
+          visibility: string
         }
         SetofOptions: {
           from: "*"
@@ -2367,6 +2415,7 @@ export type Database = {
           title: string
           updated_at: string
           version: number
+          visibility: string
         }
         SetofOptions: {
           from: "*"
@@ -2478,6 +2527,7 @@ export type Database = {
           title: string
           updated_at: string
           version: number
+          visibility: string
         }
         SetofOptions: {
           from: "*"
@@ -2505,6 +2555,7 @@ export type Database = {
           title: string
           updated_at: string
           version: number
+          visibility: string
         }
         SetofOptions: {
           from: "*"
@@ -2546,6 +2597,7 @@ export type Database = {
           title: string
           updated_at: string
           version: number
+          visibility: string
         }
         SetofOptions: {
           from: "*"
@@ -2638,6 +2690,10 @@ export type Database = {
         Args: { _project: string; _uid: string }
         Returns: boolean
       }
+      team_project_can_view: {
+        Args: { _project: string; _uid: string }
+        Returns: boolean
+      }
       team_project_lock: {
         Args: { _id: string; _manage: boolean; _version: number }
         Returns: {
@@ -2657,6 +2713,7 @@ export type Database = {
           title: string
           updated_at: string
           version: number
+          visibility: string
         }
         SetofOptions: {
           from: "*"
@@ -2669,13 +2726,22 @@ export type Database = {
         Args: { _body: string; _file?: string; _kind: string; _project: string }
         Returns: undefined
       }
+      team_project_member: { Args: { _uid: string }; Returns: boolean }
       team_project_members: { Args: never; Returns: Json }
       team_project_notice: {
         Args: { _project: string; _recipients: string[]; _title: string }
         Returns: undefined
       }
       team_project_of_path: { Args: { _path: string }; Returns: string }
+      team_project_participant_names: {
+        Args: { _project: string }
+        Returns: string
+      }
       team_project_people: { Args: { _project: string }; Returns: string[] }
+      team_project_set_participants: {
+        Args: { _list: Json; _project: string }
+        Returns: string[]
+      }
       team_project_status_label: { Args: { _status: string }; Returns: string }
       team_project_step_values: {
         Args: { _data: Json }
