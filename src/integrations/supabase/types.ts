@@ -2669,6 +2669,7 @@ export type Database = {
         Args: { _body: string; _file?: string; _kind: string; _project: string }
         Returns: undefined
       }
+      team_project_member: { Args: { _uid: string }; Returns: boolean }
       team_project_members: { Args: never; Returns: Json }
       team_project_notice: {
         Args: { _project: string; _recipients: string[]; _title: string }

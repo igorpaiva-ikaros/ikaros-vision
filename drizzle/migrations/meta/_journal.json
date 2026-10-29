@@ -57,6 +57,13 @@
       "when": 1793124397514,
       "tag": "0007_client_confirmed_completion",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793293249527,
+      "tag": "0008_team_projects_technical",
+      "breakpoints": true
     }
   ]
 }
