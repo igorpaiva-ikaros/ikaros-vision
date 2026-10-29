@@ -782,6 +782,7 @@ test("Equipe → Projetos: escolhe quem vê e os participantes", async ({ page }
     visibility: "team",
     participants: ["00000000-0000-4000-8000-000000000002"],
   });
+});
 
 test("Agenda: prazo de projeto aparece no dia, na aba do time, e abre o projeto", async ({
   page,
