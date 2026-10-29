@@ -14,6 +14,9 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { useBi } from "@/lib/bi-context";
 import { getScheduledTasks, saveScheduledTask } from "@/lib/workspace.functions";
+import { getTeamProjects } from "@/lib/team-projects.functions";
+import { agendaEvents, countByDay, eventsOn } from "@/lib/workspace/agenda";
+import { AgendaDay } from "./AgendaDay";
 import type { OperationState, ScheduledTask, Entity } from "@/lib/workspace/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -270,12 +273,22 @@ export function Tasks({
 }) {
   const { session, includeTests } = useBi();
   const get = useServerFn(getScheduledTasks);
+  const getProjects = useServerFn(getTeamProjects);
   const [filter, setFilter] = useState("all");
   const [day, setDay] = useState(() => taskDay(new Date()));
   const [view, setView] = useState("week");
+  const [agendaDay, setAgendaDay] = useState<string | null>(null);
   const q = useQuery({
     queryKey: ["scheduled-tasks", session?.user.id],
     queryFn: () => get(),
+    staleTime: 30000,
+    refetchInterval: 30000,
+    retry: false,
+  });
+  // Prazos de projetos do time: mesma leitura (e cache) da aba Equipe → Projetos.
+  const projects = useQuery({
+    queryKey: ["team-projects", session?.user.id],
+    queryFn: () => getProjects(),
     staleTime: 30000,
     refetchInterval: 30000,
     retry: false,
@@ -319,6 +332,21 @@ export function Tasks({
     ["Esta semana", todayWeek[0]!, todayWeek[6]!],
     ["Este mês", monthStart, monthEnd],
   ].map(([label, start, end]) => ({ label, ...periodProgress(all, start!, end!) }));
+  const term = search.toLowerCase();
+  const agenda = agendaEvents({
+    demands: ds.demands,
+    clients: ds.clients,
+    people: ds.people ?? [],
+    projects: projects.data?.projects ?? [],
+    steps: projects.data?.steps ?? [],
+    includeTests,
+    today,
+  }).filter((e) => `${e.code} ${e.title} ${e.detail}`.toLowerCase().includes(term));
+  const perDay = countByDay(agenda);
+  const openDay = (d: string) => {
+    setDay(d);
+    setAgendaDay(d);
+  };
   const weekly = rows.filter((t) => days.includes(taskDay(t.due_at)));
   const minHour = Math.min(7, ...weekly.map((t) => taskHour(t.due_at)));
   const maxHour = Math.max(20, ...weekly.map((t) => taskHour(t.due_at)));
@@ -415,15 +443,26 @@ export function Tasks({
               month={calendarDate(day)}
               onMonthChange={(date) => setDay(taskDay(date))}
               onSelect={(date) => {
-                if (date) setDay(taskDay(date));
+                if (date) openDay(taskDay(date));
+              }}
+              modifiers={{ prazo: [...perDay.keys()].map(calendarDate) }}
+              modifiersClassNames={{
+                prazo:
+                  "[&_button]:font-semibold [&_button]:underline [&_button]:decoration-primary [&_button]:decoration-2 [&_button]:underline-offset-4",
               }}
               locale={ptBR}
               weekStartsOn={1}
             />
             <p className="border-t p-3 text-xs text-muted-foreground">
-              Horário de São Paulo. Selecione um horário vazio para agendar; clique em uma tarefa
-              para editar ou concluir.
+              Horário de São Paulo. Clique em um dia para ver os prazos de demandas de clientes e de
+              projetos do time (dias sublinhados têm prazo). Selecione um horário vazio para
+              agendar; clique em uma tarefa para editar ou concluir.
             </p>
+            {projects.isError && (
+              <p role="status" className="border-t p-3 text-xs text-muted-foreground">
+                Prazos de projetos indisponíveis no momento; demandas e tarefas seguem na agenda.
+              </p>
+            )}
           </aside>
           {view === "list" ? (
             <div className="grid gap-3 sm:grid-cols-2">
@@ -450,7 +489,7 @@ export function Tasks({
                   {days.map((d) => (
                     <button
                       key={d}
-                      onClick={() => setDay(d)}
+                      onClick={() => openDay(d)}
                       className={`border-l p-3 text-center text-xs ${d === today ? "font-bold text-primary" : ""}`}
                     >
                       {calendarDate(d).toLocaleDateString("pt-BR", {
@@ -459,6 +498,31 @@ export function Tasks({
                       })}
                     </button>
                   ))}
+                </div>
+                <div className="grid grid-cols-[48px_repeat(7,minmax(0,1fr))] border-b">
+                  <span className="p-2 text-[10px] uppercase text-muted-foreground">Prazos</span>
+                  {days.map((d) => {
+                    const c = perDay.get(d);
+                    const label = calendarDate(d).toLocaleDateString("pt-BR", {
+                      day: "2-digit",
+                      month: "2-digit",
+                    });
+                    return (
+                      <div key={d} className="border-l p-1">
+                        {c && (
+                          <button
+                            type="button"
+                            aria-label={`Prazos de ${label}: ${c.clients} de clientes e ${c.team} do time${c.late ? `, ${c.late} atrasados` : ""}`}
+                            onClick={() => openDay(d)}
+                            className={`w-full rounded-md border px-2 py-1 text-left text-[11px] hover:border-primary ${c.late ? "border-destructive/40 bg-destructive/10" : "border-primary/30 bg-primary/5"}`}
+                          >
+                            {c.clients > 0 && <span className="block">Clientes: {c.clients}</span>}
+                            {c.team > 0 && <span className="block">Time: {c.team}</span>}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
                 {Array.from({ length: maxHour - minHour + 1 }, (_, i) => i + minHour).map(
                   (hour) => (
@@ -500,6 +564,16 @@ export function Tasks({
             </div>
           )}
         </div>
+      )}
+      {agendaDay && (
+        <AgendaDay
+          day={agendaDay}
+          events={eventsOn(agenda, agendaDay)}
+          tasks={
+            all.filter((t) => t.status !== "canceled" && taskDay(t.due_at) === agendaDay).length
+          }
+          close={() => setAgendaDay(null)}
+        />
       )}
     </div>
   );

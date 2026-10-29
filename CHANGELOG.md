@@ -1,3 +1,9 @@
+## 2026-10-29 — Prazos de demandas e projetos na agenda
+
+- Operação → Tarefas: faixa "Prazos" na semana e dias sublinhados no mini calendário onde há prazo de demanda ou de projeto.
+- Clicar no dia abre a Agenda do dia, com as abas Demandas de clientes e Time e projetos (projetos, etapas e demandas internas); cada item abre a demanda ou o projeto.
+- Datas lidas dos próprios registros (entrega combinada ou SLA de entrega da demanda; início, entrega e etapas do projeto), sem cópia nem migration. Canceladas fora; testes só com Mostrar testes.
+
 ## 2026-10-28 — Projetos para a equipe técnica
 
 - A equipe técnica passa a ver Projetos no menu, ao lado da fila encaminhada e das notificações: lê todos os projetos, cria, comenta, anexa, pode ser responsável por projeto ou etapa e recebe os avisos de projeto.
