@@ -3,6 +3,7 @@ import { assertWorkspace, checkResult } from "./access.server";
 import {
   ACTIVITY_COLUMNS,
   FILE_COLUMNS,
+  PARTICIPANT_COLUMNS,
   PROJECT_COLUMNS,
   STEP_COLUMNS,
   type TeamMember,
@@ -10,6 +11,7 @@ import {
   type TeamProjectActivity,
   type TeamProjectDetail,
   type TeamProjectFile,
+  type TeamProjectParticipant,
   type TeamProjectStep,
   type TeamProjectsState,
 } from "./team-projects";
@@ -30,18 +32,27 @@ async function pages<T>(
 export async function teamProjectsState(context: AuthContext): Promise<TeamProjectsState> {
   await assertWorkspace(context);
   const db = context.supabase;
-  const [projects, steps, members] = await Promise.all([
+  const [projects, steps, participants, members] = await Promise.all([
     pages<TeamProject>((from, to) =>
       db.from("team_projects").select(PROJECT_COLUMNS).order("id").range(from, to),
     ),
     pages<TeamProjectStep>((from, to) =>
       db.from("team_project_steps").select(STEP_COLUMNS).order("id").range(from, to),
     ),
+    pages<TeamProjectParticipant>((from, to) =>
+      db
+        .from("team_project_participants")
+        .select(PARTICIPANT_COLUMNS)
+        .order("project_id")
+        .order("user_id")
+        .range(from, to),
+    ),
     db.rpc("team_project_members"),
   ]);
   return {
     projects,
     steps,
+    participants,
     members: (checkResult(members) ?? []) as TeamMember[],
   };
 }

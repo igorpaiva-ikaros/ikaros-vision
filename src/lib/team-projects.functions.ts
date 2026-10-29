@@ -33,6 +33,8 @@ export const projectDataInput = z
     start_date: day.optional(),
     due_date: day.optional(),
     steps: z.array(projectStepInput).max(50).optional(),
+    visibility: z.enum(["team", "participants"]).optional(),
+    participants: z.array(uuid).max(100).optional(),
   })
   .strict()
   .refine((v) => !v.start_date || !v.due_date || v.start_date <= v.due_date, {

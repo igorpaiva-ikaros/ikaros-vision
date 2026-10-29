@@ -7,6 +7,7 @@ const state: any = {
   ],
   projects: [] as any[],
   steps: [] as any[],
+  participants: [] as any[],
   activity: [] as any[],
   files: [] as any[],
 };
@@ -38,6 +39,7 @@ export async function getTeamProjects() {
   return structuredClone({
     projects: state.projects,
     steps: state.steps,
+    participants: state.participants,
     members: state.members,
   });
 }
@@ -65,11 +67,14 @@ export async function saveTeamProject({ data }: any) {
       completed_at: null,
       canceled_at: null,
       cancel_reason: null,
+      visibility: v.visibility ?? "team",
       version: 1,
       created_at: now(),
       updated_at: now(),
     };
     state.projects.push(p);
+    for (const user of v.participants ?? [])
+      state.participants.push({ project_id: p.id, user_id: user });
     log(p.id, "created", "Projeto criado");
     (v.steps ?? []).forEach((s: any, i: number) =>
       state.steps.push({
@@ -89,7 +94,13 @@ export async function saveTeamProject({ data }: any) {
     return structuredClone(p);
   }
   const p = lock(data.id, data.version);
-  Object.assign(p, v);
+  const { participants, ...fields } = v;
+  Object.assign(p, fields);
+  if (participants) {
+    state.participants = state.participants.filter((x: any) => x.project_id !== p.id);
+    for (const user of participants) state.participants.push({ project_id: p.id, user_id: user });
+  }
+  (window as any).qaSavedProject = structuredClone(v);
   log(p.id, "edit", "Dados do projeto atualizados");
   return structuredClone(p);
 }

@@ -7,9 +7,12 @@ import {
   currentStep,
   daysUntil,
   deadlineSignal,
+  participantsOf,
   progress,
+  projectPeople,
   projectSignal,
   saoPauloToday,
+  visibilityLabel,
   type TeamProject,
   type TeamProjectStep,
 } from "@/lib/workspace/team-projects";
@@ -29,6 +32,7 @@ const project = (over: Partial<TeamProject> = {}): TeamProject => ({
   completed_at: null,
   canceled_at: null,
   cancel_reason: null,
+  visibility: "team",
   version: 1,
   created_at: "2026-10-01T12:00:00Z",
   updated_at: "2026-10-01T12:00:00Z",
@@ -146,5 +150,32 @@ describe("Permissões espelhadas do banco", () => {
     expect(canMoveProject(project({ status: "concluido" }), steps, owner, "em_andamento")).toBe(
       true,
     );
+  });
+});
+
+describe("Projetos — quem vê e participantes", () => {
+  it("participantes reúnem quem criou, responsável, responsáveis por etapa e adicionados, sem repetir", () => {
+    const steps = [
+      step({ id: "s1", assignee_id: "tech" }),
+      step({ id: "s2", assignee_id: "owner" }),
+      step({ id: "s3", project_id: "p2", assignee_id: "other" }),
+      step({ id: "s4", assignee_id: null }),
+    ];
+    const participants = [
+      { project_id: "p1", user_id: "cs2" },
+      { project_id: "p1", user_id: "tech" },
+      { project_id: "p2", user_id: "cs3" },
+    ];
+    expect(participantsOf(participants, "p1")).toEqual(["cs2", "tech"]);
+    expect(projectPeople(project(), steps, participants)).toEqual([
+      "creator",
+      "owner",
+      "tech",
+      "cs2",
+    ]);
+  });
+  it("rótulos de visibilidade", () => {
+    expect(visibilityLabel("team")).toBe("Todo o time");
+    expect(visibilityLabel("participants")).toBe("Só quem eu escolher");
   });
 });

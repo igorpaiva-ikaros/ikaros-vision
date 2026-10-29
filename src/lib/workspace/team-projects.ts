@@ -1,6 +1,7 @@
 /**
  * Projetos da equipe — tipos e regras puras da tela (farol de prazo, progresso e atenção).
- * Quem pode gravar e o que cada ação muda é decidido no banco (supabase/migrations/20261027120000_team_projects.sql);
+ * Quem pode gravar, quem vê e o que cada ação muda é decidido no banco (supabase/migrations/20261027120000_team_projects.sql,
+ * 20261028140000_team_projects_technical.sql e 20261028180000_team_project_visibility.sql);
  * aqui só há cálculo de exibição, espelhando as mesmas regras de gerência.
  */
 export const PROJECT_STATUSES = [
@@ -39,6 +40,21 @@ export type ProjectStatus = (typeof PROJECT_STATUSES)[number]["key"];
 export const OPEN_STATUSES: ProjectStatus[] = ["ideia", "planejado", "em_andamento", "em_revisao"];
 export const PROJECT_PRIORITIES = ["Baixa", "Normal", "Alta", "Crítica"] as const;
 export type ProjectPriority = (typeof PROJECT_PRIORITIES)[number];
+/** Quem vê o projeto: toda a equipe ou só participantes (administradores sempre veem). */
+export const PROJECT_VISIBILITIES = [
+  {
+    key: "team",
+    label: "Todo o time",
+    guide: "Todo o time vê o projeto: administradores, CS e equipe técnica.",
+  },
+  {
+    key: "participants",
+    label: "Só quem eu escolher",
+    guide:
+      "Só as pessoas marcadas abaixo, quem criou, o responsável e os responsáveis por etapa. Administradores sempre veem.",
+  },
+] as const;
+export type ProjectVisibility = (typeof PROJECT_VISIBILITIES)[number]["key"];
 /** Janela de "vence em breve", em dias corridos. */
 export const DUE_SOON_DAYS = 3;
 
@@ -56,6 +72,7 @@ export interface TeamProject {
   completed_at: string | null;
   canceled_at: string | null;
   cancel_reason: string | null;
+  visibility: ProjectVisibility;
   version: number;
   created_at: string;
   updated_at: string;
@@ -100,6 +117,11 @@ export interface TeamProjectActivity {
   file_id: string | null;
   created_at: string;
 }
+/** Pessoa adicionada como participante do projeto (além de quem criou, responsável e etapas). */
+export interface TeamProjectParticipant {
+  project_id: string;
+  user_id: string;
+}
 export interface TeamMember {
   id: string;
   full_name: string;
@@ -107,6 +129,7 @@ export interface TeamMember {
 export interface TeamProjectsState {
   projects: TeamProject[];
   steps: TeamProjectStep[];
+  participants: TeamProjectParticipant[];
   members: TeamMember[];
 }
 export interface TeamProjectDetail {
@@ -115,7 +138,8 @@ export interface TeamProjectDetail {
 }
 
 export const PROJECT_COLUMNS =
-  "id,code,title,context,status,priority,owner_id,created_by,start_date,due_date,completed_at,canceled_at,cancel_reason,version,created_at,updated_at";
+  "id,code,title,context,status,priority,owner_id,created_by,start_date,due_date,completed_at,canceled_at,cancel_reason,visibility,version,created_at,updated_at";
+export const PARTICIPANT_COLUMNS = "project_id,user_id";
 export const STEP_COLUMNS =
   "id,project_id,position,title,description,assignee_id,due_date,done_at,done_by";
 export const FILE_COLUMNS =
@@ -255,6 +279,30 @@ export function canMoveProject(
     OPEN_STATUSES.includes(to) &&
     steps.some((s) => s.project_id === project.id && s.assignee_id === user.id)
   );
+}
+export function visibilityLabel(visibility: string) {
+  return PROJECT_VISIBILITIES.find((v) => v.key === visibility)?.label ?? visibility;
+}
+/** Participantes adicionados ao projeto (lista editável). */
+export function participantsOf(participants: TeamProjectParticipant[], project: string) {
+  return participants.filter((p) => p.project_id === project).map((p) => p.user_id);
+}
+/**
+ * Todos que participam do projeto, na mesma régua do banco (team_project_can_view, sem contar
+ * administradores): quem criou, o responsável, os responsáveis por etapa e os participantes adicionados.
+ */
+export function projectPeople(
+  project: Pick<TeamProject, "id" | "created_by" | "owner_id">,
+  steps: TeamProjectStep[],
+  participants: TeamProjectParticipant[],
+) {
+  const ids = [
+    project.created_by,
+    project.owner_id,
+    ...steps.filter((s) => s.project_id === project.id).map((s) => s.assignee_id),
+    ...participantsOf(participants, project.id),
+  ];
+  return [...new Set(ids.filter((id): id is string => !!id))];
 }
 export function memberName(members: TeamMember[], id: string | null | undefined) {
   if (!id) return "Sem responsável";

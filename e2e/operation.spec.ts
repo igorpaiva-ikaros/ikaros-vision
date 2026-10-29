@@ -742,6 +742,48 @@ test("Equipe → Projetos: cria com etapas, conclui etapa e conversa na linha do
   await expect(column).toContainText("Agora: Implementar envio · CS Colega");
 });
 
+test("Equipe → Projetos: escolhe quem vê e os participantes", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto("/projetos");
+  await page.getByRole("button", { name: "Novo projeto" }).click();
+  const form = page.getByRole("dialog");
+  await form.getByLabel("Título *", { exact: true }).fill("Pauta restrita do time técnico");
+  await form
+    .getByRole("radiogroup", { name: "Quem vê o projeto" })
+    .getByLabel("Só quem eu escolher", { exact: true })
+    .check();
+  await expect(form.getByText(/Administradores sempre veem/)).toBeVisible();
+  await form
+    .getByRole("group", { name: "Participantes do projeto" })
+    .getByLabel("CS Colega", { exact: true })
+    .check();
+  await form.getByRole("button", { name: "Criar projeto", exact: true }).click();
+  const detail = page.getByRole("dialog");
+  await expect(detail.getByText("Quem vê: Só quem eu escolher")).toBeVisible();
+  await expect(detail.getByText(/Participantes: .*CS Colega/)).toBeVisible();
+  expect(await page.evaluate(() => (window as any).qaSavedProject)).toMatchObject({
+    visibility: "participants",
+    participants: ["00000000-0000-4000-8000-000000000002"],
+  });
+  await detail.getByRole("button", { name: "Alterar quem vê" }).click();
+  const edit = page.getByRole("dialog").filter({ hasText: "Editar PRJ-" });
+  await expect(
+    edit
+      .getByRole("group", { name: "Participantes do projeto" })
+      .getByLabel("CS Colega", { exact: true }),
+  ).toBeChecked();
+  await edit
+    .getByRole("radiogroup", { name: "Quem vê o projeto" })
+    .getByLabel("Todo o time", { exact: true })
+    .check();
+  await edit.getByRole("button", { name: "Salvar alterações", exact: true }).click();
+  await expect(page.getByRole("dialog").getByText("Quem vê: Todo o time")).toBeVisible();
+  expect(await page.evaluate(() => (window as any).qaSavedProject)).toMatchObject({
+    visibility: "team",
+    participants: ["00000000-0000-4000-8000-000000000002"],
+  });
+});
+
 test("Agenda: prazo de projeto aparece no dia, na aba do time, e abre o projeto", async ({
   page,
 }) => {
